@@ -20,7 +20,7 @@ type SalesEvidenceInput = {
 
 const expectedRole =
   "arn:aws:iam::009073575420:role/livenation-demo-harness";
-const expectedModel = "us.openai.gpt-6-luna";
+const expectedModel = "moonshotai.kimi-k2.5";
 const allowedTool = "get_sales_evidence";
 const showIds = new Set(["east_show", "west_show"]);
 const regions = new Set(["east", "west"]);
@@ -168,7 +168,9 @@ export function assertHarnessSetup(value: unknown): void {
   );
   const model = value.model.bedrockModelConfig;
   if (model.modelId !== expectedModel || model.apiFormat !== "converse_stream") {
-    throw new Error("Only the planned Bedrock Converse Stream model route is allowed");
+    throw new Error(
+      "Only the direct moonshotai.kimi-k2.5 Converse Stream model route is allowed",
+    );
   }
   requireNumberInRange(model.maxTokens, 1, 1024, "bedrockModelConfig.maxTokens");
 

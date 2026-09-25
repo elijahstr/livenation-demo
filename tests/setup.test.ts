@@ -101,11 +101,30 @@ describe("assertSyntheticSalesFixture", () => {
 });
 
 describe("assertHarnessSetup", () => {
+  test("accepts direct Kimi and rejects Luna or prefixed Kimi", async () => {
+    const candidate = await plannedHarness();
+    assertHarnessSetup(candidate);
+
+    candidate.model = { bedrockModelConfig: {
+      modelId: "moonshotai.kimi-k2.5", apiFormat: "converse_stream", maxTokens: 1024,
+    } };
+    expect(() => assertHarnessSetup(candidate)).not.toThrow();
+
+    for (const modelId of ["us.openai.gpt-6-luna", "us.moonshotai.kimi-k2.5"]) {
+      candidate.model = { bedrockModelConfig: {
+        modelId, apiFormat: "converse_stream", maxTokens: 1024,
+      } };
+      expect(() => assertHarnessSetup(candidate)).toThrow(
+        "Only the direct moonshotai.kimi-k2.5 Converse Stream model route is allowed",
+      );
+    }
+  });
+
   test("rejects provider parameter overrides", async () => {
     const candidate = await plannedHarness();
     assertHarnessSetup(candidate);
     candidate.model = { bedrockModelConfig: {
-      modelId: "us.openai.gpt-6-luna", apiFormat: "converse_stream", maxTokens: 1024,
+      modelId: "moonshotai.kimi-k2.5", apiFormat: "converse_stream", maxTokens: 1024,
       additionalParams: { endpoint_url: "https://invalid.example" },
     } };
     expect(() => assertHarnessSetup(candidate)).toThrow("unknown key additionalParams");

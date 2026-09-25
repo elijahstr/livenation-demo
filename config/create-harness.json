@@ -14,7 +14,7 @@
   },
   "model": {
     "bedrockModelConfig": {
-      "modelId": "us.openai.gpt-6-luna",
+      "modelId": "moonshotai.kimi-k2.5",
       "apiFormat": "converse_stream",
       "maxTokens": 1024
     }

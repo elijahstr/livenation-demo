@@ -41,8 +41,8 @@ Keep `.terraform.lock.hcl` under version control after its review.
 
 - Verify the non-root deployment identity and its exact permissions.
 - Create the named execution role through a separately reviewed permission change.
-- Limit model access to the Luna inference profile and its documented US destinations.
-- Include `bedrock:InvokeModelWithResponseStream` for the harness model path.
+- Limit model access to direct `moonshotai.kimi-k2.5` in `us-east-1`.
+- Include `bedrock:InvokeModelWithResponseStream` for `arn:aws:bedrock:us-east-1::foundation-model/moonshotai.kimi-k2.5`.
 - Omit `bedrock-agentcore:InvokeAgentRuntimeCommand` from caller permissions.
 - Review telemetry permissions, Transaction Search, and short log retention.
 - Confirm model access and a bounded live test.

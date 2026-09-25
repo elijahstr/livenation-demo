@@ -1,16 +1,29 @@
 {
   "models": [
     {
-      "model_id": "us.openai.gpt-6-luna",
+      "model_id": "moonshotai.kimi-k2.5",
       "provider": "Bedrock",
       "route": "converse_stream",
       "selected": true,
       "comparator": null,
+      "input_usd_per_million_tokens": 0.6,
+      "output_usd_per_million_tokens": 3,
+      "source_checked_on": "2026-09-25",
+      "source_url": "https://aws.amazon.com/bedrock/pricing/",
+      "status": "AWS-published-us-east-1-standard-price-not-a-current-bill-or-price-guarantee"
+    },
+    {
+      "model_id": "us.openai.gpt-6-luna",
+      "provider": "Bedrock",
+      "route": "converse_stream",
+      "selected": false,
+      "comparator": "unselected",
       "input_usd_per_million_tokens": 0.11,
       "output_usd_per_million_tokens": 0.55,
       "source_checked_on": "2026-09-25",
       "source_url": "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-luna.html",
-      "status": "prior-research-estimate-not-a-current-bill-or-price-guarantee"
+      "status": "prior-research-estimate-not-a-current-bill-or-price-guarantee",
+      "comparison_status": "No proven comparison with Kimi exists."
     }
   ]
 }
