@@ -1,0 +1,18 @@
+{
+  "origin": "synthetic",
+  "data_as_of": "2026-09-25T00:00:00Z",
+  "shows": [
+    {
+      "show_id": "east_show",
+      "region": "east",
+      "tickets_sold_cumulative": 320,
+      "tickets_target_cumulative": 500
+    },
+    {
+      "show_id": "west_show",
+      "region": "west",
+      "tickets_sold_cumulative": 410,
+      "tickets_target_cumulative": 500
+    }
+  ]
+}

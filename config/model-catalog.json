@@ -1,0 +1,16 @@
+{
+  "models": [
+    {
+      "model_id": "us.openai.gpt-6-luna",
+      "provider": "Bedrock",
+      "route": "converse_stream",
+      "selected": true,
+      "comparator": null,
+      "input_usd_per_million_tokens": 0.11,
+      "output_usd_per_million_tokens": 0.55,
+      "source_checked_on": "2026-09-25",
+      "source_url": "https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-luna.html",
+      "status": "prior-research-estimate-not-a-current-bill-or-price-guarantee"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Managed harness setup bundle</title>
+<style>
+:root,:root[data-theme="dark"],:root[data-theme="light"]{color-scheme:light;--paper:#f8f7f2;--card:#fffefa;--ink:#17302e;--muted:#526764;--line:#d5ddd6;--accent:#126d69;--accent-soft:#dcefeb;--warn:#9a4d20;--warn-soft:#fff0e6;--future:#6c5ca8;--future-soft:#eeeafb;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink)}main{max-width:960px;margin:auto;padding:52px 24px 72px}.eyebrow{color:var(--accent);font-size:12px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}h1{font-family:ui-serif,Georgia,serif;font-size:clamp(38px,7vw,64px);line-height:1.02;max-width:12ch;margin:12px 0 20px}h2{font-size:17px;margin:0 0 12px}.hero,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px}.hero{border-color:var(--accent);box-shadow:0 14px 38px #17302e12}.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:16px}.card p,.hero p{line-height:1.58;color:var(--muted)}.card ul{padding-left:18px;margin:0}.card li{padding:6px 0;line-height:1.45;color:var(--muted)}.stage{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}.stage div{padding:14px;border-radius:12px;background:var(--accent-soft);font-weight:700;text-align:center}.stage div:last-child{background:var(--future-soft);color:var(--future)}.warn{background:var(--warn-soft);border-color:#efc6ac}.open{border-color:var(--future);background:var(--future-soft)}a{color:var(--accent)}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef2ee;padding:2px 4px;border-radius:4px}@media(max-width:700px){main{padding:32px 16px 48px}.grid{grid-template-columns:1fr}.stage{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<div class="eyebrow">Local configuration plan</div>
+<h1>Managed harness setup bundle</h1>
+<section class="hero"><p>Prepare a local managed AgentCore Harness bundle. The bundle validates configuration and synthetic fixtures without an AWS request.</p>
+<p>The local setup creates no browser, shell, file-operation, skill, Gateway, or direct-command grant. The configuration does not prove absent effective IAM permissions.</p>
+<p>&gt; <strong>Objection.</strong> Do not run <code>agentcore dev</code>. AWS documents that it deploys AWS resources before it starts a local server. <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-get-started.html">Get started</a></p></section>
+<section class="stage" aria-label="Staged local bundle"><div>Configuration</div><div>Local validation</div><div>Deployment authority</div></section>
+<div class="grid"><section class="card"><h2>Locked decisions</h2><ul><li>Use <code>config/create-harness.json</code> as the source of truth for the direct service request and Terraform draft.</li>
+<li>Use <code>harnessName: "livenation_demo"</code>.</li>
+<li>Use the planned role ARN <code>arn:aws:iam::009073575420:role/livenation-demo-harness</code>. The role does not exist in this bundle. The file proves no role, trust policy, or permission.</li>
+<li>Use <code>us-east-1</code>, <code>us.openai.gpt-6-luna</code>, <code>bedrockModelConfig</code>, and <code>apiFormat: "converse_stream"</code>.</li>
+<li>Set the per-model <code>maxTokens</code> to <code>1024</code>. Set the invocation <code>maxTokens</code> to <code>2048</code>.</li>
+<li>Set <code>maxIterations</code> to <code>3</code>, <code>timeoutSeconds</code> to <code>60</code>, <code>idleRuntimeSessionTimeout</code> to <code>60</code>, and <code>maxLifetime</code> to <code>300</code>.</li>
+<li>Set <code>memory</code> to <code>{ "disabled": {} }</code>, <code>skills</code> to <code>[]</code>, and <code>truncation.strategy</code> to <code>sliding_window</code>.</li>
+<li>Use only <code>get_sales_evidence</code> as an <code>inline_function</code>. Set <code>allowedTools</code> to <code>["get_sales_evidence"]</code>.</li>
+<li>Give <code>get_sales_evidence</code> only <code>show_id</code> and <code>region</code>. Allow <code>east_show</code> or <code>west_show</code>, and <code>east</code> or <code>west</code>.</li>
+<li>Keep the region authorization value in trusted caller context. The local handler rejects a region outside that value and rejects unknown input keys.</li>
+<li>Do not grant <code>bedrock-agentcore:InvokeAgentRuntimeCommand</code>. AWS documents that <code>allowedTools</code> does not restrict this separate command API. <a href="https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-tools.html">Harness tools</a></li></ul></section><section class="card warn"><h2>Deployment blocks</h2><ul><li>The planned execution role has no verified existence, trust policy, model permission, telemetry permission, or caller permission.</li>
+<li>AWS account access, Region support, model access, and SigV4 operation require live verification.</li>
+<li>AgentCore Gateway remains a future live requirement. It is not ready in this bundle.</li>
+<li>The inline-function client adapter is absent. A future client must capture model <code>toolUse</code>, validate the request and region, run the local handler, and return the assistant <code>toolUse</code> plus user <code>toolResult</code> in a follow-up <code>InvokeHarness</code> call. Without this adapter, the harness stops with <code>tool_use</code>.</li>
+<li>WorkIQ authentication is absent.</li>
+<li>Databricks service identity is absent.</li>
+<li>The frontend is not built.</li>
+<li>The configured budget thresholds do not cap total AWS charges.</li></ul></section></div>
+<div class="grid"><section class="card"><h2>Staged local bundle</h2><p>1. Add the canonical JSON, local fixture, pure handler, and Bun validator.</p><p>2. Validate JSON shape, fixed model and limits, disabled Memory, no skills, and the single-tool allowlist.</p><p>3. Validate the east and west fixture paths. Reject unknown keys, unknown shows, and cross-region reads.</p><p>4. Generate the AWS CLI input skeleton to confirm operation availability. Do not pass candidate configuration to this command.</p><p>5. Run <code>bun scripts/validate-setup.ts</code>, <code>bun test</code>, and <code>terraform -chdir=infra validate</code>.</p><p>6. Prepare only the Terraform Harness draft. Do not plan or apply the draft.</p></section><section class="card open"><h2>Open questions</h2><ul><li>Grant deployment authority only after review of concrete costs, permissions, Region support, model access, and a final Terraform plan.</li>
+<li>Review the execution role before it exists or receives permissions.</li></ul></section></div>
+<p><a href="../2026-09-25-managed-harness-setup.md">Read the full plan</a></p>
+</main></body></html>

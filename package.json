@@ -1,0 +1,9 @@
+{
+  "name": "livenation-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "validate-setup": "bun run scripts/validate-setup.ts"
+  }
+}

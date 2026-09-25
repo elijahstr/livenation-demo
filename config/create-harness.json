@@ -1,0 +1,59 @@
+{
+  "harnessName": "livenation_demo",
+  "executionRoleArn": "arn:aws:iam::009073575420:role/livenation-demo-harness",
+  "environment": {
+    "agentCoreRuntimeEnvironment": {
+      "lifecycleConfiguration": {
+        "idleRuntimeSessionTimeout": 60,
+        "maxLifetime": 300
+      },
+      "networkConfiguration": {
+        "networkMode": "PUBLIC"
+      }
+    }
+  },
+  "model": {
+    "bedrockModelConfig": {
+      "modelId": "us.openai.gpt-6-luna",
+      "apiFormat": "converse_stream",
+      "maxTokens": 1024
+    }
+  },
+  "systemPrompt": [
+    {
+      "text": "Use only get_sales_evidence. State observed aggregate evidence with its synthetic origin and data_as_of timestamp. Label hypotheses as hypotheses. Do not promise revenue uplift, execute actions, or infer customer data."
+    }
+  ],
+  "tools": [
+    {
+      "type": "inline_function",
+      "name": "get_sales_evidence",
+      "config": {
+        "inlineFunction": {
+          "description": "Read aggregate synthetic ticket-sales evidence for one authorized fictional show region.",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["show_id", "region"],
+            "properties": {
+              "show_id": { "type": "string", "enum": ["east_show", "west_show"] },
+              "region": { "type": "string", "enum": ["east", "west"] }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "skills": [],
+  "allowedTools": ["get_sales_evidence"],
+  "memory": { "disabled": {} },
+  "truncation": { "strategy": "sliding_window" },
+  "maxIterations": 3,
+  "maxTokens": 2048,
+  "timeoutSeconds": 60,
+  "tags": {
+    "project": "livenation-demo",
+    "data-origin": "synthetic",
+    "environment": "local-preparation"
+  }
+}

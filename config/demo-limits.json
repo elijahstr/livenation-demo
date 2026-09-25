@@ -1,0 +1,11 @@
+{
+  "currency": "USD",
+  "target_total_usd": 13,
+  "operational_stop_usd": 15,
+  "absolute_cap_exclusive_usd": 20,
+  "absolute_cap_exclusive": true,
+  "reserve_usd": 5,
+  "retries": 0,
+  "concurrency": 1,
+  "enforcement": "configured-intent-only-not-a-live-budget-control"
+}
