@@ -138,6 +138,7 @@ export function assertHarnessSetup(value: unknown): void {
       "harnessName",
       "executionRoleArn",
       "environment",
+      "environmentVariables",
       "model",
       "systemPrompt",
       "tools",
@@ -159,6 +160,7 @@ export function assertHarnessSetup(value: unknown): void {
   if (value.executionRoleArn !== expectedRole) {
     throw new Error("executionRoleArn must match the planned role ARN");
   }
+  requireOnlyKeys(value.environmentVariables, [], "environmentVariables");
 
   requireOnlyKeys(value.model, ["bedrockModelConfig"], "model");
   requireOnlyKeys(
@@ -224,10 +226,23 @@ export function assertHarnessSetup(value: unknown): void {
   requireOnlyKeys(value.memory, ["disabled"], "memory");
   requireOnlyKeys(value.memory.disabled, [], "memory.disabled");
 
-  requireOnlyKeys(value.truncation, ["strategy"], "truncation");
+  requireOnlyKeys(value.truncation, ["strategy", "config"], "truncation");
   if (value.truncation.strategy !== "sliding_window") {
     throw new Error("truncation.strategy must be sliding_window");
   }
+  requireOnlyKeys(value.truncation.config, ["slidingWindow"], "truncation.config");
+  requireOnlyKeys(
+    value.truncation.config.slidingWindow,
+    ["messagesCount"],
+    "truncation.config.slidingWindow",
+  );
+  // AgentCore returns 150 as the service default. Pin it to prevent Terraform drift.
+  requireNumberInRange(
+    value.truncation.config.slidingWindow.messagesCount,
+    150,
+    150,
+    "truncation.config.slidingWindow.messagesCount",
+  );
   requireNumberInRange(value.maxIterations, 1, 3, "maxIterations");
   requireNumberInRange(value.maxTokens, 1, 2048, "maxTokens");
   requireNumberInRange(value.timeoutSeconds, 1, 60, "timeoutSeconds");
@@ -283,7 +298,7 @@ export function assertHarnessSetup(value: unknown): void {
   requireOnlyKeys(value.tags, ["project", "data-origin", "environment"], "tags");
   if (value.tags.project !== "livenation-demo" ||
       value.tags["data-origin"] !== "synthetic" ||
-      value.tags.environment !== "local-preparation") {
+      value.tags.environment !== "demo") {
     throw new Error("tags must identify the synthetic demo preparation");
   }
 }

@@ -10,3 +10,4 @@ node_modules/
 crash.log
 *.tfvars
 !*.tfvars.example
+outputs/

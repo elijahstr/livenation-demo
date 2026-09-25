@@ -1,10 +1,10 @@
-# Terraform preparation
+# Terraform deployment
 
 This module reads the same harness configuration as the offline checks.
-It declares one managed harness in `us-east-1` for account `009073575420`.
+It manages one harness and its execution role in `us-east-1`.
 AWS also provisions the underlying Runtime resources for the harness.
-The module does not create an execution role, caller permissions, Gateway, or log controls.
-It is not ready to apply.
+The caller bootstrap policy and service-created log group remain outside Terraform.
+The reviewed caller policy source is [`iam-harness-bootstrap-policy.json`](iam-harness-bootstrap-policy.json).
 
 ## Provider
 
@@ -34,25 +34,45 @@ terraform -chdir=infra init -backend=false
 terraform -chdir=infra validate
 ```
 
-These commands install and validate the provider. They do not apply resources.
+These commands install and validate the provider. They do not change resources.
 Keep `.terraform.lock.hcl` under version control after its review.
 
-## Remaining deployment requirements
+## Current deployment
 
-- Verify the non-root deployment identity and its exact permissions.
-- Create the named execution role through a separately reviewed permission change.
-- Limit model access to direct `moonshotai.kimi-k2.5` in `us-east-1`.
-- Include `bedrock:InvokeModelWithResponseStream` for `arn:aws:bedrock:us-east-1::foundation-model/moonshotai.kimi-k2.5`.
-- Omit `bedrock-agentcore:InvokeAgentRuntimeCommand` from caller permissions.
-- Review telemetry permissions, Transaction Search, and short log retention.
-- Confirm model access and a bounded live test.
-- Review the Terraform plan, expected charges, and exact teardown targets before apply.
+- Harness: `livenation_demo`
+- Model: `moonshotai.kimi-k2.5`
+- Memory: disabled
+- Network: public
+- Idle timeout: 60 seconds
+- Maximum lifetime: 300 seconds
+- Runtime log retention: one day
+- Transaction Search: disabled
+
+Terraform reports no changes after refresh.
+The execution role permits only direct Kimi K2.5 invocation in `us-east-1`.
+The caller policy omits `bedrock-agentcore:InvokeAgentRuntimeCommand`.
+AWS requires `Resource: "*"` for the three AgentCore create actions because they support no resource type.
 
 The configured token limits do not cap all AWS charges.
 The project target remains $13, with an operational stop at $15 and a $5 reserve.
 Runtime memory remains billable during idle sessions.
 See [AWS harness cost controls](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-operations.html).
 
-The eventual teardown must remove only this project's confirmed resource IDs.
-After resource deletion, inspect the remaining Runtime resources and log groups.
-Terraform destroy alone does not prove that every charge has stopped.
+## Commands
+
+Use the normal demo profile for plans and teardown:
+
+```sh
+terraform -chdir=infra plan
+terraform -chdir=infra destroy
+```
+
+The initial create used `-var aws_profile=default` because the cached development session lacked a new create-time tag permission.
+Do not use that override for routine work.
+
+The active AWS managed policy is `LiveNationDemoHarnessProvisioning`.
+Update it from the reviewed JSON only after AWS Access Analyzer validation.
+
+After destruction, confirm the harness and Runtime are absent.
+Delete the confirmed Runtime log group with `livenation-demo`.
+Use the root profile to detach and delete `LiveNationDemoHarnessProvisioning` after Terraform no longer needs it.

@@ -10,6 +10,6 @@ terraform {
 
 provider "aws" {
   region              = "us-east-1"
-  profile             = "livenation-demo"
+  profile             = var.aws_profile
   allowed_account_ids = ["009073575420"]
 }

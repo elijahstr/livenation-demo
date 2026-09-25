@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "invoke-harness": "bun run scripts/invoke-harness.ts",
     "test": "bun test",
     "validate-setup": "bun run scripts/validate-setup.ts"
   }

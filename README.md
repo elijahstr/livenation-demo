@@ -27,9 +27,9 @@ The repository already includes:
 - a read-only tool that returns evidence for an approved fictional show;
 - limits that keep the agent focused on evidence and safe recommendations;
 - automated tests and local configuration checks; and
-- the first deployment configuration for a managed demo agent.
+- a live managed AgentCore Harness that uses Kimi K2.5.
 
-The current milestone connects these parts into one live question-and-answer flow.
+The harness completed a live synthetic evidence-tool cycle on September 25, 2026.
 
 ## 🛠️ What comes next
 
@@ -62,6 +62,35 @@ bun run validate-setup
 
 These checks validate the local demo files. They do not create cloud resources or perform outside actions.
 
+## ☁️ Run the live harness check
+
+Use the deployed harness through the `livenation-demo` AWS profile:
+
+```sh
+bun run invoke-harness
+```
+
+The script verifies the AWS SDK bundled with AgentCore CLI 0.30.0.
+It then runs one simple response and one client-side evidence-tool cycle.
+The client processes only `get_sales_evidence` inline calls.
+
+AWS does not document a plain `allowedTools` match for inline functions.
+Kimi did not expose the function with its plain-name allow-list during live tests.
+The trusted demo invocation therefore supplies the inline tool with a wildcard allow-list.
+That wildcard also enables the built-in `shell` and `file_operations` tools for that invocation.
+Do not expose this script to untrusted prompts.
+
+## 🧹 Teardown
+
+Remove the harness and its execution role:
+
+```sh
+terraform -chdir=infra destroy
+```
+
+Delete the confirmed Runtime log group with the `livenation-demo` profile.
+Then use the root profile to detach and delete `LiveNationDemoHarnessProvisioning`.
+
 ## 🗂️ Repository guide
 
 | Path | Purpose |
@@ -70,5 +99,5 @@ These checks validate the local demo files. They do not create cloud resources o
 | [`src/`](src/) | Local sales-evidence logic |
 | [`tests/`](tests/) | Automated behavior and safety checks |
 | [`config/`](config/) | Agent settings and demo limits |
-| [`infra/`](infra/) | High-level deployment configuration |
+| [`infra/`](infra/) | Deployed harness and execution-role configuration |
 | [`docs/plans/`](docs/plans/) | Design decisions and implementation plans |

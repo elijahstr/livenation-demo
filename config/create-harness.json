@@ -12,6 +12,7 @@
       }
     }
   },
+  "environmentVariables": {},
   "model": {
     "bedrockModelConfig": {
       "modelId": "moonshotai.kimi-k2.5",
@@ -47,13 +48,20 @@
   "skills": [],
   "allowedTools": ["get_sales_evidence"],
   "memory": { "disabled": {} },
-  "truncation": { "strategy": "sliding_window" },
+  "truncation": {
+    "strategy": "sliding_window",
+    "config": {
+      "slidingWindow": {
+        "messagesCount": 150
+      }
+    }
+  },
   "maxIterations": 3,
   "maxTokens": 2048,
   "timeoutSeconds": 60,
   "tags": {
     "project": "livenation-demo",
     "data-origin": "synthetic",
-    "environment": "local-preparation"
+    "environment": "demo"
   }
 }
