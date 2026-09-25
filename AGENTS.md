@@ -40,5 +40,6 @@ No production system or production data depends on it.
 - Use `uv` for Python work and `bun` for JavaScript work.
 - Use current official AWS documentation for Bedrock and AgentCore behavior.
 - Run the relevant checks before each push.
+- Before each push, use `.agents/skills/readme-freshness/SKILL.md` to check whether `README.md` still describes the repository accurately.
 - Keep the repository public and the default branch on `main`.
 - Do not open a pull request unless the user asks for one.

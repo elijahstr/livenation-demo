@@ -1,46 +1,74 @@
-# Live Nation demo preparation
+# Live Nation AI sales demo
 
-This repository contains a local preparation bundle for a managed AWS AgentCore Harness.
+This repository is a small interview demo for an AI assistant that helps a concert-sales team notice shows that need attention.
 
-The selected route is Bedrock Converse Stream with direct in-Region `moonshotai.kimi-k2.5` in `us-east-1`.
+The assistant reads fictional ticket-sales totals, explains what the numbers show, and proposes a useful next step. A person stays in control before any outside action occurs.
 
-The bundle does not deploy AWS resources, invoke a model, create a Gateway, access Databricks, connect Work IQ, or provide a user interface.
+This is an independent prototype. It is not an official Live Nation product.
 
-## Local checks
+## What this demo does
 
-Run the tests:
+The finished demo will show one clear workflow:
+
+1. Read aggregate sales data for a fictional show.
+2. Compare current ticket sales with the target.
+3. Explain the evidence without inventing customer details.
+4. Suggest a practical response.
+5. Ask for human approval before it prepares an outside action.
+6. Keep a clear record of the evidence, recommendation, and decision.
+
+For example, the assistant could identify a show below its sales target. It could then explain the gap and prepare an outreach draft.
+
+## Current status
+
+The repository already includes:
+
+- fictional, aggregate sales data with no personal information;
+- a read-only tool that returns evidence for an approved fictional show;
+- limits that keep the agent focused on evidence and safe recommendations;
+- automated tests and local configuration checks; and
+- the first deployment configuration for a managed demo agent.
+
+The current milestone connects these parts into one live question-and-answer flow.
+
+## What comes next
+
+The planned repository will add:
+
+- a simple interface for the complete demo;
+- a connection to a curated sales-data source;
+- a human approval step for proposed actions;
+- a safe outreach-draft workflow;
+- a simulated marketing-change workflow; and
+- a visible activity record for review and troubleshooting.
+
+The demo will use AWS as the managed environment for the AI agent. Detailed infrastructure notes stay in [`infra/`](infra/) and [`docs/plans/`](docs/plans/).
+
+## Safety boundaries
+
+- The demo uses synthetic data only.
+- The sales tool can read aggregate evidence, but it cannot change source data.
+- The demo does not send email or change a live advertising campaign.
+- A recommendation is not proof that an action will increase revenue.
+
+## Run the local checks
+
+Install the existing project dependencies, then run:
 
 ```sh
 bun test
-```
-
-Validate the strict local configuration and the AWS CLI input skeleton path:
-
-```sh
 bun run validate-setup
 ```
 
-The validator uses `Bun.spawnSync` with an argument array. It calls `aws --version` and `create-harness --generate-cli-skeleton input` only. This verifies local CLI input-schema generation, not AWS access, model availability, IAM authorization, deployment, or billing.
+These checks validate the local demo files. They do not create cloud resources or perform outside actions.
 
-AWS CLI 2.36.49 cannot generate a usable `create-harness --generate-cli-skeleton output` response. It expands every tagged-union arm with invalid placeholder values, then returns local parameter validation errors. The local contract validator checks the candidate configuration instead. This is a CLI limitation, not a successful AWS schema check.
+## Repository guide
 
-## Boundaries
-
-- [`config/create-harness.json`](config/create-harness.json) limits the Harness to one inline aggregate-evidence tool.
-- [`fixtures/synthetic-sales.json`](fixtures/synthetic-sales.json) contains fictional aggregate data only. It has no PII.
-- [`config/demo-limits.json`](config/demo-limits.json) records a target of $13, a stop point of $15, and an exclusive cap below $20. These values express intent only. They do not enforce a live AWS budget.
-- [`config/model-catalog.json`](config/model-catalog.json) records the selected Kimi K2.5 Standard price: $0.60 input and $3.00 output per million tokens in `us-east-1`. AWS pricing was checked on 2026-09-25. This is not a current AWS bill or price guarantee. Luna remains an unselected catalog entry. No proven Kimi-to-Luna comparison exists.
-
-## Known incomplete work
-
-The earlier Luna test failed during AWS account verification. A subsequent direct Kimi test on September 25 used 64 output tokens and no retries. AWS denied `bedrock:InvokeModel` for `livenation-dev`. This permission failure does not establish whether account verification has completed.
-
-The developer profile also cannot list harnesses or inspect the execution role. A non-root administrator profile is required for the permission changes. No IAM changes or deployments occurred during the Kimi test.
-
-The Harness execution role setup, AgentCore deployment, Gateway, Databricks integration, Work IQ draft path, UI, observability, and live budget controls remain incomplete. Terraform initialization completed locally. No Terraform deployment occurred.
-
-The inline-tool client adapter is also absent. The tool schema does not execute the local handler automatically. A future client must capture `toolUse`, validate the arguments and caller region, and call the handler. It must return both the assistant `toolUse` message and the user `toolResult` message. Without that client, the harness stops at `tool_use`. See the [AWS inline-function protocol](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-tools.html#harness-tools-inline-functions).
-
-`agentcore dev` can auto-deploy resources. Do not use it for this repository. This repository is not an AgentCore CLI project. A local Terraform draft and its approved provider installation exist, but no deployment occurred.
-
-See the [historical Luna setup plan](docs/plans/2026-09-25-managed-harness-setup.md). This handoff selects Kimi and does not revise that historical decision record. See the [visual summary](docs/plans/managed-harness-view/managed-harness-setup.html) and [Terraform preparation](infra/README.md).
+| Path | Purpose |
+| --- | --- |
+| [`fixtures/`](fixtures/) | Fictional ticket-sales examples |
+| [`src/`](src/) | Local sales-evidence logic |
+| [`tests/`](tests/) | Automated behavior and safety checks |
+| [`config/`](config/) | Agent settings and demo limits |
+| [`infra/`](infra/) | High-level deployment configuration |
+| [`docs/plans/`](docs/plans/) | Design decisions and implementation plans |
