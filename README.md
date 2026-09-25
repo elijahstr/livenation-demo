@@ -1,4 +1,4 @@
-# Live Nation AI sales demo
+# 🎫 Live Nation AI sales demo
 
 This repository is a small interview demo for an AI assistant that helps a concert-sales team notice shows that need attention.
 
@@ -6,7 +6,7 @@ The assistant reads fictional ticket-sales totals, explains what the numbers sho
 
 This is an independent prototype. It is not an official Live Nation product.
 
-## What this demo does
+## 🔎 What this demo does
 
 The finished demo will show one clear workflow:
 
@@ -19,7 +19,7 @@ The finished demo will show one clear workflow:
 
 For example, the assistant could identify a show below its sales target. It could then explain the gap and prepare an outreach draft.
 
-## Current status
+## ✅ Current status
 
 The repository already includes:
 
@@ -31,7 +31,7 @@ The repository already includes:
 
 The current milestone connects these parts into one live question-and-answer flow.
 
-## What comes next
+## 🛠️ What comes next
 
 The planned repository will add:
 
@@ -44,14 +44,14 @@ The planned repository will add:
 
 The demo will use AWS as the managed environment for the AI agent. Detailed infrastructure notes stay in [`infra/`](infra/) and [`docs/plans/`](docs/plans/).
 
-## Safety boundaries
+## 🛡️ Safety boundaries
 
 - The demo uses synthetic data only.
 - The sales tool can read aggregate evidence, but it cannot change source data.
 - The demo does not send email or change a live advertising campaign.
 - A recommendation is not proof that an action will increase revenue.
 
-## Run the local checks
+## 🧪 Run the local checks
 
 Install the existing project dependencies, then run:
 
@@ -62,7 +62,7 @@ bun run validate-setup
 
 These checks validate the local demo files. They do not create cloud resources or perform outside actions.
 
-## Repository guide
+## 🗂️ Repository guide
 
 | Path | Purpose |
 | --- | --- |
