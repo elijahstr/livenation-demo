@@ -103,7 +103,7 @@
       <p class="slide-position">Slide 5 of 5</p>
       <p class="eyebrow">PROOF · PRESENTER ACCESS</p>
       <h2 id="slide-5-title">Inspect the evidence with the right access.</h2>
-      <p class="lede">Verified September 28, 2026. Public visitors can inspect the source. Authorized presenters can open the console links.</p>
+      <p class="lede">Verified September 28, 2026. Public visitors can inspect the source and the managed agent design. Authorized presenters can open the Databricks evidence.</p>
       <div class="proof-grid">
         <article class="proof-card">
           <span class="card-label">Databricks evidence</span>
@@ -111,11 +111,39 @@
           <p class="disclosure">Console login required with a signed-in account that has access.</p>
           <p class="status-fact">Sanitized status: VIEW · six validated synthetic rows · Serverless Starter Warehouse.</p>
         </article>
-        <article class="proof-card">
-          <span class="card-label">AWS AgentCore</span>
-          <a data-proof-link="agentcore" href="https://console.aws.amazon.com/bedrock-agentcore/home?region=us-east-1#/" target="_blank" rel="noreferrer">Open AgentCore console</a>
-          <p class="disclosure">Console login required with a signed-in account that has access.</p>
-          <p class="status-fact">Sanitized status: livenation_demo-1on72c4veC · READY · moonshotai.kimi-k2.5 · get_sales_evidence.</p>
+        <article class="proof-card proof-card-harness">
+          <span class="card-label">AWS AgentCore · Managed Harness</span>
+          <div class="harness-diagram" role="img" aria-label="One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured to call get_sales_evidence with 3 iterations, 2,048 output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.">
+            <div class="harness-node">
+              <span>INPUT</span>
+              <strong>Validated evidence</strong>
+              <small>One synthetic aggregate</small>
+            </div>
+            <span class="harness-arrow" aria-hidden="true">↓</span>
+            <div class="harness-core">
+              <div class="harness-core-heading">
+                <span>MANAGED RUNTIME</span>
+                <strong>AgentCore Harness</strong>
+                <em>READY</em>
+              </div>
+              <div class="harness-components">
+                <div><span>MODEL</span><strong>Kimi K2.5</strong></div>
+                <div><span>CONFIGURED TOOL</span><strong>get_sales_evidence</strong></div>
+              </div>
+              <div class="harness-limits">
+                <span>3 iterations</span>
+                <span>2,048 output tokens</span>
+                <span>Memory off</span>
+              </div>
+            </div>
+            <span class="harness-arrow" aria-hidden="true">↓</span>
+            <div class="harness-node">
+              <span>OUTPUT</span>
+              <strong>Bounded rationale</strong>
+              <small>Draft recommendation only</small>
+            </div>
+          </div>
+          <p class="status-fact">Sanitized status: livenation_demo-1on72c4veC · READY · configured allowedTools: get_sales_evidence.</p>
         </article>
         <article class="proof-card">
           <span class="card-label">Public source</span>
@@ -124,7 +152,6 @@
           <p class="status-fact">Public source evidence explains the synthetic-data and human-control boundaries.</p>
         </article>
       </div>
-      <p class="verification-line">Dated verification: September 28, 2026 · Independent demo · Synthetic data</p>
     </section>
   </main>
 
