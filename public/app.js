@@ -19,11 +19,11 @@ const actionCopy = {
   email: {
     channel: "OUTLOOK DRAFT",
     guidance: "Review the corporate account offer before local approval.",
-    content: `Subject: Private suite opportunity for Cascades After Dark
+    content: (event) => `Subject: Private suite opportunity for ${event.event_name}
 
 Hello [Account contact],
 
-We have a limited suite opportunity for Cascades After Dark at Hayden Homes Amphitheater. The synthetic account-fit review identified your company as a suitable match for client or employee hosting.
+We have a limited suite opportunity for ${event.event_name} at ${event.venue_name}. The synthetic account-fit review identified your company as a suitable match for client or employee hosting.
 
 Reply to this draft for package details, capacity, and current availability.
 
@@ -35,9 +35,9 @@ Demo note: Synthetic accounts and inventory. This draft is not sent.`,
   social: {
     channel: "CAMPAIGN PROPOSAL",
     guidance: "Review the audience, timing, and budget before local approval.",
-    content: `Campaign: Cascades After Dark premium inventory
+    content: (event) => `Campaign: ${event.event_name} premium inventory
 Objective: Sell remaining individual premium seats
-Audience: Approved Bend DMA event-intent segment
+Audience: Approved ${event.city} market event-intent segment
 Inventory: 128 synthetic premium seats
 Budget cap: $2,500 synthetic demo value
 Flight: 10 days, ending 48 hours before the show
@@ -59,13 +59,12 @@ Demo note: This creates a local audit record only.`,
 
 let snapshotHash = null;
 let actionId = null;
-let draftPatch = Promise.resolve();
-
+let selectedEvidence = null;
 function formatNumber(value) {
   return typeof value === "number" ? new Intl.NumberFormat("en-US").format(value) : "—";
 }
 
-function formatDate(value, options = { month: "short", day: "numeric", year: "numeric" }) {
+function formatDate(value, options = { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) {
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", options).format(parsed);
 }
@@ -84,7 +83,6 @@ function setLog(message, isError = false) {
 
 function resetAction() {
   actionId = null;
-  draftPatch = Promise.resolve();
   draft.value = "";
   draft.disabled = true;
   draftGuidance.textContent = "Select a recovery route to create a local draft.";
@@ -143,6 +141,7 @@ function renderPortfolio(rows = [], alert) {
 
     const score = document.createElement("span");
     score.className = "venue-score";
+    if (ratio < 0.75) score.classList.add("is-below");
     score.textContent = `${Math.round(ratio * 100)}%`;
     item.append(dateBlock, copy, score);
     venueRail.append(item);
@@ -171,10 +170,22 @@ function renderAlert(result) {
   get("#alert-state").className = "task-state is-alert";
   checkStatus.textContent = `1 of ${result.evidence.length} shows needs action.`;
   snapshotHash = alert.snapshotHash;
+  selectedEvidence = row;
   setActionsEnabled(true);
 }
 
+function clearAlertEvidence() {
+  get("#event-name").textContent = "No show selected";
+  get("#event-meta").textContent = "Run the portfolio check to select the show that needs action.";
+  get("#target-percent").textContent = "—";
+  get("#target-progress").style.width = "0%";
+  ["#tickets-sold", "#tickets-target", "#venue-capacity", "#data-as-of"].forEach((selector) => {
+    get(selector).textContent = "—";
+  });
+}
+
 function renderNoAlert(result) {
+  clearAlertEvidence();
   const stateCopy = {
     healthy: ["PORTFOLIO ON TRACK", "No shows fall below the approved sales threshold."],
     empty: ["NO DATA", "The portfolio returned no sales evidence."],
@@ -185,12 +196,13 @@ function renderNoAlert(result) {
   get("#alert-state").textContent = label;
   get("#alert-state").className = result.status === "healthy" ? "task-state is-success" : "task-state is-alert";
   get("#alert-placeholder").hidden = false;
-  get("#alert-placeholder").querySelector("strong").textContent = label;
-  get("#alert-placeholder").querySelector("span").textContent = message;
+  get("#placeholder-title").textContent = label;
+  get("#placeholder-message").textContent = message;
   get("#combined-alert").hidden = true;
   rationale.textContent = message;
   checkStatus.textContent = message;
   snapshotHash = null;
+  selectedEvidence = null;
   setActionsEnabled(false);
 }
 
@@ -221,27 +233,29 @@ draft.addEventListener("input", () => {
   approve.disabled = !draft.value.trim();
   get("#approval-state").textContent = draft.value.trim() ? "DRAFT EDITED" : "DRAFT EMPTY";
   get("#approval-state").className = "task-state";
-  if (actionId) {
-    const content = draft.value;
-    draftPatch = draftPatch.then(() => requestJson(`/api/actions/${actionId}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ content }),
-    })).catch((error) => setLog(error instanceof Error ? error.message : "The draft could not be saved.", true));
-  }
 });
 
+async function saveDraft() {
+  if (!actionId || !draft.value.trim()) throw new Error("Draft content is required.");
+  return requestJson(`/api/actions/${encodeURIComponent(actionId)}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ content: draft.value }),
+  });
+}
+
 actionButtons.forEach((button) => button.addEventListener("click", async () => {
-  if (!snapshotHash || button.disabled) return;
+  if (!snapshotHash || !selectedEvidence || button.disabled) return;
   const type = button.dataset.action;
   const copy = actionCopy[type];
+  const content = typeof copy.content === "function" ? copy.content(selectedEvidence) : copy.content;
   setActionsEnabled(false);
   setLog("Creating the local action draft.");
   try {
     const action = await requestJson("/api/actions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ alertSnapshotHash: snapshotHash, actionType: type, content: copy.content }),
+      body: JSON.stringify({ alertSnapshotHash: snapshotHash, actionType: type, content }),
     });
     actionId = action.action_id;
     draft.value = action.content;
@@ -268,8 +282,8 @@ approve.addEventListener("click", async () => {
   execute.disabled = true;
   setLog("Saving and approving the local draft.");
   try {
-    await draftPatch;
-    const action = await requestJson(`/api/actions/${actionId}/approve`, { method: "POST" });
+    await saveDraft();
+    const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/approve`, { method: "POST" });
     get("#approval-state").textContent = "APPROVED";
     get("#approval-state").className = "task-state is-success";
     setLog(`Local ${action.action_type} simulation is approved. No external action has occurred.`);
@@ -285,7 +299,7 @@ execute.addEventListener("click", async () => {
   execute.disabled = true;
   setLog("Executing the local simulation.");
   try {
-    const action = await requestJson(`/api/actions/${actionId}/execute`, { method: "POST" });
+    const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/execute`, { method: "POST" });
     get("#approval-state").textContent = "SIMULATION COMPLETE";
     get("#approval-state").className = "task-state is-success";
     setLog(`Local ${action.action_type} simulation is complete. No external system changed.`);

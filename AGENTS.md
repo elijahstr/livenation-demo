@@ -10,11 +10,12 @@ No production system or production data depends on it.
 
 This independent demo is presented directly to Live Nation employees.
 Treat visual fidelity to Live Nation interfaces as a core presentation requirement.
-Use the layout, hierarchy, color, density, and interaction language from the approved Live Nation references.
+Use the layout, hierarchy, color, density, and interaction language from the approved [2019 Account Manager reference](https://www.youtube.com/watch?v=WbTHiPSfC0U).
 Make the result feel legitimate in that presentation context.
 Preserve clear independent-demo and synthetic-data labels.
 Interpret requests for a "real Live Nation UI" as requests for high visual fidelity, not as claims of official ownership.
-After the user selects this direction, implement it without reopening the branding objection.
+Do not reopen the branding objection for this approved UI direction.
+Raise a new objection only when a change removes a disclosure label or adds an external official asset.
 
 ## Autonomy
 

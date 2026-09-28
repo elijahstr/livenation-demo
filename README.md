@@ -2,7 +2,7 @@
 
 This public repository is an independent interview demo. It is not an official Live Nation product.
 
-The demo finds one weak West-region ticket-sales result, asks Kimi for a bounded explanation, and records a human-approved local simulation. It uses real Live Nation portfolio venue names with synthetic show and sales data.
+The demo finds one weak West-region ticket-sales result, asks Kimi for a bounded explanation, and records a human-approved local simulation. It presents separate recovery routes for corporate suites and individual premium seats. It uses real Live Nation portfolio venue names with synthetic show, inventory, and sales data.
 
 ## What works now
 
@@ -10,7 +10,7 @@ The demo finds one weak West-region ticket-sales result, asks Kimi for a bounded
 - Deterministic code selects only a row below 75 percent of its cumulative target.
 - The code validates six synthetic Databricks evidence rows before a Kimi request.
 - The managed AgentCore Harness uses Kimi K2.5 and one selected evidence tool.
-- Email, Social, and Dismiss actions create local JSON records only.
+- Suite outreach, premium-seat campaign, and dismiss actions create local JSON records only.
 - Editing a draft removes approval.
 - Duplicate local execution returns the existing completed record.
 
@@ -73,7 +73,7 @@ The live verifier passed. It reads six synthetic Databricks rows, expects Hayden
 - The interface labels the data as synthetic.
 - The model receives one selected aggregate. It receives no free-form operator prompt.
 - Kimi rationale is not measured fact.
-- Email and Social are simulations. Dismiss is a local audit record.
+- Suite outreach and premium-seat campaign actions are simulations. Dismiss is a local audit record.
 
 ## Harness risk for this demo
 
