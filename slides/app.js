@@ -35,6 +35,7 @@ next.addEventListener("click", () => goTo(activeIndex + 1, { focus: true }));
 
 document.addEventListener("keydown", (event) => {
   if (isEditable(event.target)) return;
+  if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) event.preventDefault();
   if (event.key === "ArrowLeft") goTo(activeIndex - 1, { focus: true });
   if (event.key === "ArrowRight") goTo(activeIndex + 1, { focus: true });
   if (event.key === "Home") goTo(0, { focus: true });

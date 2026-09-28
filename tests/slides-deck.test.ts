@@ -102,5 +102,6 @@ describe("GitHub Pages slide deck", () => {
     expect(script).toContain("touchend");
     expect(script).toContain("aria-hidden");
     expect(script).toContain("focus()");
+    expect(script).toMatch(/if\s*\(\["ArrowLeft",\s*"ArrowRight",\s*"Home",\s*"End"\]\.includes\(event\.key\)\)\s*event\.preventDefault\(\)/);
   });
 });
