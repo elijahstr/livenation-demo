@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const slidesDirectory = resolve(import.meta.dir, "../slides");
-const expectedFiles = [".nojekyll", "README.md", "app.js", "index.html", "serve.ts", "styles.css"];
+const expectedFiles = [".nojekyll", "README.md", "app.js", "build.ts", "index.html", "index.template.html", "serve.ts", "slide-data.json", "styles.css"];
 const assetPath = (name: string) => resolve(slidesDirectory, name);
 const deckExists = () => expectedFiles.every((name) => existsSync(assetPath(name)));
 
@@ -12,10 +12,22 @@ async function source(name: string) {
 }
 
 describe("GitHub Pages slide deck", () => {
-  test("ships the complete static payload", () => {
+  test("ships the complete deck source", () => {
     expect(deckExists()).toBe(true);
     expect(readdirSync(slidesDirectory).sort()).toEqual(expectedFiles.slice().sort());
     expect(readdirSync(slidesDirectory).every((name) => !name.startsWith("_") && !name.startsWith("#"))).toBe(true);
+  });
+
+  test("keeps the committed index equal to a fresh static build", async () => {
+    const committedIndex = await source("index.html");
+    const result = Bun.spawnSync(["bun", "run", "slides/build.ts"], {
+      cwd: resolve(import.meta.dir, ".."),
+      stderr: "pipe",
+      stdout: "pipe",
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(await source("index.html")).toBe(committedIndex);
   });
 
   test("has five labelled slides and honest disclosures", async () => {
@@ -37,28 +49,29 @@ describe("GitHub Pages slide deck", () => {
     expect(html).not.toMatch(/<body[^>]*interactive-deck/);
   });
 
-  test("keeps proof URLs in one safe slide-data block and places status beside console links", async () => {
+  test("generates safe proof-link fallbacks from reviewed slide data", async () => {
     if (!deckExists()) return;
-    const [html, script] = await Promise.all([source("index.html"), source("app.js")]);
+    const [html, script, data] = await Promise.all([source("index.html"), source("app.js"), source("slide-data.json")]);
     const proofCards = [...html.matchAll(/<article class="proof-card"[\s\S]*?<\/article>/g)].map(([card]) => card);
-    const proofLinks = [...html.matchAll(/<a\s+[^>]*data-proof-link="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
-    const configuredUrls = [...script.matchAll(/href:\s*"(https:\/\/[^"\s]+)"/g)].map(([, href]) => href);
+    const proofLinks = [...html.matchAll(/<a\s+[^>]*data-proof-link="([^"]+)"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+    const slideData = JSON.parse(data) as { proofLinks: Record<string, { href: string; target: string; rel: string }> };
 
-    expect(proofLinks.map(([, key]) => key).sort()).toEqual(["agentcore", "databricks", "implementation", "repository"]);
-    expect(script).toContain("const slideData = Object.freeze");
-    expect(script).toContain("proofLinks: Object.freeze");
-    expect(script).toContain("link.href = details.href");
-    expect(configuredUrls).toEqual([
+    expect(Object.keys(slideData.proofLinks).sort()).toEqual(["agentcore", "databricks", "implementation", "repository"]);
+    expect(Object.values(slideData.proofLinks).map(({ href }) => href)).toEqual([
       "https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence",
       "https://console.aws.amazon.com/bedrock-agentcore/home?region=us-east-1#/",
       "https://github.com/elijahstr/livenation-demo",
       "https://github.com/elijahstr/livenation-demo/blob/main/docs/plans/2026-09-28-west-region-sales-demo-implementation.md",
     ]);
-    expect(html).not.toContain("https://");
-    for (const href of configuredUrls) {
+    expect(proofLinks.map(([, key, href]) => [key, href])).toEqual(Object.entries(slideData.proofLinks).map(([key, details]) => [key, details.href]));
+    expect(script).not.toContain("slideData");
+    expect(script).not.toContain("data-proof-link");
+    for (const { href, target, rel } of Object.values(slideData.proofLinks)) {
       expect(href).toMatch(/^https:\/\//);
       expect(new URL(href).hostname).not.toBe("");
       expect(href).not.toMatch(/[?&](?:token|access_token|signature|sig|credential|password|secret|aws_access_key_id)=/i);
+      expect(target).toBe("_blank");
+      expect(rel).toBe("noreferrer");
     }
     const databricks = proofCards.find((card) => card.includes('data-proof-link="databricks"'));
     const agentCore = proofCards.find((card) => card.includes('data-proof-link="agentcore"'));
@@ -69,8 +82,6 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain("READY");
     expect(agentCore).toContain("moonshotai.kimi-k2.5");
     expect(agentCore).toContain("get_sales_evidence");
-    expect(script).toContain('target: "_blank"');
-    expect(script).toContain('rel: "noreferrer"');
   });
 
   test("uses light progressive enhancement and accessible navigation", async () => {

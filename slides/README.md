@@ -1,15 +1,21 @@
 # Slide deck deployment notes
 
-The deployment payload contains these `slides/` files at the deployment branch root:
+The source directory contains these files:
 
 - `.nojekyll`
 - `README.md`
 - `app.js`
+- `build.ts`
 - `index.html`
+- `index.template.html`
 - `serve.ts`
+- `slide-data.json`
 - `styles.css`
 
-The `gh-pages` branch contains only these payload files at its root.
+Run `bun run slides/build.ts` after an approved change to `slide-data.json` or `index.template.html`.
+Commit the generated `index.html` with those source changes.
+
+The deployment payload contains only `.nojekyll`, `app.js`, `index.html`, and `styles.css` at the `gh-pages` branch root.
 No workflow belongs in that branch.
 
 GitHub Pages was disabled before this deployment sequence.

@@ -60,9 +60,10 @@ The source repository produces a static `slides/` directory. The dedicated `gh-p
 
 ### 1. Add the self-contained deck
 
-Add `slides/index.html`, `slides/styles.css`, and `slides/app.js`.
+Add `slides/slide-data.json`, `slides/index.template.html`, `slides/build.ts`, `slides/index.html`, `slides/styles.css`, and `slides/app.js`.
 
 - Define exactly five semantic `<section>` slide elements in source order.
+- Keep every proof URL in `slide-data.json`. Generate the committed `index.html` from the template so no-JavaScript visitors retain functional links.
 - Use the existing product visual language as a reference without copying a proprietary asset or claim.
 - Keep the viewport background and every state light.
 - Add plain-text disclosure labels to the masthead and relevant evidence cards.
@@ -103,8 +104,8 @@ These links let an authorized interviewer inspect real demo resources. They do n
 
 Add `slides/README.md` and `slides/.nojekyll`. Update the root `README.md`.
 
-- State the exact source files in the deployment payload.
-- State that the deployment branch contains only the `slides/` contents at its root.
+- State the exact runtime files in the deployment payload: `.nojekyll`, `app.js`, `index.html`, and `styles.css`.
+- State that build sources remain on `main` and do not enter the deployment branch.
 - State that no workflow belongs in the branch.
 - Document manual GitHub Pages setup: select `gh-pages`, select `/(root)`, then save.
 - Document the final Pages URL only after GitHub reports it.
@@ -126,12 +127,13 @@ Add `tests/slides-deck.test.ts` before deck code.
 - Assert that no proof link contains a token-like query parameter or a credential value.
 - Assert that each console proof link has a visible login-required disclosure.
 - Assert that each console proof link has adjacent sanitized live-status evidence.
+- Assert that `index.html` matches a fresh build from `index.template.html` and `slide-data.json`.
 - Assert that the source includes independent-demo, synthetic-data, and dated-verification disclosure text.
 - Assert that stylesheet source sets light color scheme and contains a reduced-motion rule.
 - Assert that all slides remain readable before JavaScript adds the interactive-deck class.
 - Assert that the title identifies the page as an independent demo and the page requests `noindex, nofollow`.
 - Assert that navigation includes button, keyboard, and touch handlers.
-- Assert that `slides/` contains only expected static files and `.nojekyll`.
+- Assert that `slides/` contains only the expected runtime, build-source, and documentation files.
 - Assert that no published asset name starts with `_` or `#`.
 
 ### Browser checks after implementation
@@ -147,7 +149,7 @@ Serve `slides/` on `127.0.0.1` with a dependency-free Bun command.
 
 ### Deployment checks
 
-Before publish, inspect the staged `gh-pages` tree and prove it contains only `slides/` payload files.
+Before publish, inspect the staged `gh-pages` tree and prove it contains only `.nojekyll`, `app.js`, `index.html`, and `styles.css`.
 
 After Pages is enabled, fetch the published root and each static asset.
 Open the published deck at desktop and mobile widths.
@@ -210,3 +212,4 @@ The verdict was `needs material revision`.
 - Accepted: add `noindex, nofollow` and `Independent demo` to the title.
 - Accepted: record the existing deployment commit before any later force push.
 - Not selected: authenticated console screenshots. The public deck instead uses sanitized live API status facts and signed-in console links. This avoids images with account or identity details while it supports the presenter workflow.
+- Task-review ruling: a JavaScript-only URL block broke proof links when enhancement failed. The accepted fix uses one JSON source and a dependency-free build step that commits functional static links.
