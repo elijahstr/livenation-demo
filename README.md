@@ -14,3 +14,9 @@ bun run dev
 ```
 
 Open `http://127.0.0.1:3000`.
+
+## Interview slide deck
+
+The static deck source is in [`slides/`](slides/).
+GitHub Pages was disabled before this deployment sequence.
+The final Pages URL remains unknown until GitHub reports the deployment result.
