@@ -1,103 +1,97 @@
-# 🎫 Live Nation AI sales demo
+# Live Nation AI sales demo
 
-This repository is a small interview demo for an AI assistant that helps a concert-sales team notice shows that need attention.
+This public repository is an independent interview demo. It is not an official Live Nation product.
 
-The assistant reads fictional ticket-sales totals, explains what the numbers show, and proposes a useful next step. A person stays in control before any outside action occurs.
+The demo finds one weak West-region ticket-sales result, asks Kimi for a bounded explanation, and records a human-approved local simulation. It uses real Live Nation portfolio venue names with synthetic show and sales data.
 
-This is an independent prototype. It is not an official Live Nation product.
+## What works now
 
-## 🔎 What this demo does
+- The local Bun command center has six West-region venues.
+- Deterministic code selects only a row below 75 percent of its cumulative target.
+- The code validates six synthetic Databricks evidence rows before a Kimi request.
+- The managed AgentCore Harness uses Kimi K2.5 and one selected evidence tool.
+- Email, Social, and Dismiss actions create local JSON records only.
+- Editing a draft removes approval.
+- Duplicate local execution returns the existing completed record.
 
-The finished demo will show one clear workflow:
+The local verifier and the live Databricks-to-Kimi verifier pass. The live browser flow also passes.
 
-1. Read aggregate sales data for a fictional show.
-2. Compare current ticket sales with the target.
-3. Explain the evidence without inventing customer details.
-4. Suggest a practical response.
-5. Ask for human approval before it prepares an outside action.
-6. Keep a clear record of the evidence, recommendation, and decision.
+## Live setup
 
-For example, the assistant could identify a show below its sales target. It could then explain the gap and prepare an outreach draft.
+You need these profiles and tools:
 
-## ✅ Current status
+- The `livenation-demo` AWS profile.
+- The `livenation-demo` Databricks profile.
+- AWS CLI 2.36.49.
+- Databricks CLI 1.17.0.
+- AgentCore CLI with its pinned AWS SDK.
+- Terraform for the deployed Harness output.
 
-The repository already includes:
+The Databricks demo table contains exactly six synthetic West-region rows. The live sales check selects Hayden Homes Amphitheater at 55 percent of target.
 
-- fictional, aggregate sales data with no personal information;
-- a read-only tool that returns evidence for an approved fictional show;
-- limits that keep the agent focused on evidence and safe recommendations;
-- automated tests and local configuration checks; and
-- a live managed AgentCore Harness that uses Kimi K2.5.
+```sh
+bun run seed-west-demo
+```
 
-The harness completed a live synthetic evidence-tool cycle on September 25, 2026.
+The seed command changes only `workspace.livenation_demo`. It captures migration data under ignored `outputs/migrations/` before it replaces the synthetic demo table.
 
-## 🛠️ What comes next
+## Start the command center
 
-The planned repository will add:
+Set the live configuration first. The runtime file contains non-secret defaults, including the demo warehouse identifier.
 
-- a simple interface for the complete demo;
-- a connection to a curated sales-data source;
-- a human approval step for proposed actions;
-- a safe outreach-draft workflow;
-- a simulated marketing-change workflow; and
-- a visible activity record for review and troubleshooting.
+```sh
+export HARNESS_ARN="$(terraform -chdir=infra output -raw harness_arn)"
+bun run dev
+```
 
-The demo will use AWS as the managed environment for the AI agent. Detailed infrastructure notes stay in [`infra/`](infra/) and [`docs/plans/`](docs/plans/).
+Open `http://127.0.0.1:3000`.
 
-## 🛡️ Safety boundaries
+The server binds only to loopback. It accepts only its configured `127.0.0.1` or `localhost` Host header. It serves only `index.html`, `app.js`, and `styles.css`.
 
-- The demo uses synthetic data only.
-- The sales tool can read aggregate evidence, but it cannot change source data.
-- The demo does not send email or change a live advertising campaign.
-- A recommendation is not proof that an action will increase revenue.
+## Verify the demo
 
-## 🧪 Run the local checks
-
-Install the existing project dependencies, then run:
+Run the complete local verification without AWS or Databricks:
 
 ```sh
 bun test
+bun run verify-west-demo:local
 bun run validate-setup
 ```
 
-These checks validate the local demo files. They do not create cloud resources or perform outside actions.
-
-## ☁️ Run the live harness check
-
-Use the deployed harness through the `livenation-demo` AWS profile:
+Run the live verification after AWS login succeeds:
 
 ```sh
-bun run invoke-harness
+bun run verify-west-demo
 ```
 
-The script verifies the AWS SDK bundled with AgentCore CLI 0.30.0.
-It then runs one simple response and one client-side evidence-tool cycle.
-The client processes only `get_sales_evidence` inline calls.
+The live verifier passed. It reads six synthetic Databricks rows, expects Hayden Homes Amphitheater at 55 percent of target, invokes Kimi once, and checks one approved local simulation. It does not send email or change advertising.
 
-AWS does not document a plain `allowedTools` match for inline functions.
-Kimi did not expose the function with its plain-name allow-list during live tests.
-The trusted demo invocation therefore supplies the inline tool with a wildcard allow-list.
-That wildcard also enables the built-in `shell` and `file_operations` tools for that invocation.
-Do not expose this script to untrusted prompts.
+## Synthetic-data boundary
 
-## 🧹 Teardown
+- Venue names, cities, states, and public capacities use public Live Nation venue information.
+- Show names, dates, sales, targets, market signals, and actions are synthetic.
+- The interface labels the data as synthetic.
+- The model receives one selected aggregate. It receives no free-form operator prompt.
+- Kimi rationale is not measured fact.
+- Email and Social are simulations. Dismiss is a local audit record.
 
-Remove the harness and its execution role:
+## Harness risk for this demo
 
-```sh
-terraform -chdir=infra destroy
-```
+Kimi needs an invocation override with `allowedTools: ["*"]` for the current inline evidence tool handoff. This also exposes built-in `shell` and `file_operations` tools. It adds about 900 input tokens per trusted model request.
 
-Delete the confirmed Runtime log group with the `livenation-demo` profile.
-Then use the root profile to detach and delete `LiveNationDemoHarnessProvisioning`.
+This accepted risk applies only to the fixed-prompt, synthetic interview demo. Do not use this setting with untrusted text or production data.
 
-## 🗂️ Repository guide
+## Static-file compatibility
+
+Bun 1.3.11 cannot use the planned `{ dir }` route here without unavailable framework runtime packages. The server therefore uses a tested manual allowlist for three public files and rejects traversal paths.
+
+## Repository guide
 
 | Path | Purpose |
 | --- | --- |
-| [`fixtures/`](fixtures/) | Fictional ticket-sales examples |
-| [`src/`](src/) | Local sales-evidence logic |
-| [`tests/`](tests/) | Automated behavior and safety checks |
-| [`config/`](config/) | Agent settings and demo limits |
-| [`infra/`](infra/) | Deployed harness and execution-role configuration |
-| [`docs/plans/`](docs/plans/) | Design decisions and implementation plans |
+| [`fixtures/`](fixtures/) | Six synthetic West-region evidence rows |
+| [`src/`](src/) | Validation, Databricks, Harness, action, and server code |
+| [`public/`](public/) | Local command-center interface |
+| [`scripts/`](scripts/) | Seed, local verification, and live verification commands |
+| [`infra/`](infra/) | Managed Harness configuration |
+| [`docs/plans/`](docs/plans/) | Design and implementation records |

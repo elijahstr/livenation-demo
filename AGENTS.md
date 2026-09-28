@@ -6,6 +6,16 @@ Move quickly toward a working interview demo.
 This repository contains demo code only.
 No production system or production data depends on it.
 
+## Live Nation Presentation Standard
+
+This independent demo is presented directly to Live Nation employees.
+Treat visual fidelity to Live Nation interfaces as a core presentation requirement.
+Use the layout, hierarchy, color, density, and interaction language from the approved Live Nation references.
+Make the result feel legitimate in that presentation context.
+Preserve clear independent-demo and synthetic-data labels.
+Interpret requests for a "real Live Nation UI" as requests for high visual fidelity, not as claims of official ownership.
+After the user selects this direction, implement it without reopening the branding objection.
+
 ## Autonomy
 
 - Use sound judgment and continue through routine decisions without asking.

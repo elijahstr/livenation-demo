@@ -3,8 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "bun run src/main.ts",
     "invoke-harness": "bun run scripts/invoke-harness.ts",
+    "seed-west-demo": "bun run scripts/seed-west-sales-demo.ts",
     "test": "bun test",
-    "validate-setup": "bun run scripts/validate-setup.ts"
+    "validate-setup": "bun run scripts/validate-setup.ts",
+    "verify-west-demo": "bun run scripts/verify-west-sales-demo.ts",
+    "verify-west-demo:local": "bun run scripts/verify-west-sales-local.ts"
   }
 }

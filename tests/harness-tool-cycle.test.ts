@@ -5,26 +5,7 @@ import {
   type HarnessEvent,
   type HarnessInvokeInput,
 } from "../src/harness-tool-cycle";
-import type { SalesFixture } from "../src/local-setup";
-
-const fixture: SalesFixture = {
-  origin: "synthetic",
-  data_as_of: "2026-09-25T00:00:00Z",
-  shows: [
-    {
-      show_id: "east_show",
-      region: "east",
-      tickets_sold_cumulative: 320,
-      tickets_target_cumulative: 500,
-    },
-    {
-      show_id: "west_show",
-      region: "west",
-      tickets_sold_cumulative: 410,
-      tickets_target_cumulative: 500,
-    },
-  ],
-};
+const selected = { event_id: "hayden-homes-001", region: "west", origin: "synthetic" };
 
 async function* events(items: HarnessEvent[]) {
   yield* items;
@@ -74,13 +55,13 @@ describe("runHarnessToolCycle", () => {
         {
           contentBlockDelta: {
             contentBlockIndex: 0,
-            delta: { toolUse: { input: '{"show_id":"east_' } },
+            delta: { toolUse: { input: '{"event_id":"hayden-' } },
           },
         },
         {
           contentBlockDelta: {
             contentBlockIndex: 0,
-            delta: { toolUse: { input: 'show","region":"east"}' } },
+            delta: { toolUse: { input: 'homes-001","region":"west"}' } },
           },
         },
         { messageStop: { stopReason: "tool_use" } },
@@ -112,8 +93,10 @@ describe("runHarnessToolCycle", () => {
       harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
       sessionId: "12345678-1234-1234-1234-123456789012",
       prompt: "Use the tool for east_show in east.",
-      authorizedRegion: "east",
-      fixture,
+    resolveEvidence: (input) => {
+      expect(input).toEqual({ event_id: "hayden-homes-001", region: "west" });
+      return selected;
+    },
       invoke: async (input) => {
         calls.push(input);
         const stream = streams.shift();
@@ -136,7 +119,7 @@ describe("runHarnessToolCycle", () => {
             toolUse: {
               toolUseId: "tool-1",
               name: "get_sales_evidence",
-              input: { show_id: "east_show", region: "east" },
+              input: { event_id: "hayden-homes-001", region: "west" },
               type: "tool_use",
             },
           },
@@ -152,7 +135,7 @@ describe("runHarnessToolCycle", () => {
               type: "tool_use",
               content: [
                 {
-                  text: '{"data_as_of":"2026-09-25T00:00:00Z","origin":"synthetic","region":"east","show_id":"east_show","tickets_sold_cumulative":320,"tickets_target_cumulative":500}',
+                  text: '{"event_id":"hayden-homes-001","region":"west","origin":"synthetic"}',
                 },
               ],
             },
@@ -168,8 +151,7 @@ describe("runHarnessToolCycle", () => {
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "12345678-1234-1234-1234-123456789012",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: () => selected,
         invoke: async () => ({
           stream: events([
             {
@@ -196,8 +178,7 @@ describe("runHarnessToolCycle", () => {
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "12345678-1234-1234-1234-123456789012",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: () => selected,
         invoke: async () => ({
           stream: events([
             { runtimeClientError: { message: "runtime failed" } },
@@ -213,8 +194,7 @@ describe("runHarnessToolCycle", () => {
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "too-short",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: () => selected,
         invoke: async () => {
           throw new Error("invoke must not run");
         },
@@ -228,8 +208,7 @@ describe("runHarnessToolCycle", () => {
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "12345678-1234-1234-1234-123456789012",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: () => selected,
         invoke: async () => ({ stream: events(toolUseEvents("not-json")) }),
       }),
     ).rejects.toThrow("invalid tool input JSON");
@@ -242,13 +221,12 @@ describe("runHarnessToolCycle", () => {
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "12345678-1234-1234-1234-123456789012",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: () => selected,
         invoke: async () => {
           calls += 1;
           return {
             stream: events(
-              toolUseEvents('{"show_id":"east_show","region":"east"}'),
+              toolUseEvents('{"event_id":"hayden-homes-001","region":"west"}'),
             ),
           };
         },
@@ -257,17 +235,19 @@ describe("runHarnessToolCycle", () => {
     expect(calls).toBe(3);
   });
 
-  test("rejects a tool request outside the authorized region", async () => {
+  test("rejects a tool request outside the selected event", async () => {
     await expect(
       runHarnessToolCycle({
         harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
         sessionId: "12345678-1234-1234-1234-123456789012",
         prompt: "Use a tool.",
-        authorizedRegion: "east",
-        fixture,
+        resolveEvidence: (input) => {
+          if (JSON.stringify(input) !== JSON.stringify({ event_id: "hayden-homes-001", region: "west" })) throw new Error("not authorized");
+          return selected;
+        },
         invoke: async () => ({
           stream: events(
-            toolUseEvents('{"show_id":"west_show","region":"west"}'),
+            toolUseEvents('{"event_id":"another-event","region":"west"}'),
           ),
         }),
       }),

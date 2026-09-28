@@ -6,6 +6,7 @@ import {
   getSalesEvidence,
   type SalesFixture,
 } from "../src/local-setup";
+import { assertDatabricksCliVersion, DATABRICKS_CLI_VERSION } from "../src/tool-versions";
 
 async function plannedHarness() {
   return JSON.parse(
@@ -161,4 +162,11 @@ describe("assertHarnessSetup", () => {
     candidate.maxTokens = 2049;
     expect(() => assertHarnessSetup(candidate)).toThrow("maxTokens");
   });
+});
+
+test("pins the Databricks CLI used by the local command center", () => {
+  expect(DATABRICKS_CLI_VERSION).toBe("1.17.0");
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.17.0", 0)).not.toThrow();
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.18.0", 0)).toThrow("requires Databricks CLI 1.17.0");
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.17.0", 1)).toThrow("requires Databricks CLI 1.17.0");
 });

@@ -3,6 +3,7 @@ import {
   assertHarnessSetup,
   assertSyntheticSalesFixture,
 } from "../src/local-setup";
+import { assertDatabricksCliVersion } from "../src/tool-versions";
 
 const configPath = new URL("../config/create-harness.json", import.meta.url);
 const fixturePath = new URL("../fixtures/synthetic-sales.json", import.meta.url);
@@ -18,6 +19,10 @@ const versionText = `${version.stdout}\n${version.stderr}`;
 if (version.exitCode !== 0 || !versionText.includes("aws-cli/2.36.49")) {
   throw new Error("This preparation bundle requires AWS CLI 2.36.49");
 }
+
+const databricksVersion = Bun.spawnSync({ cmd: ["databricks", "--version"] });
+const databricksVersionText = `${databricksVersion.stdout}\n${databricksVersion.stderr}`;
+assertDatabricksCliVersion(databricksVersionText, databricksVersion.exitCode);
 
 const skeleton = Bun.spawnSync({
   cmd: [

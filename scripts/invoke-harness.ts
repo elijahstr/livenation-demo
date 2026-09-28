@@ -1,18 +1,13 @@
-import { realpath } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
   runHarnessToolCycle,
-  type HarnessEvent,
-  type HarnessInvokeInput,
 } from "../src/harness-tool-cycle";
+import { AgentCoreHarnessClient } from "../src/agentcore-harness-client";
 import {
   assertSyntheticSalesFixture,
+  getSalesEvidence,
   type SalesFixture,
 } from "../src/local-setup";
 
-const expectedSdkVersion = "3.1140.0";
 const region = "us-east-1";
 
 function terraformOutput(name: string): string {
@@ -29,28 +24,6 @@ function terraformOutput(name: string): string {
   return result.stdout.toString().trim();
 }
 
-async function loadAgentCoreSdk() {
-  const executable = Bun.which("agentcore");
-  if (!executable) throw new Error("AgentCore CLI is required on PATH");
-
-  const entry = await realpath(executable);
-  const globalModules = resolve(dirname(entry), "../../../..");
-  const packageRoot = resolve(
-    globalModules,
-    "@aws-sdk/client-bedrock-agentcore",
-  );
-  const packageJson = JSON.parse(
-    await Bun.file(resolve(packageRoot, "package.json")).text(),
-  ) as { version?: string };
-  if (packageJson.version !== expectedSdkVersion) {
-    throw new Error(
-      `AgentCore SDK ${expectedSdkVersion} is required; found ${packageJson.version ?? "unknown"}`,
-    );
-  }
-
-  return import(pathToFileURL(resolve(packageRoot, "dist-cjs/index.js")).href);
-}
-
 async function main() {
   process.env.AWS_PROFILE ||= "livenation-demo";
   process.env.AWS_REGION ||= region;
@@ -65,24 +38,14 @@ async function main() {
     await Bun.file(new URL("../config/create-harness.json", import.meta.url)).text(),
   ) as { tools: unknown[] };
 
-  const sdk = await loadAgentCoreSdk();
-  const client = new sdk.BedrockAgentCoreClient({ region, maxAttempts: 1 });
-  const createInvoke = (overrides: Record<string, unknown> = {}) =>
-    async (input: HarnessInvokeInput) => {
-      const response = await client.send(
-        new sdk.InvokeHarnessCommand({ ...input, ...overrides }),
-      );
-      if (!response.stream) throw new Error("Harness response did not include a stream");
-      return { stream: response.stream as AsyncIterable<HarnessEvent> };
-    };
-  const invoke = createInvoke();
+  const client = new AgentCoreHarnessClient(region);
+  const invoke = await client.createInvoker();
 
   const simple = await runHarnessToolCycle({
     harnessArn,
     sessionId: crypto.randomUUID(),
     prompt: "Reply with exactly HARNESS_OK and nothing else.",
-    authorizedRegion: "east",
-    fixture,
+    resolveEvidence: (input) => getSalesEvidence(input, "east", fixture),
     invoke,
   });
   if (simple.text.trim() !== "HARNESS_OK") {
@@ -92,11 +55,9 @@ async function main() {
   const tool = await runHarnessToolCycle({
     harnessArn,
     sessionId: crypto.randomUUID(),
-    prompt:
-      "Call get_sales_evidence for east_show in east. Then state the observed synthetic aggregate evidence and data_as_of timestamp.",
-    authorizedRegion: "east",
-    fixture,
-    invoke: createInvoke({
+    prompt: "Call get_sales_evidence for east_show in east. Then state the observed synthetic aggregate evidence and data_as_of timestamp.",
+    resolveEvidence: (input) => getSalesEvidence(input, "east", fixture),
+    invoke: await client.createInvoker({
       tools: harnessConfig.tools,
       // Kimi does not expose an inline function through its plain-name allow-list.
       // This trusted demo override also enables built-in tools for this invocation.

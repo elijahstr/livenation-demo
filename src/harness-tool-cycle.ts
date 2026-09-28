@@ -1,9 +1,3 @@
-import {
-  getSalesEvidence,
-  type Region,
-  type SalesFixture,
-} from "./local-setup";
-
 type HarnessToolUse = {
   toolUseId: string;
   name: string;
@@ -167,8 +161,7 @@ export async function runHarnessToolCycle(options: {
   harnessArn: string;
   sessionId: string;
   prompt: string;
-  authorizedRegion: Region;
-  fixture: SalesFixture;
+  resolveEvidence: (input: unknown) => unknown | Promise<unknown>;
   invoke: HarnessInvoker;
   maxIterations?: number;
 }) {
@@ -206,11 +199,7 @@ export async function runHarnessToolCycle(options: {
       throw new Error(`Harness stopped with ${current.stopReason}`);
     }
 
-    const result = getSalesEvidence(
-      current.toolUse.input,
-      options.authorizedRegion,
-      options.fixture,
-    );
+    const result = await options.resolveEvidence(current.toolUse.input);
     toolCalls.push({
       name: current.toolUse.name,
       input: current.toolUse.input,
