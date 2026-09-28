@@ -47,19 +47,27 @@ describe("GitHub Pages slide deck", () => {
     expect(html).toMatch(/<meta\s+name="robots"\s+content="noindex, nofollow"/i);
     expect(html).toMatch(/<link\s+rel="icon"\s+href="data:,"\s*>/i);
     expect(html).not.toMatch(/<body[^>]*interactive-deck/);
+    expect(html).not.toContain('class="verification-line"');
   });
 
   test("generates safe proof-link fallbacks from reviewed slide data", async () => {
     if (!deckExists()) return;
     const [html, script, data] = await Promise.all([source("index.html"), source("app.js"), source("slide-data.json")]);
-    const proofCards = [...html.matchAll(/<article class="proof-card"[\s\S]*?<\/article>/g)].map(([card]) => card);
+    const proofCards = [...html.matchAll(/<article class="(?:[^"]*\s)?proof-card(?:\s[^"]*)?"[\s\S]*?<\/article>/g)].map(([card]) => card);
     const proofLinks = [...html.matchAll(/<a\s+[^>]*data-proof-link="([^"]+)"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
     const slideData = JSON.parse(data) as { proofLinks: Record<string, { href: string; target: string; rel: string }> };
+    const harness = JSON.parse(await Bun.file(resolve(slidesDirectory, "../config/create-harness.json")).text()) as {
+      maxIterations: number;
+      maxTokens: number;
+      memory: Record<string, unknown>;
+      tools: Array<{ name: string }>;
+    };
+    const configuredTool = harness.tools[0]?.name;
+    const accessibleDiagram = `One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured to call ${configuredTool} with ${harness.maxIterations} iterations, ${harness.maxTokens.toLocaleString("en-US")} output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.`;
 
-    expect(Object.keys(slideData.proofLinks).sort()).toEqual(["agentcore", "databricks", "implementation", "repository"]);
+    expect(Object.keys(slideData.proofLinks).sort()).toEqual(["databricks", "implementation", "repository"]);
     expect(Object.values(slideData.proofLinks).map(({ href }) => href)).toEqual([
       "https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence",
-      "https://console.aws.amazon.com/bedrock-agentcore/home?region=us-east-1#/",
       "https://github.com/elijahstr/livenation-demo",
       "https://github.com/elijahstr/livenation-demo/blob/main/docs/plans/2026-09-28-west-region-sales-demo-implementation.md",
     ]);
@@ -74,14 +82,26 @@ describe("GitHub Pages slide deck", () => {
       expect(rel).toBe("noreferrer");
     }
     const databricks = proofCards.find((card) => card.includes('data-proof-link="databricks"'));
-    const agentCore = proofCards.find((card) => card.includes('data-proof-link="agentcore"'));
+    const agentCore = proofCards.find((card) => card.includes('class="harness-diagram"'));
     expect(databricks).toContain("Console login required");
     expect(databricks).toContain("VIEW");
     expect(databricks).toContain("six validated synthetic rows");
-    expect(agentCore).toContain("Console login required");
+    expect(html).not.toContain('data-proof-link="agentcore"');
+    expect(html).not.toContain("Open AgentCore console");
+    expect(data).not.toContain("console.aws.amazon.com/bedrock-agentcore");
+    expect(agentCore).toContain(`aria-label="${accessibleDiagram}"`);
+    expect(agentCore).toContain("Validated evidence");
+    expect(agentCore).toContain("AgentCore Harness");
+    expect(agentCore).toContain("Kimi K2.5");
+    expect(agentCore).toContain("CONFIGURED TOOL");
+    expect(agentCore).toContain(configuredTool);
+    expect(agentCore).toContain("Bounded rationale");
+    expect(agentCore).toContain(`${harness.maxIterations} iterations`);
+    expect(agentCore).toContain(`${harness.maxTokens.toLocaleString("en-US")} output tokens`);
+    expect(harness.memory).toHaveProperty("disabled");
+    expect(agentCore).toContain("Memory off");
     expect(agentCore).toContain("READY");
-    expect(agentCore).toContain("moonshotai.kimi-k2.5");
-    expect(agentCore).toContain("get_sales_evidence");
+    expect(agentCore).toContain(`configured allowedTools: ${configuredTool}`);
   });
 
   test("uses light progressive enhancement and accessible navigation", async () => {
@@ -93,6 +113,8 @@ describe("GitHub Pages slide deck", () => {
     expect(css).toMatch(/:focus-visible/);
     expect(css).toMatch(/\.deck-controls\s*\{[^}]*display:\s*none/);
     expect(css).toMatch(/\.interactive-deck\s+\.deck-controls\s*\{[^}]*display:\s*flex/);
+    expect(css).toMatch(/\.slide-proof\s*\{[^}]*padding:\s*10px 60px 0/);
+    expect(css).toMatch(/\.slide-proof\s+\.proof-grid\s*\{[^}]*margin-top:\s*14px/);
     expect(script).toContain('classList.add("interactive-deck")');
     expect(script).toContain("ArrowLeft");
     expect(script).toContain("ArrowRight");

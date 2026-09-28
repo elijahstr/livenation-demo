@@ -5,11 +5,6 @@
       "target": "_blank",
       "rel": "noreferrer"
     },
-    "agentcore": {
-      "href": "https://console.aws.amazon.com/bedrock-agentcore/home?region=us-east-1#/",
-      "target": "_blank",
-      "rel": "noreferrer"
-    },
     "repository": {
       "href": "https://github.com/elijahstr/livenation-demo",
       "target": "_blank",
