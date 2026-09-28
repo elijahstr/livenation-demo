@@ -37,20 +37,31 @@ describe("GitHub Pages slide deck", () => {
     expect(html).not.toMatch(/<body[^>]*interactive-deck/);
   });
 
-  test("keeps proof links safe and places logged-in status beside console links", async () => {
+  test("keeps proof URLs in one safe slide-data block and places status beside console links", async () => {
     if (!deckExists()) return;
-    const html = await source("index.html");
+    const [html, script] = await Promise.all([source("index.html"), source("app.js")]);
     const proofCards = [...html.matchAll(/<article class="proof-card"[\s\S]*?<\/article>/g)].map(([card]) => card);
-    const proofLinks = [...html.matchAll(/<a\s+[^>]*data-proof-link[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+    const proofLinks = [...html.matchAll(/<a\s+[^>]*data-proof-link="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+    const configuredUrls = [...script.matchAll(/href:\s*"(https:\/\/[^"\s]+)"/g)].map(([, href]) => href);
 
-    expect(proofLinks.length).toBeGreaterThanOrEqual(3);
-    for (const [, href] of proofLinks) {
+    expect(proofLinks.map(([, key]) => key).sort()).toEqual(["agentcore", "databricks", "implementation", "repository"]);
+    expect(script).toContain("const slideData = Object.freeze");
+    expect(script).toContain("proofLinks: Object.freeze");
+    expect(script).toContain("link.href = details.href");
+    expect(configuredUrls).toEqual([
+      "https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence",
+      "https://console.aws.amazon.com/bedrock-agentcore/home?region=us-east-1#/",
+      "https://github.com/elijahstr/livenation-demo",
+      "https://github.com/elijahstr/livenation-demo/blob/main/docs/plans/2026-09-28-west-region-sales-demo-implementation.md",
+    ]);
+    expect(html).not.toContain("https://");
+    for (const href of configuredUrls) {
       expect(href).toMatch(/^https:\/\//);
       expect(new URL(href).hostname).not.toBe("");
       expect(href).not.toMatch(/[?&](?:token|access_token|signature|sig|credential|password|secret|aws_access_key_id)=/i);
     }
-    const databricks = proofCards.find((card) => card.includes("dbc-da714a97-83a0.cloud.databricks.com"));
-    const agentCore = proofCards.find((card) => card.includes("console.aws.amazon.com/bedrock-agentcore"));
+    const databricks = proofCards.find((card) => card.includes('data-proof-link="databricks"'));
+    const agentCore = proofCards.find((card) => card.includes('data-proof-link="agentcore"'));
     expect(databricks).toContain("Console login required");
     expect(databricks).toContain("VIEW");
     expect(databricks).toContain("six validated synthetic rows");
@@ -58,8 +69,8 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain("READY");
     expect(agentCore).toContain("moonshotai.kimi-k2.5");
     expect(agentCore).toContain("get_sales_evidence");
-    expect(databricks).toMatch(/target="_blank"\s+rel="noreferrer"/);
-    expect(agentCore).toMatch(/target="_blank"\s+rel="noreferrer"/);
+    expect(script).toContain('target: "_blank"');
+    expect(script).toContain('rel: "noreferrer"');
   });
 
   test("uses light progressive enhancement and accessible navigation", async () => {
