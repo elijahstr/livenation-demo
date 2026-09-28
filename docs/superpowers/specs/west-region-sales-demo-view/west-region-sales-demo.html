@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><link rel="icon" href="data:,"><title>The West-region demo turns real venue context into one safe sales-recovery decision</title><style>
+  :root,:root[data-theme="dark"],:root[data-theme="light"]{color-scheme:light;--ink:#1d2927;--ink2:#31413e;--muted:#65736f;--faint:#eef1ec;--line:#d9ded7;--line2:#c8d0c8;--paper:#f4f2eb;--paper2:#faf9f4;--card:#fffef9;--accent:#0f6b62;--accent2:#174c48;--accent-soft:#e0f0eb;--accent-line:#99c9be;--green:#2c7552;--green-soft:#e8f3ec;--warn:#ad6726;--warn-soft:#fff3df;--warn-line:#e3bc83;--purple:#66519a;--blue:#3f6f9e;--blue-soft:#e8f0f8;--display:Georgia,"Times New Roman",serif;--sans:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,monospace;font-family:var(--sans)}
+  *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:var(--paper);color:var(--ink)}main{width:min(1060px,100%);margin:0 auto;padding:54px 28px 78px}.masthead{padding-bottom:26px;border-bottom:1px solid var(--line)}h1{max-width:17ch;margin:0;font:720 clamp(40px,6.4vw,68px)/1.01 var(--display);letter-spacing:-.036em}h2{margin:0 0 13px;font:690 23px/1.2 var(--display);letter-spacing:-.012em}h3{margin:27px 0 10px;font:710 17px/1.25 var(--sans)}p,li,td,th{overflow-wrap:anywhere;font-size:15px;line-height:1.62}p{margin:0 0 13px;color:var(--ink2)}p:last-child{margin-bottom:0}a{color:var(--accent);font-weight:690;text-underline-offset:3px}code{border-radius:5px;background:#e9ece7;padding:2px 5px;color:var(--accent2);font:12px/1.4 var(--mono)}pre{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#f0f1ed;padding:16px}pre code{padding:0;background:none;color:var(--ink)}ul,ol{margin:0;padding-left:21px;color:var(--ink2)}li+li{margin-top:7px}.warning{margin:22px 0 0;border:1px solid var(--warn-line);border-radius:14px;background:var(--warn-soft);padding:15px 17px}.warning p{color:#70451f;font-weight:620}.hero{margin-top:24px;border:1px solid var(--accent-line);border-radius:20px;background:var(--card);padding:25px;box-shadow:0 18px 44px rgba(35,48,45,.06)}.architecture{margin-top:6px}.decision-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(260px,.8fr);gap:18px;margin-top:18px}.card{min-width:0;border:1px solid var(--line);border-radius:20px;background:var(--card);padding:23px}.card.locked ul{columns:2;column-gap:32px}.card.locked li{break-inside:avoid;margin-bottom:8px}.card.open{border-color:#c7bbe3;background:#f5f0ff}.source-links{display:flex;flex-wrap:wrap;gap:9px 18px;margin:22px 0;color:var(--muted)}.full{margin-top:18px;border:1px solid var(--line);border-radius:20px;background:var(--card);padding:22px}.full>summary{cursor:pointer;font:700 18px/1.3 var(--display)}.full-content{margin-top:24px}.full-content>section+section{margin-top:34px;padding-top:31px;border-top:1px solid var(--line)}.full-content>.warning{margin-bottom:28px}.table-wrap{max-width:100%;overflow-x:auto;margin:16px 0 20px;border:1px solid var(--line);border-radius:13px}table{width:100%;min-width:680px;border-collapse:collapse;background:var(--card)}th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line)}th{background:var(--faint);color:var(--ink);font-weight:750}tr:last-child td{border-bottom:0}@media(max-width:760px){main{padding:34px 16px 58px}.decision-grid{grid-template-columns:minmax(0,1fr)}.card.locked ul{columns:1}.hero,.card,.full{padding:18px}}
+
+  .flow-figure{margin:28px 0;border:1px solid var(--line);border-radius:22px;background:var(--card);padding:24px;box-shadow:0 14px 34px rgba(35,48,45,.06)}
+  .flow-caption{display:flex;flex-direction:column;gap:5px;margin-bottom:19px}
+  .figure-kicker{color:var(--accent);font:760 11px/1.2 var(--sans);letter-spacing:.12em;text-transform:uppercase}
+  .figure-title{color:var(--ink);font:680 19px/1.3 var(--display)}
+  .flow-lane{display:flex;align-items:stretch;min-width:max-content}
+  .flow-lane+.flow-lane{margin-top:12px}
+  .flow-scroll{max-width:100%;overflow-x:auto;padding:2px 2px 8px}
+  .flow-node{position:relative;display:flex;align-items:center;justify-content:center;width:176px;min-height:82px;border:1px solid var(--line2);border-radius:14px;background:var(--paper2);padding:17px 13px;text-align:center;color:var(--ink);font:710 13px/1.35 var(--sans)}
+  .flow-node .step{position:absolute;top:8px;left:10px;color:var(--muted);font:700 9px/1 var(--mono);letter-spacing:.08em}
+  .flow-node.code{border-color:var(--accent-line);background:var(--accent-soft)}
+  .flow-node.model{border-color:#abc3df;background:var(--blue-soft);color:#244f78}
+  .flow-node.human{border-color:#a9cfbd;background:var(--green-soft);color:#245f45}
+  .flow-node.sim{border-color:var(--warn-line);background:var(--warn-soft);color:#7b4a18}
+  .flow-arrow{display:flex;align-items:center;padding:0 9px;color:var(--muted);font-size:22px}
+  .flow-legend{display:flex;flex-wrap:wrap;gap:8px 15px;margin-top:16px;padding-top:15px;border-top:1px solid var(--line)}
+  .legend-item{display:flex;align-items:center;gap:7px;color:var(--muted);font:620 11px/1.3 var(--sans)}
+  .legend-swatch{width:10px;height:10px;border-radius:3px;background:var(--accent)}
+  .legend-swatch.model{background:var(--blue)}
+  .legend-swatch.human{background:var(--green)}
+  .legend-swatch.sim{background:var(--warn)}
+  .figure-foot{margin:14px 0 0;color:var(--ink);font:670 13px/1.5 var(--sans)}
+  @media(max-width:680px){.flow-figure{padding:17px}.flow-node{width:150px}.flow-arrow{padding:0 6px}}
+
+</style></head><body><main>
+    <header class="masthead"><h1>The West-region demo turns real venue context into one safe sales-recovery decision</h1><aside class="warning"><p><strong>Important constraint:</strong> The current Harness override exposes built-in <code>shell</code> and <code>file_operations</code> tools during each trusted model call.</p><p>The UI therefore accepts no free-form prompt and uses synthetic aggregates only.</p></aside></header>
+    <section class="hero"><h2>Goal</h2><p>Build a local interview demo that detects one weak West-region show and uses Kimi to explain a safe response. The demo proves a real Databricks-to-AWS path while every business fact and action stays synthetic.</p></section>
+    <section class="architecture"><figure class="flow-figure" aria-labelledby="west-sales-flow-title">
+    <figcaption class="flow-caption">
+      <span class="figure-kicker">Architecture</span>
+      <span class="figure-title" id="west-sales-flow-title">The deterministic gate selects one alert before Kimi reasons.</span>
+    </figcaption>
+    <div class="flow-scroll">
+      <div class="flow-lane">
+
+  <div class="flow-node code">
+    <span class="step">01</span>
+    <span>Fixed Databricks query</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">02</span>
+    <span>Deterministic detector</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">03</span>
+    <span>One selected aggregate alert</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node model">
+    <span class="step">04</span>
+    <span>Kimi diagnosis through the managed Harness</span>
+  </div>
+      </div>
+      <div class="flow-lane">
+
+  <div class="flow-node code">
+    <span class="step">05</span>
+    <span>Command-center UI</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">06</span>
+    <span>Email, Social, or Dismiss choice</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node human">
+    <span class="step">07</span>
+    <span>Human approval</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node sim">
+    <span class="step">08</span>
+    <span>Local simulated action and audit record</span>
+  </div>
+      </div>
+    </div>
+    <div class="flow-legend" aria-label="The diagram uses deterministic code, the Kimi model call, the human gate, and the simulation boundary as separate roles.">
+      <span class="legend-item"><span class="legend-swatch"></span>Deterministic code</span>
+      <span class="legend-item"><span class="legend-swatch model"></span>Kimi model call</span>
+      <span class="legend-item"><span class="legend-swatch human"></span>Human gate</span>
+      <span class="legend-item"><span class="legend-swatch sim"></span>Simulation boundary</span>
+    </div>
+    <p class="figure-foot">The human gate stays between every draft and every simulated action.</p>
+  </figure></section>
+    <div class="decision-grid">
+      <section class="card locked"><h2>Locked decisions</h2><ul><li>The authorized region is <code>west</code>.</li><li>The six named California, Oregon, and Washington venues define the demo portfolio.</li><li>Hayden Homes Amphitheater is the initial synthetic underperformer.</li><li>A show alerts only when cumulative sales are below 75 percent of its cumulative target.</li><li>Data is valid through seven days of age, inclusive.</li><li>One fixed parameterized query reads <code>workspace.livenation_demo</code>.</li><li>The Bun server calls the Statement Execution API through the local Databricks CLI profile.</li><li>Deterministic code selects one alert before Kimi receives evidence.</li><li>The existing Kimi AgentCore Harness and tool-cycle logic remain in use.</li><li>The UI follows prototype Variant C without changing the prototype files.</li><li>Email and Social produce local simulations only.</li><li>Dismiss produces a local audit record only.</li><li>Every action requires explicit human approval.</li><li>Edits invalidate approval.</li><li>An idempotency key prevents duplicate execution.</li><li>Local JSON stores action and audit state.</li><li>No new third-party dependency is required.</li></ul></section>
+      <section class="card open"><h2>Open questions</h2><p>None. The user approved the venue set, West region, synthetic truth boundary, and recommended application design.</p></section>
+    </div>
+    <nav class="source-links" aria-label="The HTML digest links to the full document and the raw Markdown source.">
+      <a href="#full-document">Full document</a>
+      <a href="../2026-09-28-west-region-sales-demo-design.md">Raw Markdown source</a>
+    </nav>
+    <details class="full" id="full-document"><summary>Full document</summary><article class="full-content"><aside class="warning"><p><strong>Important constraint:</strong> The current Harness override exposes built-in <code>shell</code> and <code>file_operations</code> tools during each trusted model call.</p><p>The UI therefore accepts no free-form prompt and uses synthetic aggregates only.</p></aside><section><h2>Goal</h2><p>Build a local interview demo that detects one weak West-region show and uses Kimi to explain a safe response. The demo proves a real Databricks-to-AWS path while every business fact and action stays synthetic.</p></section>
+<section><h2>Scope</h2><ul><li>Run one local Bun server with no new third-party dependencies.</li><li>Read synthetic aggregates from <code>workspace.livenation_demo</code> through the Databricks Statement Execution API.</li><li>Use the Databricks profile <code>livenation-demo</code> and one fixed parameterized SQL statement.</li><li>Detect alerts with deterministic code before any model call.</li><li>Send one selected aggregate alert to Kimi through the deployed AgentCore Harness.</li><li>Show evidence, Kimi rationale, and action controls in one command-center interface.</li><li>Require human approval before any local simulated action.</li><li>Store action and audit state in local JSON.</li><li>Use prototype Variant C as the visual direction without changing the prototype.</li></ul></section>
+<section><h2>Non-goals</h2><ul><li>Do not send email.</li><li>Do not create or change an advertisement.</li><li>Do not use production or personal data.</li><li>Do not accept an arbitrary user prompt.</li><li>Do not infer venue ownership from a ticket page.</li><li>Do not add a database, framework, queue, or third-party package.</li></ul></section>
+<section><h2>Truth boundary</h2><p>The interface uses the label <strong>Live Nation portfolio venue</strong> for the six selected venues. It also displays <strong>Real venue with synthetic demonstration data</strong> beside each sales record.</p>
+<p>The venue names, cities, states, and public capacities come from Live Nation Special Events pages. The public capacity is a maximum guest count, not guaranteed sellable concert inventory.</p>
+<p>All show names, show dates, sales, targets, market signals, recommendations, audiences, and actions are synthetic. The Live Nation purchase policy says the marketplace generally sells tickets for other event organizers. Therefore, a ticket listing alone does not prove that Live Nation owns the venue.</p>
+<div class="table-wrap"><table><thead><tr><th>Venue</th><th>Market</th><th>Public capacity</th><th>Source</th></tr></thead><tbody><tr><td>The Wiltern</td><td>Los Angeles, CA</td><td>2,300</td><td><a href="https://specialevents.livenation.com/venues/the-wiltern">Live Nation Special Events</a></td></tr><tr><td>Hollywood Palladium</td><td>Los Angeles, CA</td><td>3,700</td><td><a href="https://specialevents.livenation.com/venues/hollywood-palladium">Live Nation Special Events</a></td></tr><tr><td>The Masonic</td><td>San Francisco, CA</td><td>3,000</td><td><a href="https://specialevents.livenation.com/venues/the-masonic">Live Nation Special Events</a></td></tr><tr><td>Hayden Homes Amphitheater</td><td>Bend, OR</td><td>8,000</td><td><a href="https://specialevents.livenation.com/venues/hayden-homes-amphitheater">Live Nation Special Events</a></td></tr><tr><td>White River Amphitheatre</td><td>Auburn, WA</td><td>16,000</td><td><a href="https://specialevents.livenation.com/venues/white-river-amphitheatre">Live Nation Special Events</a></td></tr><tr><td>The Gorge Amphitheatre</td><td>George, WA</td><td>27,000</td><td><a href="https://specialevents.livenation.com/venues/the-gorge-amphitheatre">Live Nation Special Events</a></td></tr></tbody></table></div>
+<p>The <a href="https://help.livenation.com/hc/en-us/articles/10466444311569-Purchase-Policy">Live Nation purchase policy</a> supports the ownership caveat.</p></section>
+<section><h2>Architecture</h2><p>The deterministic gate selects one alert before Kimi reasons. The human gate stays between every draft and every simulated action.</p>
+<figure class="flow-figure" aria-labelledby="west-sales-flow-title">
+    <figcaption class="flow-caption">
+      <span class="figure-kicker">Architecture</span>
+      <span class="figure-title" id="west-sales-flow-title">The deterministic gate selects one alert before Kimi reasons.</span>
+    </figcaption>
+    <div class="flow-scroll">
+      <div class="flow-lane">
+
+  <div class="flow-node code">
+    <span class="step">01</span>
+    <span>Fixed Databricks query</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">02</span>
+    <span>Deterministic detector</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">03</span>
+    <span>One selected aggregate alert</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node model">
+    <span class="step">04</span>
+    <span>Kimi diagnosis through the managed Harness</span>
+  </div>
+      </div>
+      <div class="flow-lane">
+
+  <div class="flow-node code">
+    <span class="step">05</span>
+    <span>Command-center UI</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node code">
+    <span class="step">06</span>
+    <span>Email, Social, or Dismiss choice</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node human">
+    <span class="step">07</span>
+    <span>Human approval</span>
+  </div>
+        <div class="flow-arrow" aria-hidden="true">→</div>
+
+  <div class="flow-node sim">
+    <span class="step">08</span>
+    <span>Local simulated action and audit record</span>
+  </div>
+      </div>
+    </div>
+    <div class="flow-legend" aria-label="The diagram uses deterministic code, the Kimi model call, the human gate, and the simulation boundary as separate roles.">
+      <span class="legend-item"><span class="legend-swatch"></span>Deterministic code</span>
+      <span class="legend-item"><span class="legend-swatch model"></span>Kimi model call</span>
+      <span class="legend-item"><span class="legend-swatch human"></span>Human gate</span>
+      <span class="legend-item"><span class="legend-swatch sim"></span>Simulation boundary</span>
+    </div>
+    <p class="figure-foot">The human gate stays between every draft and every simulated action.</p>
+  </figure>
+<p>The execution order is:</p>
+<ol><li>Fixed Databricks query.</li><li>Deterministic detector.</li><li>One selected aggregate alert.</li><li>Kimi diagnosis through the managed Harness.</li><li>Command-center UI.</li><li>Email, Social, or Dismiss choice.</li><li>Human approval.</li><li>Local simulated action and audit record.</li></ol>
+<p>The diagram uses deterministic code, the Kimi model call, the human gate, and the simulation boundary as separate roles.</p></section>
+<section><h2>Locked decisions</h2><ul><li>The authorized region is <code>west</code>.</li><li>The six named California, Oregon, and Washington venues define the demo portfolio.</li><li>Hayden Homes Amphitheater is the initial synthetic underperformer.</li><li>A show alerts only when cumulative sales are below 75 percent of its cumulative target.</li><li>Data is valid through seven days of age, inclusive.</li><li>One fixed parameterized query reads <code>workspace.livenation_demo</code>.</li><li>The Bun server calls the Statement Execution API through the local Databricks CLI profile.</li><li>Deterministic code selects one alert before Kimi receives evidence.</li><li>The existing Kimi AgentCore Harness and tool-cycle logic remain in use.</li><li>The UI follows prototype Variant C without changing the prototype files.</li><li>Email and Social produce local simulations only.</li><li>Dismiss produces a local audit record only.</li><li>Every action requires explicit human approval.</li><li>Edits invalidate approval.</li><li>An idempotency key prevents duplicate execution.</li><li>Local JSON stores action and audit state.</li><li>No new third-party dependency is required.</li></ul></section>
+<section><h2>Databricks read contract</h2><p>The Bun server calls <code>/api/2.0/sql/statements</code> through <code>databricks api post</code>. This approach reuses the installed CLI and the <code>livenation-demo</code> profile.</p>
+<p>The request supplies <code>region</code> and <code>fresh_after</code> as typed parameters. The SQL text stays constant and does not include UI text. The query requests inline JSON and a bounded row count.</p>
+<p>The query reads one curated view named <code>workspace.livenation_demo.current_sales_evidence</code>. The implementation can recreate that view and its seed tables only inside <code>workspace.livenation_demo</code>. It must not change any other catalog or schema.</p>
+<p>Each row has these fields:</p>
+<div class="table-wrap"><table><thead><tr><th>Field</th><th>Meaning</th><th>Truth class</th></tr></thead><tbody><tr><td><code>event_id</code></td><td>Stable demo event key</td><td>Synthetic</td></tr><tr><td><code>region</code></td><td>Fixed value <code>west</code></td><td>Demo configuration</td></tr><tr><td><code>venue_name</code></td><td>Selected venue name</td><td>Verified venue fact</td></tr><tr><td><code>city</code></td><td>Venue city</td><td>Verified venue fact</td></tr><tr><td><code>state</code></td><td>Venue state</td><td>Verified venue fact</td></tr><tr><td><code>public_capacity</code></td><td>Published maximum guest count</td><td>Verified venue fact</td></tr><tr><td><code>event_name</code></td><td>Fictional show name</td><td>Synthetic</td></tr><tr><td><code>show_date</code></td><td>Fictional show date</td><td>Synthetic</td></tr><tr><td><code>tickets_sold_cumulative</code></td><td>Demonstration sales</td><td>Synthetic</td></tr><tr><td><code>tickets_target_cumulative</code></td><td>Demonstration target</td><td>Synthetic</td></tr><tr><td><code>data_as_of</code></td><td>Demonstration snapshot time</td><td>Synthetic</td></tr><tr><td><code>market_signals</code></td><td>Demonstration context</td><td>Synthetic</td></tr><tr><td><code>origin</code></td><td>Fixed value <code>synthetic</code></td><td>Disclosure control</td></tr></tbody></table></div>
+<p>Databricks recommends parameters because they keep input values separate from SQL text. The <a href="https://docs.databricks.com/aws/en/dev-tools/sql-execution-tutorial">Statement Execution API guide</a> documents typed parameters and inline JSON results.</p></section>
+<section><h2>Deterministic detector</h2><p>The server rejects rows with a missing field, an invalid type, or an origin other than <code>synthetic</code>. It rejects rows outside <code>west</code> and rows older than seven days.</p>
+<p>For each valid row, the server calculates this ratio:</p>
+<pre><code class="language-text">tickets_sold_cumulative / tickets_target_cumulative</code></pre>
+<p>A ratio below <code>0.75</code> creates an alert candidate. A ratio equal to <code>0.75</code> does not create an alert.</p>
+<p>The server selects the lowest ratio first. It breaks ties by the earliest show date and then by <code>event_id</code>. The synthetic seed makes Hayden Homes Amphitheater the first selected alert.</p>
+<p>The detector owns alert truth. Kimi cannot create an alert, change the threshold, or replace the selected evidence.</p></section>
+<section><h2>Kimi diagnosis contract</h2><p>The server passes one selected aggregate alert to the existing <code>get_sales_evidence</code> tool cycle. The prompt is fixed and contains no operator text.</p>
+<p>Kimi explains the shortfall, cites the supplied evidence, and proposes one recovery action. The interface labels that text as model rationale. The interface never displays it as measured fact.</p>
+<p>The model call uses the deployed managed Harness and the existing three-iteration cap. The client accepts only the <code>get_sales_evidence</code> tool name. It rejects malformed tool input, unexpected tools, missing stop reasons, and stream errors.</p></section>
+<section><h2>Command-center UI</h2><p>The interface follows the hierarchy and visual direction of prototype Variant C. The implementation is new functional code and does not change the prototype.</p>
+<p>The main view contains:</p>
+<ul><li>A West-region portfolio rail with all six venues.</li><li>One selected Hayden Homes Amphitheater alert on initial load.</li><li>A measured-evidence panel with the sales ratio and snapshot time.</li><li>A separate Kimi rationale panel.</li><li>A visible synthetic-data disclosure.</li><li>Email, Social, and Dismiss choices.</li><li>An editable draft with approval status.</li><li>A local action log with the final state.</li></ul>
+<p>The user starts the flow with <strong>Run sales check</strong>. The server does not call Kimi when no valid alert exists.</p></section>
+<section><h2>Action and audit state</h2><p>The server stores records in <code>outputs/demo-actions.json</code>. The file contains synthetic content only and remains outside version control.</p>
+<p>Each action record contains:</p>
+<ul><li><code>action_id</code>.</li><li><code>idempotency_key</code>.</li><li><code>alert_snapshot_hash</code>.</li><li><code>action_type</code>.</li><li><code>content</code>.</li><li><code>status</code>.</li><li><code>created_at</code> and <code>updated_at</code>.</li><li>An optional failure message.</li></ul>
+<p>The allowed states are <code>pending</code>, <code>approved</code>, <code>executing</code>, <code>completed</code>, <code>failed</code>, and <code>unknown</code>.</p>
+<p>The normal transition is <code>pending</code> to <code>approved</code> to <code>executing</code> to <code>completed</code>. An execution error changes <code>executing</code> to <code>failed</code>. An uncertain write changes <code>executing</code> to <code>unknown</code>.</p>
+<p>Any edit creates a new snapshot hash and changes the action to <code>pending</code>. The server never executes a <code>pending</code> action.</p>
+<p>The idempotency key combines the alert snapshot, action type, and approved content hash. A repeated execution request returns the existing record instead of creating another action.</p>
+<p>Email and Social write a simulation result to the local record. Dismiss writes the approved dismissal to the local record. No route sends a message or changes an advertisement.</p></section>
+<section><h2>Failure behavior</h2><ul><li>A Databricks failure stops the check before the Kimi call.</li><li>A stale dataset produces a freshness warning and no alert.</li><li>An empty result produces a clear no-data state.</li><li>No qualifying row produces a healthy state and no Kimi call.</li><li>A Kimi failure preserves the measured evidence and hides the action recommendation.</li><li>An invalid model response produces an error state and no action draft.</li><li>A local write failure produces <code>failed</code> when the outcome is known.</li><li>An uncertain local write produces <code>unknown</code> and blocks automatic retry.</li><li>A duplicate idempotency key returns the existing record.</li></ul></section>
+<section><h2>Security and cost posture</h2><p>The demo uses synthetic aggregate data and fixed controls. The interface has no free-form prompt input. The query text remains constant and uses typed parameters.</p>
+<p>The Harness invocation override requires <code>allowedTools: [&quot;*&quot;]</code> for Kimi inline-tool use. This override also exposes built-in <code>shell</code> and <code>file_operations</code> tools to the model. The local tool-name check does not remove those built-ins from the model tool list.</p>
+<p>This risk is accepted only for the controlled interview demo. Do not reuse this configuration with untrusted prompts or production data.</p>
+<p>The demo uses on-demand Databricks, AgentCore, and model calls. It adds no always-on cloud service and no new infrastructure resource.</p></section>
+<section><h2>Alternatives not selected</h2><ul><li>Let Kimi detect the alert. This choice makes measured truth probabilistic.</li><li>Generate SQL from UI selections. This choice adds injection risk and makes the query harder to audit.</li><li>Add a Databricks SDK. This choice adds a dependency without improving this small fixed query.</li><li>Send a real email or advertisement. This choice adds external side effects that the interview does not need.</li><li>Store actions in a cloud database. This choice adds setup and teardown without improving the demonstration.</li></ul></section>
+<section><h2>Acceptance checks</h2><h3>Unit checks</h3>
+<ul><li>Reject invalid venue, region, origin, capacity, sales, target, and freshness values.</li><li>Prove that <code>0.7499</code> alerts and <code>0.75</code> does not alert.</li><li>Prove the ratio, date, and <code>event_id</code> tie-break order.</li><li>Prove that Hayden Homes is the initial selected alert.</li><li>Prove that edits invalidate approval.</li><li>Prove that one idempotency key cannot execute twice.</li><li>Prove every allowed and rejected state transition.</li></ul>
+<h3>Integration checks</h3>
+<ul><li>Verify the Bun route sends the fixed statement and typed parameters to a fake Databricks adapter.</li><li>Verify the detector sends only one selected aggregate to a fake Harness adapter.</li><li>Verify a Harness failure does not create an action draft.</li><li>Verify approval, edit, execution, duplicate execution, failure, and unknown outcomes.</li><li>Verify the server writes and reloads the local JSON audit file.</li><li>Verify the HTML displays both disclosure labels.</li></ul>
+<h3>Live smoke checks</h3>
+<ul><li>Query <code>workspace.livenation_demo</code> through the <code>livenation-demo</code> Databricks profile.</li><li>Confirm all six West-region venues and no other region.</li><li>Confirm every business field reports <code>origin</code> as <code>synthetic</code>.</li><li>Confirm Hayden Homes becomes the selected alert.</li><li>Run one Kimi diagnosis through the deployed AgentCore Harness.</li><li>Approve one simulated action and confirm one completed audit record.</li><li>Repeat the execution request and confirm that no duplicate record appears.</li><li>Confirm no email was sent and no advertisement changed.</li></ul></section>
+<section><h2>Delivery sequence</h2><ol><li>Recreate the six-venue synthetic view inside <code>workspace.livenation_demo</code>.</li><li>Add the fixed Databricks adapter and row validation.</li><li>Add the deterministic detector and selection rule.</li><li>Adapt the existing Harness tool cycle for the selected West-region evidence.</li><li>Build the Variant C command-center interface.</li><li>Add the approval state machine and local audit file.</li><li>Run unit and integration checks.</li><li>Run the bounded Databricks and AgentCore live smoke checks.</li></ol></section>
+<section><h2>Open questions</h2><p>None. The user approved the venue set, West region, synthetic truth boundary, and recommended application design.</p></section>
+<section><h2>Source record</h2><ul><li><a href="https://docs.databricks.com/aws/en/dev-tools/sql-execution-tutorial">Databricks Statement Execution API</a>.</li><li><a href="https://help.livenation.com/hc/en-us/articles/10466444311569-Purchase-Policy">Live Nation Standard Purchase Policy</a>.</li><li><a href="https://specialevents.livenation.com/venues/the-wiltern">The Wiltern</a>.</li><li><a href="https://specialevents.livenation.com/venues/hollywood-palladium">Hollywood Palladium</a>.</li><li><a href="https://specialevents.livenation.com/venues/the-masonic">The Masonic</a>.</li><li><a href="https://specialevents.livenation.com/venues/hayden-homes-amphitheater">Hayden Homes Amphitheater</a>.</li><li><a href="https://specialevents.livenation.com/venues/white-river-amphitheatre">White River Amphitheatre</a>.</li><li><a href="https://specialevents.livenation.com/venues/the-gorge-amphitheatre">The Gorge Amphitheatre</a>.</li></ul>
+<p>The HTML digest links to the full document and the raw Markdown source.</p></section></article></details>
+  </main></body></html>
