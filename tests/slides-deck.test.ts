@@ -44,6 +44,7 @@ describe("GitHub Pages slide deck", () => {
     expect(sections.every(([section], index) => section.includes(`Slide ${index + 1} of 5`))).toBe(true);
     expect(html).toContain("Independent demo");
     expect(html).toContain("Synthetic data");
+    expect(html).not.toContain("This is a synthetic demo. It prepares drafts only. It does not send outreach or buy advertising.");
     expect(html).toContain("Verified September 28, 2026");
     expect(html).toMatch(/<title>[^<]*Independent demo[^<]*<\/title>/i);
     expect(html).toMatch(/<meta\s+name="robots"\s+content="noindex, nofollow"/i);
