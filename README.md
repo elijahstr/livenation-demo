@@ -4,9 +4,17 @@ This public repository is an independent interview demo. It is not an official L
 
 ## Start the UI and server
 
-From the repository root, run:
+The hosted flow requires these local prerequisites:
+
+- Bun
+- Terraform CLI `1.16.3`
+- Databricks CLI `1.18.0`
+- Configured `livenation-demo` profiles for AWS and Databricks
+
+From the repository root, install the locked dependencies and start the server:
 
 ```sh
+bun install --frozen-lockfile
 export AWS_PROFILE=livenation-demo
 export DATABRICKS_PROFILE=livenation-demo
 export HARNESS_ARN="$(terraform -chdir=infra output -raw harness_arn)"

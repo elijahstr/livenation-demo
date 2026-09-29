@@ -165,8 +165,8 @@ describe("assertHarnessSetup", () => {
 });
 
 test("pins the Databricks CLI used by the local command center", () => {
-  expect(DATABRICKS_CLI_VERSION).toBe("1.17.0");
-  expect(() => assertDatabricksCliVersion("Databricks CLI v1.17.0", 0)).not.toThrow();
-  expect(() => assertDatabricksCliVersion("Databricks CLI v1.18.0", 0)).toThrow("requires Databricks CLI 1.17.0");
-  expect(() => assertDatabricksCliVersion("Databricks CLI v1.17.0", 1)).toThrow("requires Databricks CLI 1.17.0");
+  expect(DATABRICKS_CLI_VERSION).toBe("1.18.0");
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.18.0", 0)).not.toThrow();
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.17.0", 0)).toThrow("requires Databricks CLI 1.18.0");
+  expect(() => assertDatabricksCliVersion("Databricks CLI v1.18.0", 1)).toThrow("requires Databricks CLI 1.18.0");
 });

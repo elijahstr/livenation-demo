@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createWestEvidenceTool, createWestEvidenceResolver } from "../src/agentcore-harness-client";
+import { AgentCoreHarnessClient, createWestEvidenceTool, createWestEvidenceResolver } from "../src/agentcore-harness-client";
 import type { WestSalesEvidence } from "../src/west-sales";
 
 const evidence: WestSalesEvidence = {
@@ -9,6 +9,11 @@ const evidence: WestSalesEvidence = {
 };
 
 describe("West Harness tool contract", () => {
+  test("creates an invoker without a global AgentCore CLI", async () => {
+    const invoke = await new AgentCoreHarnessClient().createInvoker();
+    expect(typeof invoke).toBe("function");
+  });
+
   test("creates a schema for exactly the selected West event", () => {
     const tool = createWestEvidenceTool(evidence.event_id);
     expect(tool.config.inlineFunction.inputSchema.properties.event_id.enum).toEqual(["hayden-homes-001"]);

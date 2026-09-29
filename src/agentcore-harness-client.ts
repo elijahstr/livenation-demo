@@ -1,11 +1,7 @@
-import { realpath } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { BedrockAgentCoreClient, InvokeHarnessCommand } from "@aws-sdk/client-bedrock-agentcore";
 
 import type { HarnessEvent, HarnessInvokeInput, HarnessInvoker } from "./harness-tool-cycle";
 import type { WestSalesEvidence } from "./west-sales";
-
-const expectedSdkVersion = "3.1140.0";
 
 export function createWestEvidenceTool(eventId: string) {
   return {
@@ -32,16 +28,6 @@ export function createWestEvidenceResolver(selected: WestSalesEvidence) {
   };
 }
 
-async function loadAgentCoreSdk() {
-  const executable = Bun.which("agentcore");
-  if (!executable) throw new Error("AgentCore CLI is required on PATH");
-  const entry = await realpath(executable);
-  const packageRoot = resolve(dirname(entry), "../../../..", "@aws-sdk/client-bedrock-agentcore");
-  const packageJson = JSON.parse(await Bun.file(resolve(packageRoot, "package.json")).text()) as { version?: string };
-  if (packageJson.version !== expectedSdkVersion) throw new Error(`AgentCore SDK ${expectedSdkVersion} is required; found ${packageJson.version ?? "unknown"}`);
-  return import(pathToFileURL(resolve(packageRoot, "dist-cjs/index.js")).href);
-}
-
 export class AgentCoreHarnessClient {
   constructor(private readonly region = process.env.AWS_REGION ?? "us-east-1", private readonly profile = process.env.AWS_PROFILE ?? "livenation-demo") {}
 
@@ -49,10 +35,9 @@ export class AgentCoreHarnessClient {
     process.env.AWS_PROFILE = this.profile;
     process.env.AWS_REGION = this.region;
     process.env.AWS_MAX_ATTEMPTS ||= "1";
-    const sdk = await loadAgentCoreSdk();
-    const client = new sdk.BedrockAgentCoreClient({ region: this.region, maxAttempts: 1 });
+    const client = new BedrockAgentCoreClient({ region: this.region, maxAttempts: 1 });
     return async (input: HarnessInvokeInput) => {
-      const response = await client.send(new sdk.InvokeHarnessCommand({ ...input, ...overrides }));
+      const response = await client.send(new InvokeHarnessCommand({ ...input, ...overrides }));
       if (!response.stream) throw new Error("Harness response did not include a stream");
       return { stream: response.stream as AsyncIterable<HarnessEvent> };
     };
