@@ -135,7 +135,8 @@ describe("GitHub Pages slide deck", () => {
     expect(harness.memory).toHaveProperty("disabled");
     expect(agentCore).toContain("Memory off");
     expect(agentCore).toContain("READY");
-    expect(agentCore).toContain(`configured inline tool: ${configuredTool}`);
+    expect(agentCore).not.toContain("Sanitized status");
+    expect(agentCore).not.toContain(`configured inline tool: ${configuredTool}`);
     expect(agentCore).not.toContain("configured allowedTools");
   });
 
