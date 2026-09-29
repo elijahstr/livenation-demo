@@ -17,6 +17,15 @@ body { min-width: 320px; margin: 0; overflow-x: hidden; background: var(--wash);
 button, a { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, a:focus-visible { outline: 3px solid #1267c4; outline-offset: 3px; }
+.brand-symbols { position: absolute; width: 0; height: 0; overflow: hidden; }
+.brand-icon { display: block; width: 20px; height: 20px; flex: 0 0 auto; }
+.brand-icon.brand-icon-inline { width: 16px; height: 16px; }
+.brand-label { display: inline-flex; min-width: 0; align-items: center; gap: 6px; }
+.brand-name { white-space: nowrap; }
+.brand-name .brand-icon-inline { display: inline-block; margin-right: 6px; vertical-align: -.18em; }
+#brand-kimi path:first-of-type { fill: var(--ink); }
+/* These selectors override stronger component rules that set headings to block. */
+.stack-cards article strong.brand-label, .setup-flow-start strong.brand-label, .setup-flow-outcomes strong.brand-label { display: flex; }
 
 .masthead { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 72px; padding: 0 4vw; border-bottom: 4px solid var(--red); background: var(--white); }
 .brand-lockup { display: flex; align-items: center; gap: 13px; }
@@ -48,7 +57,7 @@ h2 { font-size: clamp(1.85rem, 4.5vw, 3.65rem); }
 .stack-runtime { margin-top: 26px; padding: 14px 16px; border-left: 5px solid var(--red); background: #fff5f6; }
 .stack-runtime-label { margin: 0; color: var(--red-dark); font-size: .62rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
 .stack-runtime-path { margin: 7px 0 0; font-size: clamp(.86rem, 1.6vw, 1.05rem); font-weight: 900; line-height: 1.45; }
-.stack-runtime-path span { color: var(--red); padding: 0 3px; }
+.stack-runtime-path .stack-arrow { color: var(--red); padding: 0 3px; }
 .stack-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; margin-top: 16px; border: 1px solid var(--line); }
 .stack-cards article { min-width: 0; padding: 14px; border-right: 1px solid var(--line); }
 .stack-cards article:nth-child(6) { border-right: 0; }
@@ -107,11 +116,6 @@ h2 { font-size: clamp(1.85rem, 4.5vw, 3.65rem); }
 .harness-components div { min-width: 0; padding: 7px; border: 1px solid var(--line); background: var(--white); }
 .harness-components .harness-component-label { display: flex; align-items: center; gap: 6px; }
 .harness-components .harness-component-label > span { min-width: 0; overflow-wrap: anywhere; }
-.kimi-logo { width: 20px; height: 20px; flex: 0 0 auto; }
-.kimi-mark { fill: var(--ink); }
-.kimi-bubble { fill: #1683ff; }
-.databricks-logo { width: 20px; height: 20px; flex: 0 0 auto; color: #ff3621; }
-.databricks-logo path { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: square; stroke-linejoin: miter; }
 .harness-components strong { display: block; margin-top: 4px; font-size: .64rem; line-height: 1.3; overflow-wrap: anywhere; }
 .harness-limits { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .harness-limits span { padding: 4px 5px; background: var(--ink); color: var(--white); font-size: .56rem; font-weight: 800; letter-spacing: .04em; }
