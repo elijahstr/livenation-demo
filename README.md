@@ -28,4 +28,4 @@ Open `http://127.0.0.1:3000`.
 
 The static deck source is in [`slides/`](slides/).
 Open the live five-slide deck at [elijahstr.github.io/livenation-demo](https://elijahstr.github.io/livenation-demo/).
-GitHub Pages publishes the four-file runtime payload from the `gh-pages` branch.
+GitHub Pages publishes the static runtime files and supplied brand assets from the `gh-pages` branch.

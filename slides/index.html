@@ -10,6 +10,17 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="deck">
+  <svg class="brand-symbols" aria-hidden="true">
+    <symbol id="brand-kimi" viewBox="0 0 32 32">
+      <path d="M4 4h5v11h5.4L19 4h5l-4.2 10.2a8.3 8.3 0 0 1-3.5 4.2h1.5c4.1 0 6.2 2.1 6.2 6.2V28h-5v-3.3c0-1.4-.7-2.1-2.1-2.1H9V28H4V4Z" />
+      <path d="M26 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-4 4h-4.8l1.5-2.1A4 4 0 0 1 22 8.1V7a4 4 0 0 1 4-4Z" fill="#1683ff" />
+    </symbol>
+    <symbol id="brand-databricks" viewBox="0 0 64 64" fill="none" stroke="#ff3621" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter">
+      <path d="M4 18 32 3l28 15-28 15L4 18Z" />
+      <path d="m4 30 28 15 28-15" />
+      <path d="m4 42 28 15 28-15" />
+    </symbol>
+  </svg>
   <header class="masthead">
     <div class="brand-lockup" aria-label="Live Nation Premium Sales independent demo">
       <span class="brand">LIVE NATION<span class="brand-mark" aria-hidden="true">★</span></span>
@@ -54,31 +65,31 @@
       <p class="lede">The runtime path handles one sales check. Terraform is a separate setup layer. It does not run for each request.</p>
       <div class="stack-runtime" role="img" aria-label="Runtime path: Browser, Bun, Databricks, AgentCore, Kimi K2.5, Local action store.">
         <p class="stack-runtime-label">Runtime path</p>
-        <p class="stack-runtime-path">Browser <span aria-hidden="true">→</span> Bun <span aria-hidden="true">→</span> Databricks <span aria-hidden="true">→</span> AgentCore <span aria-hidden="true">→</span> Kimi K2.5 <span aria-hidden="true">→</span> Local action store</p>
+        <p class="stack-runtime-path">Browser <span class="stack-arrow" aria-hidden="true">→</span> Bun <span class="stack-arrow" aria-hidden="true">→</span> <span class="brand-name"><svg class="brand-icon brand-icon-inline" data-brand-logo="databricks" aria-hidden="true"><use href="#brand-databricks"></use></svg>Databricks</span> <span class="stack-arrow" aria-hidden="true">→</span> <span class="brand-name"><img class="brand-icon brand-icon-inline" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">AgentCore</span> <span class="stack-arrow" aria-hidden="true">→</span> <span class="brand-name"><svg class="brand-icon brand-icon-inline" data-brand-logo="kimi" aria-hidden="true"><use href="#brand-kimi"></use></svg>Kimi K2.5</span> <span class="stack-arrow" aria-hidden="true">→</span> Local action store</p>
       </div>
       <div class="stack-cards" role="group" aria-label="Stack components">
         <article data-stack-component="browser"><span class="stack-number">01</span><strong>Browser</strong><p class="stack-role">It shows the alert and the draft.</p></article>
         <article data-stack-component="bun"><span class="stack-number">02</span><strong>Bun</strong><p class="stack-role">It runs the demo server and passes the request.</p></article>
-        <article data-stack-component="databricks"><span class="stack-number">03</span><strong>Databricks</strong><p class="stack-role">It returns current synthetic sales evidence.</p></article>
-        <article data-stack-component="agentcore"><span class="stack-number">04</span><strong>AgentCore</strong><p class="stack-role">It runs the managed Harness for the request.</p></article>
-        <article data-stack-component="kimi"><span class="stack-number">05</span><strong>Kimi K2.5</strong><p class="stack-role">It turns the evidence into a clear draft.</p></article>
+        <article data-stack-component="databricks"><span class="stack-number">03</span><strong class="brand-label"><svg class="brand-icon" data-brand-logo="databricks" aria-hidden="true"><use href="#brand-databricks"></use></svg>Databricks</strong><p class="stack-role">It returns current synthetic sales evidence.</p></article>
+        <article data-stack-component="agentcore"><span class="stack-number">04</span><strong class="brand-label"><img class="brand-icon" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">AgentCore</strong><p class="stack-role">It runs the managed Harness for the request.</p></article>
+        <article data-stack-component="kimi"><span class="stack-number">05</span><strong class="brand-label"><svg class="brand-icon" data-brand-logo="kimi" aria-hidden="true"><use href="#brand-kimi"></use></svg>Kimi K2.5</strong><p class="stack-role">It turns the evidence into a clear draft.</p></article>
         <article data-stack-component="local-action-store"><span class="stack-number">06</span><strong>Local action store</strong><p class="stack-role">It records a human-approved local action.</p></article>
       </div>
-      <aside class="setup-layer"><span>SETUP LAYER</span><strong>Terraform</strong><p>It creates the cloud configuration before the demo receives sales checks.</p></aside>
+      <aside class="setup-layer"><span>SETUP LAYER</span><strong class="brand-label"><img class="brand-icon" data-brand-logo="terraform" src="./assets/terraform.png" alt="" aria-hidden="true">Terraform</strong><p>It creates the cloud configuration before the demo receives sales checks.</p></aside>
     </section>
 
     <section class="slide" data-slide-topic="terraform" aria-labelledby="slide-3-title" tabindex="-1">
       <p class="slide-position">Slide 3 of 5</p>
-      <p class="eyebrow">SETUP · TERRAFORM</p>
+      <p class="eyebrow brand-label"><img class="brand-icon" data-brand-logo="terraform" src="./assets/terraform.png" alt="" aria-hidden="true">SETUP · TERRAFORM</p>
       <h2 id="slide-3-title">Terraform prepares the cloud parts once.</h2>
       <p class="lede">Terraform is a setup tool. It describes the required cloud resources so the same configuration can be created again. It does not run for each sales check.</p>
       <div class="setup-flow" role="img" aria-label="Terraform setup flow: Terraform creates an AWS IAM role, configures the AgentCore Harness, grants Kimi model invocation permission, and returns the Harness ARN to the Bun server.">
-        <div class="setup-flow-start"><span>SETUP</span><strong>Terraform</strong></div>
+        <div class="setup-flow-start"><span>SETUP</span><strong class="brand-label"><img class="brand-icon" data-brand-logo="terraform" src="./assets/terraform.png" alt="" aria-hidden="true">Terraform</strong></div>
         <span class="setup-flow-arrow" aria-hidden="true">→</span>
         <div class="setup-flow-outcomes">
           <article><span>01</span><strong>AWS IAM role</strong><p>Creates the cloud role that gives the Harness its access.</p></article>
-          <article><span>02</span><strong>AgentCore Harness</strong><p>Configures the managed Harness.</p></article>
-          <article><span>03</span><strong>Kimi permission</strong><p>Grants permission to invoke the Kimi model.</p></article>
+          <article><span>02</span><strong class="brand-label"><img class="brand-icon" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">AgentCore Harness</strong><p>Configures the managed Harness.</p></article>
+          <article><span>03</span><strong class="brand-label"><svg class="brand-icon" data-brand-logo="kimi" aria-hidden="true"><use href="#brand-kimi"></use></svg>Kimi permission</strong><p>Grants permission to invoke the Kimi model.</p></article>
           <article><span>04</span><strong>Harness ARN</strong><p>Outputs the Harness address for the Bun server.</p></article>
         </div>
       </div>
@@ -87,7 +98,7 @@
 
     <section class="slide" data-slide-topic="databricks" aria-labelledby="slide-4-title" tabindex="-1">
       <p class="slide-position">Slide 4 of 5</p>
-      <p class="eyebrow">EVIDENCE · DATABRICKS</p>
+      <p class="eyebrow brand-label"><svg class="brand-icon" data-brand-logo="databricks" aria-hidden="true"><use href="#brand-databricks"></use></svg>EVIDENCE · DATABRICKS</p>
       <h2 id="slide-4-title">The evidence shows the current sales picture.</h2>
       <p class="lede">The snapshot table stores synthetic sales snapshots. The current-evidence view selects the latest record for each show and region.</p>
       <div class="evidence-layout">
@@ -110,7 +121,7 @@
       </div>
       <div class="proof-grid data-proof-grid">
         <article class="proof-card">
-          <div><span class="card-label">Databricks evidence</span><a data-proof-link="databricks" href="https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence" target="_blank" rel="noreferrer">Open current sales evidence</a></div>
+          <div><span class="card-label brand-label"><svg class="brand-icon" data-brand-logo="databricks" aria-hidden="true"><use href="#brand-databricks"></use></svg>Databricks evidence</span><a data-proof-link="databricks" href="https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence" target="_blank" rel="noreferrer">Open current sales evidence</a></div>
           <p class="disclosure">Console login required with a signed-in account that has access.</p>
           <p class="status-fact">Verified September 28, 2026 · VIEW · six validated synthetic rows · Serverless Starter Warehouse.</p>
         </article>
@@ -119,12 +130,12 @@
 
     <section class="slide slide-proof" data-slide-topic="agentcore" aria-labelledby="slide-5-title" tabindex="-1">
       <p class="slide-position">Slide 5 of 5</p>
-      <p class="eyebrow">DRAFT · AGENTCORE HARNESS</p>
+      <p class="eyebrow brand-label"><img class="brand-icon" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">DRAFT · AGENTCORE HARNESS</p>
       <h2 id="slide-5-title">The managed Harness prepares a draft, not an action.</h2>
       <p class="lede">A managed Harness is a cloud service that runs the model and its configured tool. It reads the evidence, prepares a local draft, and leaves every action for human review.</p>
       <div class="proof-grid">
         <article class="proof-card proof-card-harness">
-          <span class="card-label">AWS AgentCore · Managed Harness</span>
+          <span class="card-label brand-label"><img class="brand-icon" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">AWS AgentCore · Managed Harness</span>
           <div class="harness-diagram" role="img" aria-label="One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured with the inline get_sales_evidence tool, which returns validated Databricks evidence, 3 iterations, 2,048 output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.">
             <div class="harness-node">
               <span>INPUT</span>
@@ -135,27 +146,20 @@
             <div class="harness-core">
               <div class="harness-core-heading">
                 <span>MANAGED RUNTIME</span>
-                <strong>AgentCore Harness</strong>
+                <strong class="brand-label"><img class="brand-icon" data-brand-logo="agentcore" src="./assets/agentcore.png" alt="" aria-hidden="true">AgentCore Harness</strong>
                 <em>READY</em>
               </div>
               <div class="harness-components">
                 <div>
                   <span class="harness-component-label">
-                    <svg class="kimi-logo" data-kimi-logo viewBox="0 0 32 32" aria-hidden="true">
-                      <path class="kimi-mark" d="M4 4h5v11h5.4L19 4h5l-4.2 10.2a8.3 8.3 0 0 1-3.5 4.2h1.5c4.1 0 6.2 2.1 6.2 6.2V28h-5v-3.3c0-1.4-.7-2.1-2.1-2.1H9V28H4V4Z" />
-                      <path class="kimi-bubble" d="M26 3a4 4 0 0 1 4 4v1.5a4 4 0 0 1-4 4h-4.8l1.5-2.1A4 4 0 0 1 22 8.1V7a4 4 0 0 1 4-4Z" />
-                    </svg>
+                    <svg class="brand-icon" data-brand-logo="kimi" aria-hidden="true"><use href="#brand-kimi"></use></svg>
                     <span>MODEL</span>
                   </span>
                   <strong>Kimi K2.5</strong>
                 </div>
                 <div>
                   <span class="harness-component-label">
-                    <svg class="databricks-logo" data-databricks-logo viewBox="0 0 64 64" aria-hidden="true">
-                      <path d="M4 18 32 3l28 15-28 15L4 18Z" />
-                      <path d="m4 30 28 15 28-15" />
-                      <path d="m4 42 28 15 28-15" />
-                    </svg>
+                    <svg class="brand-icon" data-brand-logo="databricks" aria-hidden="true"><use href="#brand-databricks"></use></svg>
                     <span>DATABRICKS EVIDENCE</span>
                   </span>
                   <strong>get_sales_evidence</strong>

@@ -3,7 +3,8 @@ import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 const slidesDirectory = resolve(import.meta.dir, "../slides");
-const expectedFiles = [".nojekyll", "README.md", "app.js", "build.ts", "index.html", "index.template.html", "serve.ts", "slide-data.json", "styles.css"];
+const expectedFiles = [".nojekyll", "README.md", "app.js", "assets", "build.ts", "index.html", "index.template.html", "serve.ts", "slide-data.json", "styles.css"];
+const expectedBrandAssets = ["agentcore.png", "terraform.png"];
 const assetPath = (name: string) => resolve(slidesDirectory, name);
 const deckExists = () => expectedFiles.every((name) => existsSync(assetPath(name)));
 
@@ -15,6 +16,7 @@ describe("GitHub Pages slide deck", () => {
   test("ships the complete deck source", () => {
     expect(deckExists()).toBe(true);
     expect(readdirSync(slidesDirectory).sort()).toEqual(expectedFiles.slice().sort());
+    expect(readdirSync(assetPath("assets")).sort()).toEqual(expectedBrandAssets);
     expect(readdirSync(slidesDirectory).every((name) => !name.startsWith("_") && !name.startsWith("#"))).toBe(true);
   });
 
@@ -61,6 +63,30 @@ describe("GitHub Pages slide deck", () => {
     expect(html).toContain("Unsold suites and premium seats");
     expect(html).toContain("workspace.livenation_demo.current_sales_evidence");
     expect(html).toContain('class="harness-diagram"');
+  });
+
+  test("places reusable brand marks on branded deck labels", async () => {
+    if (!deckExists()) return;
+    const html = await source("index.html");
+    const logos = [...html.matchAll(/data-brand-logo="([^"]+)"/g)].map(([, brand]) => brand);
+
+    expect(logos.filter((brand) => brand === "agentcore")).toHaveLength(6);
+    expect(logos.filter((brand) => brand === "kimi")).toHaveLength(4);
+    expect(logos.filter((brand) => brand === "databricks")).toHaveLength(5);
+    expect(logos.filter((brand) => brand === "terraform")).toHaveLength(3);
+    const symbolMarks = [...html.matchAll(/<svg class="brand-icon[^"]*" data-brand-logo="([^"]+)" aria-hidden="true"><use href="#brand-([^"]+)"><\/use><\/svg>/g)];
+    expect(symbolMarks).toHaveLength(9);
+    expect(symbolMarks.every(([, brand, target]) => brand === target)).toBe(true);
+    const imageMarks = [...html.matchAll(/<img class="brand-icon[^"]*" data-brand-logo="([^"]+)" src="\.\/assets\/([^"]+)\.png" alt="" aria-hidden="true">/g)];
+    expect(imageMarks).toHaveLength(9);
+    expect(imageMarks.every(([, brand, file]) => brand === file)).toBe(true);
+    for (const brand of ["kimi", "databricks"]) {
+      expect(html).toContain(`<symbol id="brand-${brand}"`);
+      expect(html).toContain(`href="#brand-${brand}"`);
+    }
+    for (const brand of ["agentcore", "terraform"]) {
+      expect(html).toContain(`src="./assets/${brand}.png"`);
+    }
   });
 
   test("keeps the Databricks slide aligned with the synthetic sales fixture", async () => {
@@ -125,9 +151,9 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain("Validated evidence");
     expect(agentCore).toContain("AgentCore Harness");
     expect(agentCore).toContain("Kimi K2.5");
-    expect(agentCore).toMatch(/<svg[^>]*data-kimi-logo[^>]*aria-hidden="true"/);
+    expect(agentCore).toMatch(/<svg[^>]*data-brand-logo="kimi"[^>]*aria-hidden="true"/);
     expect(agentCore).toContain("DATABRICKS EVIDENCE");
-    expect(agentCore).toMatch(/<svg[^>]*data-databricks-logo[^>]*aria-hidden="true"/);
+    expect(agentCore).toMatch(/<svg[^>]*data-brand-logo="databricks"[^>]*aria-hidden="true"/);
     expect(agentCore).toContain(configuredTool);
     expect(agentCore).toContain("Bounded rationale");
     expect(agentCore).toContain(`${harness.maxIterations} iterations`);
