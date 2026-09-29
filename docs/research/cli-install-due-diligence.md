@@ -76,6 +76,28 @@ npm recorded 885,664 downloads for this SDK package during 2026-09-21 through 20
 
 `@aws/agentcore@0.30.0` declares `@aws-sdk/client-bedrock-agentcore` as `^3.1114.0`, but its checked-in shrinkwrap resolves `3.1114.0`. It does not bundle `3.1140.0`. This is a verified incompatibility with the repository's exact version check, not a guess.
 
+## AWS CLI v2
+
+> **Objection — resolve before a shared IAM-user login.** An IAM user must have the AWS managed `SignInLocalDevelopmentAccess` policy before `aws login` can create its local session. A root user needs no extra policy, but AWS treats root authentication as a higher-risk option. Use a dedicated demo IAM user when it exists. [AWS sign-in guide](https://docs.aws.amazon.com/signin/latest/userguide/command-line-sign-in.html)
+
+| Item | Verified finding |
+| --- | --- |
+| Exact product, publisher, and source | The required product is **AWS Command Line Interface v2**, executable `aws`, published and maintained by AWS. The source repository is [aws/aws-cli](https://github.com/aws/aws-cli). AWS documents the package at the official [`awscli.amazonaws.com`](https://awscli.amazonaws.com/) download endpoint. |
+| Version and cooldown | `2.36.49` was tagged by the AWS CLI release automation on 2026-09-18. At 2026-09-29T00:15Z, it was more than 72 hours old, so it passes the repository cooldown. [Official release](https://github.com/aws/aws-cli/releases/tag/2.36.49) |
+| Typosquatting check | The product name, the `aws` command, the `aws/aws-cli` repository, and the `awscli.amazonaws.com` installer endpoint agree. This check cannot prove that no lookalike exists. |
+| Usage metric | AWS provides no first-party public install or download metric. No usage count is asserted. The public repository has active issues and pull requests, but these are maintenance signals, not usage metrics. [Repository](https://github.com/aws/aws-cli) |
+| Maintenance and cadence | AWS published adjacent `2.36.x` releases and maintains a current changelog. This is active maintenance. The release history shows frequent, usually daily, patch releases; cadence is an observation, not a support commitment. [Changelog](https://raw.githubusercontent.com/aws/aws-cli/2.36.49/CHANGELOG.rst) |
+| License | Apache License 2.0. [v2.36.49 license](https://raw.githubusercontent.com/aws/aws-cli/2.36.49/LICENSE.txt) |
+| Problem here | The CLI supplies the `aws` command that the repository validates and uses with the `livenation-demo` credential profile. It can read AWS resources and validate the deployed AgentCore Harness configuration. |
+| Alternatives | The AWS SDK supplies programmatic calls but does not replace shell commands or the repository CLI version validation. The AWS Console cannot supply automated local calls. An SDK-only path needs a repository design change. |
+| Official macOS arm64 route | Use the versioned AWS macOS installer: `https://awscli.amazonaws.com/AWSCLIV2-2.36.49.pkg`. AWS documents the versioned filename rule and the macOS package route. A check of this official package found a universal binary with both `x86_64` and `arm64` slices; this is a local verification, not an AWS documentation claim. [Past-release install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-version.html) · [macOS support](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) |
+| Verification | Run `pkgutil --check-signature AWSCLIV2.pkg` before install. A local check on 2026-09-28 reported Apple notarization and `Developer ID Installer: AMZN Mobile LLC (94KV3E626L)`, timestamped 2026-09-18 19:03:56 UTC. The observed SHA-256 was `6ced2166d7299b2c503684431dbd50bddc279aab4beeb94efa5bbc220bc0e6b3`. AWS does not publish a macOS-PKG checksum or detached signature in its install guide. Treat the hash as a local observation, not an AWS-published expected value. |
+| Administrator rights | A system install uses `sudo installer -pkg AWSCLIV2.pkg -target /`. A current-user install can use the package choice XML and a writable directory; it needs no administrator rights when the executable symlink also targets a writable directory. [Past-release install guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-version.html) |
+
+**Safest `livenation-demo` profile route.** Do not place access keys in shell history, `.env`, source control, or command output. For a root, IAM-user, or IAM-federated console identity, `aws login --profile livenation-demo --region us-east-1` opens browser authentication and writes temporary credentials for that named profile. It works with an IAM user when that user has `SignInLocalDevelopmentAccess`; it works with a root user without that policy. The session lasts up to 12 hours. Repeat the same command to restore or renew the profile. Then use `aws sts get-caller-identity --profile livenation-demo` to validate identity without printing secrets. [AWS login](https://docs.aws.amazon.com/signin/latest/userguide/command-line-sign-in.html) · [named profiles](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+
+`aws configure sso` plus `aws sso login --profile livenation-demo` is required only for an IAM Identity Center setup. Long-lived access keys are not required for `aws login`, and AWS advises against IAM-user credentials for normal development. If the user cannot use console login or IAM Identity Center, access keys remain a fallback. Store them only in the AWS credentials file and do not print them. [AWS authentication options](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+
 ## Install-source summary
 
 | Tool | New source or registry | Permission needed after this research |
@@ -84,5 +106,6 @@ npm recorded 885,664 downloads for this SDK package during 2026-09-21 through 20
 | Databricks CLI | `databricks/tap` Homebrew tap and explicit Homebrew trust | Approved and installed at `1.18.0`. |
 | AgentCore CLI | npm registry package `@aws/agentcore` | Not installed because it cannot provide the required SDK contract. |
 | Required SDK | npm registry package `@aws-sdk/client-bedrock-agentcore@3.1140.0` | Approved and installed as an exact project dependency. |
+| AWS CLI | Signed AWS macOS package `AWSCLIV2-2.36.49.pkg` | Approved and installed for the current user at `2.36.49`. |
 
 No guesses appear in the installation recommendation. GitHub stars and forks are adoption signals, not usage counts.

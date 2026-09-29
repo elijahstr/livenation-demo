@@ -7,6 +7,7 @@ This public repository is an independent interview demo. It is not an official L
 The hosted flow requires these local prerequisites:
 
 - Bun
+- AWS CLI `2.36.49`
 - Terraform CLI `1.16.3`
 - Databricks CLI `1.18.0`
 - Configured `livenation-demo` profiles for AWS and Databricks
