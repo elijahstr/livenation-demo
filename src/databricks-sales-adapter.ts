@@ -12,18 +12,45 @@ export type StatementResponse = {
   result?: { data_array?: unknown[][] };
   manifest?: { truncated?: boolean; schema?: { columns?: Array<{ name?: string }> } };
 };
-export type DatabricksCommand = (args: string[], body: unknown | undefined, timeoutMs: number) => Promise<StatementResponse>;
+export type DatabricksCommand = (args: string[], body: unknown | undefined, timeoutMs: number, signal?: AbortSignal) => Promise<StatementResponse>;
 
-async function runDatabricks(args: string[], body: unknown | undefined, timeoutMs: number): Promise<StatementResponse> {
+function waitForPoll(delayMs: number, signal?: AbortSignal): Promise<void> {
+  signal?.throwIfAborted();
+  if (!signal) return Bun.sleep(delayMs);
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, delayMs);
+    function done(): void {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }
+    function abort(): void {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      reject(signal?.reason ?? new DOMException("The operation was aborted.", "AbortError"));
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) abort();
+  });
+}
+
+async function runDatabricks(args: string[], body: unknown | undefined, timeoutMs: number, signal?: AbortSignal): Promise<StatementResponse> {
+  signal?.throwIfAborted();
   const command = Bun.spawn(["databricks", ...args], { stdout: "pipe", stderr: "pipe" });
   const timer = setTimeout(() => command.kill(), timeoutMs);
+  const abort = () => command.kill();
+  signal?.addEventListener("abort", abort, { once: true });
+  if (signal?.aborted) abort();
   try {
     const exitCode = await command.exited;
+    signal?.throwIfAborted();
     const stdout = await new Response(command.stdout).text();
     const stderr = await new Response(command.stderr).text();
     if (exitCode !== 0) throw new Error(`Databricks command failed: ${stderr.trim()}`);
     return JSON.parse(stdout) as StatementResponse;
-  } finally { clearTimeout(timer); }
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
 }
 
 function commandArgs(method: "get" | "post", path: string, profile: string, body?: unknown): string[] {
@@ -59,18 +86,29 @@ function decode(response: StatementResponse, now: Date): WestSalesEvidence[] {
 export class DatabricksSalesAdapter {
   constructor(private readonly options: { command?: DatabricksCommand; profile: string; warehouseId: string; timeoutMs?: number }) {}
   private get command() { return this.options.command ?? runDatabricks; }
-  async read(now = new Date()): Promise<WestSalesEvidence[]> {
+  async read(now = new Date(), signal?: AbortSignal): Promise<WestSalesEvidence[]> {
     const started = Date.now(); const deadline = started + (this.options.timeoutMs ?? 55_000);
     const remaining = () => Math.max(1, deadline - Date.now());
     const body = { warehouse_id: this.options.warehouseId, statement: SALES_EVIDENCE_SQL, disposition: "INLINE", format: "JSON_ARRAY", row_limit: 25, byte_limit: 65536, wait_timeout: "50s", on_wait_timeout: "CONTINUE", session_timezone: "UTC", parameters: [{ name: "region", value: "west", type: "STRING" }, { name: "fresh_after", value: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), type: "TIMESTAMP" }] };
-    let response = await this.command(commandArgs("post", "/api/2.0/sql/statements", this.options.profile, body), body, remaining());
-    while (response.status?.state === "PENDING" || response.status?.state === "RUNNING") {
-      if (!response.statement_id || Date.now() >= deadline) {
-        if (response.statement_id) await this.command(commandArgs("post", `/api/2.0/sql/statements/${response.statement_id}/cancel`, this.options.profile, {}), {}, 5_000);
-        throw new Error("Databricks statement timed out");
+    signal?.throwIfAborted();
+    let response = await this.command(commandArgs("post", "/api/2.0/sql/statements", this.options.profile, body), body, remaining(), signal);
+    try {
+      signal?.throwIfAborted();
+      while (response.status?.state === "PENDING" || response.status?.state === "RUNNING") {
+        signal?.throwIfAborted();
+        if (!response.statement_id || Date.now() >= deadline) {
+          if (response.statement_id) await this.command(commandArgs("post", `/api/2.0/sql/statements/${response.statement_id}/cancel`, this.options.profile, {}), {}, 5_000);
+          throw new Error("Databricks statement timed out");
+        }
+        await waitForPoll(Math.min(100, remaining()), signal);
+        response = await this.command(commandArgs("get", `/api/2.0/sql/statements/${response.statement_id}`, this.options.profile), undefined, remaining(), signal);
+        signal?.throwIfAborted();
       }
-      await Bun.sleep(Math.min(100, remaining()));
-      response = await this.command(commandArgs("get", `/api/2.0/sql/statements/${response.statement_id}`, this.options.profile), undefined, remaining());
+    } catch (error) {
+      if (signal?.aborted && response.statement_id) {
+        try { await this.command(commandArgs("post", `/api/2.0/sql/statements/${response.statement_id}/cancel`, this.options.profile, {}), {}, 5_000); } catch {}
+      }
+      throw error;
     }
     if (response.status?.state !== "SUCCEEDED") throw new Error(`Databricks statement failed with ${response.status?.state ?? "unknown state"}`);
     return decode(response, now);

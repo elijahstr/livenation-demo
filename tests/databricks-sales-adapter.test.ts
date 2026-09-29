@@ -66,4 +66,39 @@ describe("Databricks sales adapter", () => {
     await expect(adapter.read(new Date("2026-09-28T12:00:00.000Z"))).rejects.toThrow("timed out");
     expect(calls.at(-1)?.join(" ")).toContain("/cancel");
   });
+
+  test("passes the caller abort signal to the command seam and stops before polling", async () => {
+    const controller = new AbortController();
+    const calls: Array<{ args: string[]; signal?: AbortSignal }> = [];
+    const adapter = new DatabricksSalesAdapter({
+      command: async (args, _body, _timeout, signal) => {
+        calls.push({ args, signal });
+        controller.abort();
+        return { statement_id: "statement", status: { state: "PENDING" } };
+      },
+      profile: "p",
+      warehouseId: "w",
+    });
+    await expect(adapter.read(new Date("2026-09-28T12:00:00.000Z"), controller.signal)).rejects.toThrow("aborted");
+    expect(calls).toHaveLength(2);
+    expect(calls[0].signal).toBe(controller.signal);
+    expect(calls[1].args.join(" ")).toContain("/cancel");
+    expect(calls[1].signal).toBeUndefined();
+  });
+
+  test("stops a pending poll as soon as the caller aborts", async () => {
+    const controller = new AbortController();
+    const calls: string[][] = [];
+    const adapter = new DatabricksSalesAdapter({
+      command: async (args) => { calls.push(args); return { statement_id: "statement", status: { state: "PENDING" } }; },
+      profile: "p",
+      warehouseId: "w",
+    });
+    const read = adapter.read(new Date("2026-09-28T12:00:00.000Z"), controller.signal);
+    await Bun.sleep(5);
+    controller.abort();
+    await expect(read).rejects.toThrow("aborted");
+    expect(calls.at(-1)?.join(" ")).toContain("/cancel");
+  });
+
 });

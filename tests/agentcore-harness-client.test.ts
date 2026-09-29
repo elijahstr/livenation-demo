@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { BedrockAgentCoreClient } from "@aws-sdk/client-bedrock-agentcore";
 import { AgentCoreHarnessClient, createWestEvidenceTool, createWestEvidenceResolver } from "../src/agentcore-harness-client";
 import type { WestSalesEvidence } from "../src/west-sales";
 
@@ -12,6 +13,29 @@ describe("West Harness tool contract", () => {
   test("creates an invoker without a global AgentCore CLI", async () => {
     const invoke = await new AgentCoreHarnessClient().createInvoker();
     expect(typeof invoke).toBe("function");
+  });
+
+  test("passes an abort signal to the AWS Harness request", async () => {
+    const controller = new AbortController();
+    const options: Array<{ abortSignal?: AbortSignal } | undefined> = [];
+    const originalSend = BedrockAgentCoreClient.prototype.send;
+    BedrockAgentCoreClient.prototype.send = (async (_command, requestOptions) => {
+      options.push(requestOptions as { abortSignal?: AbortSignal } | undefined);
+      return { stream: (async function* () {})() };
+    }) as typeof BedrockAgentCoreClient.prototype.send;
+
+    try {
+      const invoke = await new AgentCoreHarnessClient().createInvoker();
+      await invoke({
+        harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+        runtimeSessionId: "12345678-1234-1234-1234-123456789012",
+        messages: [{ role: "user", content: [{ text: "Use the evidence tool." }] }],
+      }, controller.signal);
+    } finally {
+      BedrockAgentCoreClient.prototype.send = originalSend;
+    }
+
+    expect(options).toEqual([{ abortSignal: controller.signal }]);
   });
 
   test("creates a schema for exactly the selected West event", () => {

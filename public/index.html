@@ -67,7 +67,7 @@
         <div class="task-content">
           <div class="event-header">
             <div>
-              <p class="section-kicker">SELECTED SHOW</p>
+              <p class="section-kicker">AT RISK SHOW</p>
               <h3 id="event-name">No show selected</h3>
               <p id="event-meta" class="event-meta">Run the portfolio check to select the show that needs action.</p>
             </div>
@@ -125,39 +125,56 @@
           <span class="task-state">HUMAN REVIEW</span>
         </div>
         <div class="task-content">
-          <div class="recommendation-row">
-            <span class="recommendation-label">AGENT RATIONALE</span>
-            <p id="rationale">Run the portfolio check to request the model rationale.</p>
-          </div>
+          <div class="agent-chat" role="region" aria-labelledby="agent-chat-heading">
+            <div class="agent-chat-header">
+              <div class="agent-identity">
+                <span class="agent-avatar" aria-hidden="true">AI</span>
+                <div>
+                  <span id="agent-chat-heading" class="agent-name">RECOVERY AGENT</span>
+                  <span class="agent-status">SYNTHETIC SALES ANALYSIS</span>
+                </div>
+              </div>
+              <span class="agent-presence"><i aria-hidden="true"></i>LIVE ACTIVITY</span>
+            </div>
 
-          <div class="action-grid" aria-label="Recovery action choices">
-            <button class="action-choice" data-action="email" type="button" disabled>
-              <span class="action-index">A</span>
-              <span class="action-copy">
-                <strong>Prepare suite outreach</strong>
-                <span>Draft an Outlook email for approved corporate accounts.</span>
-                <small>SALES OWNER REVIEW</small>
-              </span>
-              <span class="action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button class="action-choice" data-action="social" type="button" disabled>
-              <span class="action-index">B</span>
-              <span class="action-copy">
-                <strong>Create premium-seat campaign</strong>
-                <span>Draft a targeted advertising proposal with a bounded budget.</span>
-                <small>MARKETING OWNER REVIEW</small>
-              </span>
-              <span class="action-arrow" aria-hidden="true">→</span>
-            </button>
-            <button class="action-choice action-choice-dismiss" data-action="dismiss" type="button" disabled>
-              <span class="action-index">C</span>
-              <span class="action-copy">
-                <strong>Dismiss alert</strong>
-                <span>Record that no recovery action is required.</span>
-                <small>LOCAL AUDIT RECORD</small>
-              </span>
-              <span class="action-arrow" aria-hidden="true">→</span>
-            </button>
+            <ol id="agent-activity" class="agent-activity" aria-live="polite" aria-relevant="additions text" aria-label="Agent activity">
+              <li class="activity-empty">The agent activity will appear during the portfolio check.</li>
+            </ol>
+
+            <div class="agent-message">
+              <span class="recommendation-label">RECOVERY RECOMMENDATION</span>
+              <p id="rationale">Run the portfolio check to request the model rationale.</p>
+            </div>
+
+            <div class="action-grid" aria-label="Recovery action choices">
+              <button class="action-choice" data-action="email" type="button" disabled>
+                <span class="action-index">A</span>
+                <span class="action-copy">
+                  <strong>Prepare suite outreach</strong>
+                  <span>Draft an Outlook email for approved corporate accounts.</span>
+                  <small>SALES OWNER REVIEW</small>
+                </span>
+                <span class="action-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="action-choice" data-action="social" type="button" disabled>
+                <span class="action-index">B</span>
+                <span class="action-copy">
+                  <strong>Create premium-seat campaign</strong>
+                  <span>Draft a targeted advertising proposal with a bounded budget.</span>
+                  <small>MARKETING OWNER REVIEW</small>
+                </span>
+                <span class="action-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="action-choice action-choice-dismiss" data-action="dismiss" type="button" disabled>
+                <span class="action-index">C</span>
+                <span class="action-copy">
+                  <strong>Dismiss alert</strong>
+                  <span>Record that no recovery action is required.</span>
+                  <small>LOCAL AUDIT RECORD</small>
+                </span>
+                <span class="action-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -176,6 +193,9 @@
             </div>
             <span id="draft-channel" class="channel-label">NOT SELECTED</span>
           </div>
+          <ol id="approval-stream" class="approval-stream" aria-live="polite" aria-relevant="additions text" aria-label="Draft review progress">
+            <li class="activity-empty">Select a recovery route to prepare a local draft.</li>
+          </ol>
           <textarea id="draft" rows="8" spellcheck="true" disabled placeholder="The selected action draft will appear here."></textarea>
           <div class="approval-controls">
             <button id="approve" class="button button-primary" type="button" disabled>Approve draft</button>

@@ -24,12 +24,77 @@ describe("local command-center server", () => {
     expect((await fetch(`${base}/%2e%2e/src/server.ts`)).status).toBe(404);
     expect((await fetch(`${base}/api/unknown`)).status).toBe(404);
     expect((await fetch(`${base}/api/state`, { method: "POST" })).status).toBe(405);
+    expect((await fetch(`${base}/stream-client.js`)).status).toBe(200);
+  });
+
+  test("streams ordered sales progress and refuses concurrent checks", async () => {
+    let release = () => undefined;
+    const wait = new Promise<void>((resolve) => { release = resolve; });
+    const server = createServer({
+      port: 0,
+      salesCheck: async (options) => {
+        await options?.onEvent?.({ type: "phase", phase: "portfolio", message: "Reading evidence.", elapsedMs: 1 });
+        await wait;
+        await options?.onEvent?.({ type: "token", text: "Verified recommendation.", elapsedMs: 2 });
+        return { status: "healthy" };
+      },
+      state: async () => ({ actions: [] }),
+    });
+    servers.push(server);
+    const base = `http://127.0.0.1:${server.port}`;
+
+    expect((await fetch(`${base}/api/sales-check/stream`)).status).toBe(405);
+    expect((await fetch(`${base}/api/sales-check/stream`, { method: "POST", headers: { Origin: "https://evil.example" } })).status).toBe(400);
+    const first = await fetch(`${base}/api/sales-check/stream`, { method: "POST" });
+    expect(first.status).toBe(200);
+    expect(first.headers.get("content-type")).toContain("application/x-ndjson");
+    expect((await fetch(`${base}/api/sales-check/stream`, { method: "POST" })).status).toBe(409);
+    expect((await fetch(`${base}/api/sales-check`, { method: "POST" })).status).toBe(409);
+    release();
+    const events = (await first.text()).trim().split("\n").map((line) => JSON.parse(line));
+    expect(events.map((event) => event.type)).toEqual(["phase", "token", "result"]);
+    expect(events.at(-1)?.result.status).toBe("healthy");
+  });
+
+  test("aborts a sales stream after the browser cancels it", async () => {
+    let aborted = false;
+    const server = createServer({
+      port: 0,
+      salesCheck: async (options) => {
+        await options?.onEvent?.({ type: "phase", phase: "portfolio", message: "Reading evidence.", elapsedMs: 1 });
+        await new Promise<void>((resolve) => options?.signal?.addEventListener("abort", () => { aborted = true; resolve(); }, { once: true }));
+        options?.signal?.throwIfAborted();
+        return { status: "healthy" };
+      },
+      state: async () => ({ actions: [] }),
+    });
+    servers.push(server);
+    const base = `http://127.0.0.1:${server.port}`;
+    const controller = new AbortController();
+    const response = await fetch(`${base}/api/sales-check/stream`, { method: "POST", signal: controller.signal });
+    const reader = response.body!.getReader();
+    expect((await reader.read()).done).toBe(false);
+    controller.abort();
+    await reader.cancel().catch(() => undefined);
+    for (let attempt = 0; attempt < 20 && !aborted; attempt += 1) await Bun.sleep(5);
+    expect(aborted).toBe(true);
+    expect((await fetch(`${base}/api/state`)).status).toBe(200);
   });
 
   test("keeps model text literal in the browser source", async () => {
     const app = await Bun.file(new URL("../public/app.js", import.meta.url)).text();
+    const page = await Bun.file(new URL("../public/index.html", import.meta.url)).text();
     expect(app).toContain("textContent");
     expect(app).not.toContain("rationale.innerHTML");
+    expect(app).toContain("/api/sales-check/stream");
+    expect(page).toContain("AT RISK SHOW");
+    expect(page).toContain('id="agent-activity"');
+    expect(page).toContain('id="approval-stream"');
+    expect(page).toContain('class="agent-chat" role="region"');
+    const chatStart = page.indexOf('class="agent-chat"');
+    const recommendationEnd = page.indexOf("</section>", chatStart);
+    expect(chatStart).toBeLessThan(page.indexOf('data-action="email"'));
+    expect(page.indexOf('data-action="dismiss"')).toBeLessThan(recommendationEnd);
   });
 
   test("serves disclosures and permits a route slower than ten seconds", async () => {

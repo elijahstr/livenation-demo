@@ -61,7 +61,19 @@ export type HarnessEvent = {
 
 export type HarnessInvoker = (
   input: HarnessInvokeInput,
+  signal?: AbortSignal,
 ) => Promise<{ stream: AsyncIterable<HarnessEvent> }>;
+
+export type HarnessProgressEvent =
+  | {
+      type: "tool";
+      status: "started" | "completed";
+      toolName: string;
+    }
+  | {
+      type: "token";
+      text: string;
+    };
 
 type StreamResult = {
   text: string;
@@ -86,6 +98,11 @@ function streamError(event: HarnessEvent): Error | undefined {
 
 async function consumeStream(
   stream: AsyncIterable<HarnessEvent>,
+  options: {
+    signal?: AbortSignal;
+    onToolStart?: (toolName: string) => void | Promise<void>;
+    onText?: (text: string) => void | Promise<void>;
+  } = {},
 ): Promise<StreamResult> {
   let text = "";
   let stopReason = "";
@@ -95,39 +112,53 @@ async function consumeStream(
     { toolUseId: string; name: string; input: string }
   >();
 
-  for await (const event of stream) {
-    const error = streamError(event);
-    if (error) throw error;
+  const iterator = stream[Symbol.asyncIterator]();
+  try {
+    while (true) {
+      const next = await nextWithAbort(iterator, options.signal);
+      if (next.done) break;
+      const event = next.value;
+      throwIfAborted(options.signal);
+      const error = streamError(event);
+      if (error) throw error;
 
-    const start = event.contentBlockStart?.start?.toolUse;
-    if (start) {
-      if (start.name !== "get_sales_evidence") {
-        throw new Error(`Unexpected tool ${start.name}`);
+      const start = event.contentBlockStart?.start?.toolUse;
+      if (start) {
+        if (start.name !== "get_sales_evidence") {
+          throw new Error(`Unexpected tool ${start.name}`);
+        }
+        toolUses.set(event.contentBlockStart!.contentBlockIndex, {
+          toolUseId: start.toolUseId,
+          name: start.name,
+          input: "",
+        });
+        await options.onToolStart?.(start.name);
       }
-      toolUses.set(event.contentBlockStart!.contentBlockIndex, {
-        toolUseId: start.toolUseId,
-        name: start.name,
-        input: "",
-      });
-    }
 
-    const delta = event.contentBlockDelta?.delta;
-    if (delta?.text) text += delta.text;
-    if (delta?.toolUse?.input) {
-      const index = event.contentBlockDelta!.contentBlockIndex;
-      const toolUse = toolUses.get(index);
-      if (!toolUse) throw new Error("Tool input arrived before tool start");
-      toolUse.input += delta.toolUse.input;
-    }
+      const delta = event.contentBlockDelta?.delta;
+      if (delta?.text) {
+        text += delta.text;
+        await options.onText?.(delta.text);
+      }
+      if (delta?.toolUse?.input) {
+        const index = event.contentBlockDelta!.contentBlockIndex;
+        const toolUse = toolUses.get(index);
+        if (!toolUse) throw new Error("Tool input arrived before tool start");
+        toolUse.input += delta.toolUse.input;
+      }
 
-    if (event.messageStop?.stopReason) stopReason = event.messageStop.stopReason;
-    if (event.metadata?.usage) {
-      usage = {
-        inputTokens: event.metadata.usage.inputTokens ?? 0,
-        outputTokens: event.metadata.usage.outputTokens ?? 0,
-        totalTokens: event.metadata.usage.totalTokens ?? 0,
-      };
+      if (event.messageStop?.stopReason) stopReason = event.messageStop.stopReason;
+      if (event.metadata?.usage) {
+        usage = {
+          inputTokens: event.metadata.usage.inputTokens ?? 0,
+          outputTokens: event.metadata.usage.outputTokens ?? 0,
+          totalTokens: event.metadata.usage.totalTokens ?? 0,
+        };
+      }
     }
+  } catch (error) {
+    try { void iterator.return?.(); } catch {}
+    throw error;
   }
 
   if (!stopReason) throw new Error("Harness stream ended without a stop reason");
@@ -157,6 +188,27 @@ async function consumeStream(
   };
 }
 
+function nextWithAbort(
+  iterator: AsyncIterator<HarnessEvent>,
+  signal?: AbortSignal,
+): Promise<IteratorResult<HarnessEvent>> {
+  throwIfAborted(signal);
+  if (!signal) return iterator.next();
+  let onAbort = () => undefined;
+  const aborted = new Promise<never>((_resolve, reject) => {
+    onAbort = () => reject(signal.reason instanceof Error ? signal.reason : new Error("Request aborted"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+  return Promise.race([iterator.next(), aborted]).finally(() => signal.removeEventListener("abort", onAbort));
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  if (signal.reason instanceof Error) throw signal.reason;
+  throw new Error("Request aborted");
+}
+
 export async function runHarnessToolCycle(options: {
   harnessArn: string;
   sessionId: string;
@@ -164,6 +216,8 @@ export async function runHarnessToolCycle(options: {
   resolveEvidence: (input: unknown) => unknown | Promise<unknown>;
   invoke: HarnessInvoker;
   maxIterations?: number;
+  signal?: AbortSignal;
+  onEvent?: (event: HarnessProgressEvent) => void | Promise<void>;
 }) {
   if (options.sessionId.length < 33 || options.sessionId.length > 100) {
     throw new Error("sessionId must contain 33 to 100 characters");
@@ -177,12 +231,23 @@ export async function runHarnessToolCycle(options: {
   const usage = { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
 
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+    throwIfAborted(options.signal);
     const response = await options.invoke({
       harnessArn: options.harnessArn,
       runtimeSessionId: options.sessionId,
       messages,
+    }, options.signal);
+    const current = await consumeStream(response.stream, {
+      signal: options.signal,
+      onToolStart: (toolName) => options.onEvent?.({
+        type: "tool",
+        status: "started",
+        toolName,
+      }),
+      onText: iteration > 0
+        ? (text) => options.onEvent?.({ type: "token", text })
+        : undefined,
     });
-    const current = await consumeStream(response.stream);
     usage.inputTokens += current.usage.inputTokens;
     usage.outputTokens += current.usage.outputTokens;
     usage.totalTokens += current.usage.totalTokens;
@@ -199,11 +264,18 @@ export async function runHarnessToolCycle(options: {
       throw new Error(`Harness stopped with ${current.stopReason}`);
     }
 
+    throwIfAborted(options.signal);
     const result = await options.resolveEvidence(current.toolUse.input);
+    throwIfAborted(options.signal);
     toolCalls.push({
       name: current.toolUse.name,
       input: current.toolUse.input,
       result,
+    });
+    await options.onEvent?.({
+      type: "tool",
+      status: "completed",
+      toolName: current.toolUse.name,
     });
     messages = [
       {

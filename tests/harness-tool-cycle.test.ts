@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   runHarnessToolCycle,
   type HarnessEvent,
+  type HarnessProgressEvent,
   type HarnessInvokeInput,
 } from "../src/harness-tool-cycle";
 const selected = { event_id: "hayden-homes-001", region: "west", origin: "synthetic" };
@@ -143,6 +144,95 @@ describe("runHarnessToolCycle", () => {
         ],
       },
     ]);
+  });
+
+  test("emits evidence progress and final tokens only after evidence succeeds", async () => {
+    const controller = new AbortController();
+    const emitted: HarnessProgressEvent[] = [];
+    const streams: HarnessEvent[][] = [
+      [
+        { contentBlockDelta: { contentBlockIndex: 0, delta: { text: "I will check sales." } } },
+        ...toolUseEvents('{"event_id":"hayden-homes-001","region":"west"}'),
+      ],
+      [
+        { contentBlockDelta: { contentBlockIndex: 0, delta: { text: "Use suite outreach." } } },
+        { messageStop: { stopReason: "end_turn" } },
+      ],
+    ];
+    const signals: Array<AbortSignal | undefined> = [];
+
+    const result = await runHarnessToolCycle({
+      harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+      sessionId: "12345678-1234-1234-1234-123456789012",
+      prompt: "Use the evidence tool.",
+      signal: controller.signal,
+      onEvent: (event) => emitted.push(event),
+      resolveEvidence: () => selected,
+      invoke: async (_input, signal) => {
+        signals.push(signal);
+        const stream = streams.shift();
+        if (!stream) throw new Error("unexpected invocation");
+        return { stream: events(stream) };
+      },
+    });
+
+    expect(result.text).toBe("Use suite outreach.");
+    expect(signals).toEqual([controller.signal, controller.signal]);
+    expect(emitted).toEqual([
+      { type: "tool", status: "started", toolName: "get_sales_evidence" },
+      { type: "tool", status: "completed", toolName: "get_sales_evidence" },
+      { type: "token", text: "Use suite outreach." },
+    ]);
+  });
+
+  test("stops the harness stream after the request aborts", async () => {
+    const controller = new AbortController();
+    let resolved = false;
+    async function* abortingStream(): AsyncGenerator<HarnessEvent> {
+      yield { contentBlockDelta: { contentBlockIndex: 0, delta: { text: "Checking evidence." } } };
+      controller.abort();
+      yield { messageStop: { stopReason: "end_turn" } };
+    }
+
+    await expect(
+      runHarnessToolCycle({
+        harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+        sessionId: "12345678-1234-1234-1234-123456789012",
+        prompt: "Use the evidence tool.",
+        signal: controller.signal,
+        resolveEvidence: () => {
+          resolved = true;
+          return selected;
+        },
+        invoke: async () => ({ stream: abortingStream() }),
+      }),
+    ).rejects.toThrow("aborted");
+    expect(resolved).toBe(false);
+  });
+
+  test("releases a stalled Harness iterator when the request aborts", async () => {
+    const controller = new AbortController();
+    let returned = false;
+    const stream: AsyncIterable<HarnessEvent> = {
+      [Symbol.asyncIterator]() {
+        return {
+          next: () => new Promise<IteratorResult<HarnessEvent>>(() => undefined),
+          return: async () => { returned = true; return { done: true, value: undefined }; },
+        };
+      },
+    };
+    const cycle = runHarnessToolCycle({
+      harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+      sessionId: "12345678-1234-1234-1234-123456789012",
+      prompt: "Use the evidence tool.",
+      signal: controller.signal,
+      resolveEvidence: () => selected,
+      invoke: async () => ({ stream }),
+    });
+    setTimeout(() => controller.abort(), 5);
+
+    await expect(Promise.race([cycle, Bun.sleep(100).then(() => { throw new Error("Harness abort timed out"); })])).rejects.toThrow("aborted");
+    expect(returned).toBe(true);
   });
 
   test("rejects an unexpected tool name", async () => {

@@ -24,14 +24,14 @@ const config = {
 if (!config.warehouseId || !config.harnessArn) throw new Error("DATABRICKS_WAREHOUSE_ID and HARNESS_ARN are required");
 const sales = new DatabricksSalesAdapter({ profile: config.profile, warehouseId: config.warehouseId });
 const harness = new AgentCoreHarnessClient(config.awsRegion, config.awsProfile);
-const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, evidence }) => {
+const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, evidence, signal, onEvent }) => {
   const invoke = await harness.createKimiEvidenceInvoker(evidence.event_id);
-  return runHarnessToolCycle({ harnessArn: config.harnessArn!, sessionId: crypto.randomUUID(), prompt, invoke, resolveEvidence: createWestEvidenceResolver(evidence) });
+  return runHarnessToolCycle({ harnessArn: config.harnessArn!, sessionId: crypto.randomUUID(), prompt, invoke, resolveEvidence: createWestEvidenceResolver(evidence), signal, onEvent });
 } } });
 const actions = new ActionStore(`${import.meta.dir}/../outputs/demo-actions.json`);
 const server = createServer({
   port: config.port,
-  salesCheck: () => service.salesCheck(),
+  salesCheck: (options) => service.salesCheck(new Date(), options),
   state: async () => ({ check: service.lastCheck, actions: await actions.list() }),
   getAction: async (id) => { const value = await actions.get(id); if (!value) throw new Error("Action not found"); return value; },
   createAction: async (body) => { const input = body as { alertSnapshotHash?: string; actionType?: ActionType; content?: string }; if (!service.lastCheck || input.alertSnapshotHash !== service.lastCheck.alert.snapshotHash || !input.actionType) throw new Error("Action snapshot is not current"); return actions.create({ alertSnapshotHash: input.alertSnapshotHash, actionType: input.actionType, content: input.content ?? "" }); },

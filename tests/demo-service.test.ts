@@ -13,6 +13,38 @@ const approvedRows = (sold = 800): WestSalesEvidence[] => [
 ];
 
 describe("DemoService", () => {
+  test("emits measured phases and forwards verified Harness progress", async () => {
+    const events: Array<Record<string, unknown>> = [];
+    const controller = new AbortController();
+    let salesSignal: AbortSignal | undefined;
+    let harnessSignal: AbortSignal | undefined;
+    const service = new DemoService({
+      sales: { read: async (_now, signal) => { salesSignal = signal; return approvedRows(); } },
+      harness: { diagnose: async ({ signal, onEvent }) => {
+        harnessSignal = signal;
+        await onEvent?.({ type: "tool", status: "started", toolName: "get_sales_evidence" });
+        await onEvent?.({ type: "tool", status: "completed", toolName: "get_sales_evidence" });
+        await onEvent?.({ type: "token", text: "Use suite outreach." });
+        return { text: "Use suite outreach.", toolCalls: [{ name: "get_sales_evidence" }] };
+      } },
+    });
+
+    const result = await service.salesCheck(new Date("2026-09-28T12:00:00.000Z"), { signal: controller.signal, onEvent: (event) => events.push(event) });
+
+    expect(result.status).toBe("alert");
+    expect(salesSignal).toBe(controller.signal);
+    expect(harnessSignal).toBe(controller.signal);
+    expect(events.map((event) => event.type)).toEqual(["phase", "phase", "phase", "tool", "tool", "token"]);
+    expect(events.map((event) => event.message).filter(Boolean)).toEqual([
+      "Reading six West Region shows.",
+      "Evaluating cumulative sales risk.",
+      "Requesting a verified recovery recommendation.",
+      "AgentCore requested synthetic sales evidence.",
+      "Synthetic sales evidence verified.",
+    ]);
+    expect(events.every((event) => typeof event.elapsedMs === "number")).toBe(true);
+  });
+
   test("requires a structured tool call and keeps sales values out of the model prompt", async () => {
     let prompt = "";
     const service = new DemoService({

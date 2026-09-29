@@ -36,8 +36,11 @@ export class AgentCoreHarnessClient {
     process.env.AWS_REGION = this.region;
     process.env.AWS_MAX_ATTEMPTS ||= "1";
     const client = new BedrockAgentCoreClient({ region: this.region, maxAttempts: 1 });
-    return async (input: HarnessInvokeInput) => {
-      const response = await client.send(new InvokeHarnessCommand({ ...input, ...overrides }));
+    return async (input: HarnessInvokeInput, signal?: AbortSignal) => {
+      const response = await client.send(
+        new InvokeHarnessCommand({ ...input, ...overrides }),
+        { abortSignal: signal },
+      );
       if (!response.stream) throw new Error("Harness response did not include a stream");
       return { stream: response.stream as AsyncIterable<HarnessEvent> };
     };

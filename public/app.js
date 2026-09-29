@@ -1,3 +1,5 @@
+import { initialStreamState, readNdjsonResponse, reduceStreamState } from "./stream-client.js";
+
 const get = (selector) => document.querySelector(selector);
 const run = get("#run-check");
 const checkStatus = get("#check-status");
@@ -7,12 +9,14 @@ const marketSignal = get("#market-signal");
 const venueRail = get("#venue-rail");
 const showCount = get("#show-count");
 const rationale = get("#rationale");
+const agentActivity = get("#agent-activity");
 const draft = get("#draft");
 const draftGuidance = get("#draft-guidance");
 const draftChannel = get("#draft-channel");
 const approve = get("#approve");
 const execute = get("#execute");
 const actionLog = get("#action-log");
+const approvalStream = get("#approval-stream");
 const actionButtons = [...document.querySelectorAll("[data-action]")];
 
 const actionCopy = {
@@ -60,6 +64,7 @@ Demo note: This creates a local audit record only.`,
 let snapshotHash = null;
 let actionId = null;
 let selectedEvidence = null;
+let activeCheckController = null;
 function formatNumber(value) {
   return typeof value === "number" ? new Intl.NumberFormat("en-US").format(value) : "—";
 }
@@ -81,6 +86,34 @@ function setLog(message, isError = false) {
   actionLog.classList.toggle("is-error", isError);
 }
 
+function replaceStreamPlaceholder(feed, message) {
+  const item = document.createElement("li");
+  item.className = "activity-empty";
+  item.textContent = message;
+  feed.replaceChildren(item);
+}
+
+function appendStreamMessage(feed, message, elapsedMs) {
+  const item = document.createElement("li");
+  const elapsed = typeof elapsedMs === "number" ? `${(elapsedMs / 1000).toFixed(1)}s · ` : "";
+  item.textContent = `${elapsed}${message}`;
+  const placeholder = feed.querySelector(".activity-empty");
+  if (placeholder) placeholder.remove();
+  feed.append(item);
+}
+
+function resetAgentActivity() {
+  replaceStreamPlaceholder(agentActivity, "The agent activity will appear during the portfolio check.");
+}
+
+function resetApprovalStream() {
+  replaceStreamPlaceholder(approvalStream, "Select a recovery route to prepare a local draft.");
+}
+
+function addApprovalStep(message) {
+  appendStreamMessage(approvalStream, message);
+}
+
 function resetAction() {
   actionId = null;
   draft.value = "";
@@ -92,6 +125,7 @@ function resetAction() {
   actionButtons.forEach((button) => button.classList.remove("is-selected"));
   approve.disabled = true;
   execute.disabled = true;
+  resetApprovalStream();
   setLog("No external email or advertising action occurs in this demo.");
 }
 
@@ -212,21 +246,49 @@ run.addEventListener("click", async () => {
   checkStatus.textContent = "Checking six West Region shows.";
   workArea.setAttribute("aria-busy", "true");
   resetAction();
+  resetAgentActivity();
   setActionsEnabled(false);
+  rationale.textContent = "The recovery agent is waiting for verified sales evidence.";
+  const controller = new AbortController();
+  activeCheckController = controller;
+  let streamState = initialStreamState();
   try {
-    const result = await requestJson("/api/sales-check", { method: "POST" });
+    const response = await fetch("/api/sales-check/stream", { method: "POST", signal: controller.signal });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || `Request failed with status ${response.status}`);
+    }
+    const terminal = await readNdjsonResponse(response, (event) => {
+      streamState = reduceStreamState(streamState, event);
+      if (event.type === "phase" || event.type === "tool") {
+        const message = typeof event.message === "string" ? event.message : "The recovery agent updated its work status.";
+        appendStreamMessage(agentActivity, message, event.elapsedMs);
+        checkStatus.textContent = message;
+      }
+      if (event.type === "token") rationale.textContent = streamState.rationale;
+    });
+    if (terminal.type === "error") throw new Error(streamState.error || "The portfolio check failed.");
+    if (terminal.type !== "result" || !terminal.result || typeof terminal.result !== "object") throw new Error("Sales-check stream ended without a result.");
+    const result = terminal.result;
     renderPortfolio(result.evidence || [], result.alert);
     if (result.status === "alert" && result.alert) renderAlert(result);
     else renderNoAlert(result);
   } catch (error) {
+    const wasCancelled = controller.signal.aborted;
+    if (!wasCancelled) controller.abort();
     renderPortfolio([]);
-    renderNoAlert({ status: "error", message: error instanceof Error ? error.message : "The request failed." });
+    const message = wasCancelled ? "The portfolio check was cancelled." : error instanceof Error ? error.message : "The request failed.";
+    appendStreamMessage(agentActivity, message);
+    renderNoAlert({ status: "error", message });
   } finally {
+    if (activeCheckController === controller) activeCheckController = null;
     workArea.setAttribute("aria-busy", "false");
     run.disabled = false;
     run.textContent = "Run portfolio check";
   }
 });
+
+window.addEventListener("pagehide", () => activeCheckController?.abort());
 
 draft.addEventListener("input", () => {
   execute.disabled = true;
@@ -237,11 +299,14 @@ draft.addEventListener("input", () => {
 
 async function saveDraft() {
   if (!actionId || !draft.value.trim()) throw new Error("Draft content is required.");
-  return requestJson(`/api/actions/${encodeURIComponent(actionId)}`, {
+  addApprovalStep("Saving the local draft edits.");
+  const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ content: draft.value }),
   });
+  addApprovalStep("The local draft edits were saved.");
+  return action;
 }
 
 actionButtons.forEach((button) => button.addEventListener("click", async () => {
@@ -250,6 +315,8 @@ actionButtons.forEach((button) => button.addEventListener("click", async () => {
   const copy = actionCopy[type];
   const content = typeof copy.content === "function" ? copy.content(selectedEvidence) : copy.content;
   setActionsEnabled(false);
+  resetApprovalStream();
+  addApprovalStep(`Creating the local ${type === "email" ? "Outlook" : type === "social" ? "campaign" : "dismissal"} draft.`);
   setLog("Creating the local action draft.");
   try {
     const action = await requestJson("/api/actions", {
@@ -267,9 +334,11 @@ actionButtons.forEach((button) => button.addEventListener("click", async () => {
     get("#approval-state").className = "task-state is-alert";
     approve.disabled = !draft.value.trim();
     execute.disabled = true;
+    addApprovalStep("The local draft is ready for review.");
     setLog(`Local ${type === "email" ? "Outlook" : type === "social" ? "campaign" : "dismissal"} draft is ready for review.`);
     draft.focus();
   } catch (error) {
+    addApprovalStep("The local draft could not be created.");
     setLog(error instanceof Error ? error.message : "The action draft could not be created.", true);
   } finally {
     setActionsEnabled(Boolean(snapshotHash));
@@ -283,13 +352,16 @@ approve.addEventListener("click", async () => {
   setLog("Saving and approving the local draft.");
   try {
     await saveDraft();
+    addApprovalStep("Recording local approval.");
     const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/approve`, { method: "POST" });
     get("#approval-state").textContent = "APPROVED";
     get("#approval-state").className = "task-state is-success";
+    addApprovalStep("The local approval was recorded.");
     setLog(`Local ${action.action_type} simulation is approved. No external action has occurred.`);
     execute.disabled = action.status !== "approved";
   } catch (error) {
     approve.disabled = false;
+    addApprovalStep("The local approval could not be recorded.");
     setLog(error instanceof Error ? error.message : "The draft could not be approved.", true);
   }
 });
@@ -297,16 +369,19 @@ approve.addEventListener("click", async () => {
 execute.addEventListener("click", async () => {
   if (!actionId) return;
   execute.disabled = true;
+  addApprovalStep("Executing the local simulation.");
   setLog("Executing the local simulation.");
   try {
     const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/execute`, { method: "POST" });
     get("#approval-state").textContent = "SIMULATION COMPLETE";
     get("#approval-state").className = "task-state is-success";
+    addApprovalStep("The local simulation is complete.");
     setLog(`Local ${action.action_type} simulation is complete. No external system changed.`);
     draft.disabled = true;
     approve.disabled = true;
   } catch (error) {
     execute.disabled = false;
+    addApprovalStep("The local simulation could not complete.");
     setLog(error instanceof Error ? error.message : "The local simulation could not complete.", true);
   }
 });
