@@ -22,95 +22,107 @@
   </header>
 
   <main id="deck-main" class="deck-main">
-    <section class="slide slide-problem" aria-labelledby="slide-1-title" tabindex="-1">
+    <section class="slide slide-problem" data-slide-topic="scenario" aria-labelledby="slide-1-title" tabindex="-1">
       <p class="slide-position">Slide 1 of 5</p>
-      <p class="eyebrow">WEST REGION · SALES SIGNAL</p>
-      <h1 id="slide-1-title">One show needs a recovery decision.</h1>
-      <p class="lede">Six West venues use synthetic sales evidence. One show is below the approved 75 percent cumulative-sales threshold.</p>
+      <p class="eyebrow">SCENARIO · WEST REGION</p>
+      <h1 id="slide-1-title">Unsold suites and premium seats need a recovery plan.</h1>
+      <p class="lede">The event date is close. Cascades After Dark has three unsold suites and 128 premium seats left. Sales are 55% of target, so one of six shows needs review.</p>
       <div class="problem-grid">
         <article class="metric-card alert-card">
-          <span class="metric-label">Portfolio alert</span>
-          <strong>1 / 6</strong>
-          <p>shows need a human review.</p>
+          <span class="metric-label">Corporate suites</span>
+          <strong>3</strong>
+          <p>Use an Outlook-style outreach draft for known corporate contacts.</p>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Threshold</span>
-          <strong>75%</strong>
-          <p>of cumulative ticket target.</p>
+          <span class="metric-label">Premium seats</span>
+          <strong>128</strong>
+          <p>Use a targeted premium-seat campaign for the right audience.</p>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Control</span>
+          <span class="metric-label">Control point</span>
           <strong>Human</strong>
-          <p>owns every external decision.</p>
+          <p>approves every message, campaign, and local record.</p>
         </article>
       </div>
-      <p class="slide-note">The deck shows a bounded interview scenario. It does not represent an official product.</p>
+      <p class="slide-note">This is a synthetic demo. It prepares drafts only. It does not send outreach or buy advertising.</p>
     </section>
 
-    <section class="slide" aria-labelledby="slide-2-title" tabindex="-1">
+    <section class="slide" data-slide-topic="stack" aria-labelledby="slide-2-title" tabindex="-1">
       <p class="slide-position">Slide 2 of 5</p>
-      <p class="eyebrow">EVIDENCE · DATABRICKS</p>
-      <h2 id="slide-2-title">The sales signal uses a real managed data source.</h2>
-      <p class="lede">The application reads a managed Delta source through a current-evidence view. The six validated rows remain synthetic.</p>
-      <div class="evidence-layout">
-        <article class="evidence-card">
-          <span class="card-label">Source table</span>
-          <strong>workspace.livenation_demo.show_sales_snapshots</strong>
-          <p>Managed Delta · synthetic snapshots</p>
-        </article>
-        <article class="evidence-card emphasized-card">
-          <span class="card-label">Runtime view</span>
-          <strong>workspace.livenation_demo.current_sales_evidence</strong>
-          <p>VIEW · six validated synthetic rows</p>
-        </article>
+      <p class="eyebrow">OVERVIEW · RUNTIME AND SETUP</p>
+      <h2 id="slide-2-title">A short path turns sales evidence into a local draft.</h2>
+      <p class="lede">The runtime path handles one sales check. Terraform is a separate setup layer. It does not run for each request.</p>
+      <div class="stack-runtime" role="img" aria-label="Runtime path: Browser, Bun, Databricks, AgentCore, Kimi K2.5, Local action store.">
+        <p class="stack-runtime-label">Runtime path</p>
+        <p class="stack-runtime-path">Browser <span aria-hidden="true">→</span> Bun <span aria-hidden="true">→</span> Databricks <span aria-hidden="true">→</span> AgentCore <span aria-hidden="true">→</span> Kimi K2.5 <span aria-hidden="true">→</span> Local action store</p>
       </div>
-      <div class="data-strip" aria-label="Databricks source facts">
-        <span>Serverless Starter Warehouse</span>
-        <span>West Region</span>
-        <span>Synthetic data</span>
+      <div class="stack-cards" role="group" aria-label="Stack components">
+        <article data-stack-component="browser"><span class="stack-number">01</span><strong>Browser</strong><p class="stack-role">It shows the alert and the draft.</p></article>
+        <article data-stack-component="bun"><span class="stack-number">02</span><strong>Bun</strong><p class="stack-role">It runs the demo server and passes the request.</p></article>
+        <article data-stack-component="databricks"><span class="stack-number">03</span><strong>Databricks</strong><p class="stack-role">It returns current synthetic sales evidence.</p></article>
+        <article data-stack-component="agentcore"><span class="stack-number">04</span><strong>AgentCore</strong><p class="stack-role">It runs the managed Harness for the request.</p></article>
+        <article data-stack-component="kimi"><span class="stack-number">05</span><strong>Kimi K2.5</strong><p class="stack-role">It turns the evidence into a clear draft.</p></article>
+        <article data-stack-component="local-action-store"><span class="stack-number">06</span><strong>Local action store</strong><p class="stack-role">It records a human-approved local action.</p></article>
       </div>
+      <aside class="setup-layer"><span>SETUP LAYER</span><strong>Terraform</strong><p>It creates the cloud configuration before the demo receives sales checks.</p></aside>
     </section>
 
-    <section class="slide" aria-labelledby="slide-3-title" tabindex="-1">
+    <section class="slide" data-slide-topic="terraform" aria-labelledby="slide-3-title" tabindex="-1">
       <p class="slide-position">Slide 3 of 5</p>
-      <p class="eyebrow">REASONING · AGENTCORE</p>
-      <h2 id="slide-3-title">A bounded agent turns evidence into a draft.</h2>
-      <p class="lede">The managed AgentCore Harness uses Kimi K2.5 with one evidence tool. The system keeps the model choice and execution cost visible.</p>
-      <div class="agent-flow" aria-label="Agent evidence flow">
-        <article><span>01</span><strong>Managed Harness</strong><p>AgentCore controls the runtime.</p></article>
-        <article><span>02</span><strong>Kimi K2.5</strong><p>moonshotai.kimi-k2.5 selects the explanation.</p></article>
-        <article><span>03</span><strong>One tool</strong><p>get_sales_evidence limits the evidence scope.</p></article>
-        <article><span>04</span><strong>Cost choice</strong><p>A bounded model and tool keep the demo focused.</p></article>
+      <p class="eyebrow">SETUP · TERRAFORM</p>
+      <h2 id="slide-3-title">Terraform prepares the cloud parts once.</h2>
+      <p class="lede">Terraform is a setup tool. It describes the required cloud resources so the same configuration can be created again. It does not run for each sales check.</p>
+      <div class="setup-flow" role="img" aria-label="Terraform setup flow: Terraform creates an AWS IAM role, configures the AgentCore Harness, grants Kimi model invocation permission, and returns the Harness ARN to the Bun server.">
+        <div class="setup-flow-start"><span>SETUP</span><strong>Terraform</strong></div>
+        <span class="setup-flow-arrow" aria-hidden="true">→</span>
+        <div class="setup-flow-outcomes">
+          <article><span>01</span><strong>AWS IAM role</strong><p>Creates the cloud role that gives the Harness its access.</p></article>
+          <article><span>02</span><strong>AgentCore Harness</strong><p>Configures the managed Harness.</p></article>
+          <article><span>03</span><strong>Kimi permission</strong><p>Grants permission to invoke the Kimi model.</p></article>
+          <article><span>04</span><strong>Harness ARN</strong><p>Outputs the Harness address for the Bun server.</p></article>
+        </div>
       </div>
-      <p class="slide-note">The agent recommends a local draft. It does not send outreach or create advertising spend.</p>
+      <aside class="control-callout">Setup creates access. A sales check reads evidence and returns a local draft.</aside>
     </section>
 
-    <section class="slide" aria-labelledby="slide-4-title" tabindex="-1">
+    <section class="slide" data-slide-topic="databricks" aria-labelledby="slide-4-title" tabindex="-1">
       <p class="slide-position">Slide 4 of 5</p>
-      <p class="eyebrow">CONTROL · HUMAN APPROVAL</p>
-      <h2 id="slide-4-title">People keep control of the recovery path.</h2>
-      <p class="lede">The operating sequence keeps recommendation and action separate. The final action remains a local simulation.</p>
-      <ol class="approval-path">
-        <li><span>1</span><strong>Draft</strong><p>The agent prepares a bounded recommendation.</p></li>
-        <li><span>2</span><strong>Edit</strong><p>A sales or marketing owner changes the draft.</p></li>
-        <li><span>3</span><strong>Approve</strong><p>A person confirms the selected local action.</p></li>
-        <li><span>4</span><strong>Simulate locally</strong><p>The demo records a local result only.</p></li>
-      </ol>
-      <aside class="control-callout">No email, advertisement, payment, or external record is created.</aside>
+      <p class="eyebrow">EVIDENCE · DATABRICKS</p>
+      <h2 id="slide-4-title">The evidence shows the current sales picture.</h2>
+      <p class="lede">The snapshot table stores synthetic sales snapshots. The current-evidence view selects the latest record for each show and region.</p>
+      <div class="evidence-layout">
+        <article class="evidence-card"><span class="card-label">Snapshot table</span><strong>show_sales_snapshots</strong><code class="object-path">workspace.livenation_demo.show_sales_snapshots</code><p>Stores the synthetic sales snapshots.</p></article>
+        <article class="evidence-card emphasized-card"><span class="card-label">Current-evidence view</span><strong>current_sales_evidence</strong><code class="object-path">workspace.livenation_demo.current_sales_evidence</code><p>Returns the latest synthetic evidence for each show and region.</p></article>
+      </div>
+      <div class="sales-table-wrap">
+        <table class="sales-table">
+          <caption>Six synthetic current-evidence rows · alert below 75% of target</caption>
+          <thead><tr><th scope="col">Event</th><th scope="col">Venue</th><th scope="col">Sold</th><th scope="col">Target</th><th scope="col">%</th></tr></thead>
+          <tbody>
+            <tr class="sales-alert"><td>Cascades After Dark</td><td>Hayden Homes</td><td>550</td><td>1,000</td><td>55% alert</td></tr>
+            <tr><td>Neon Horizons</td><td>The Wiltern</td><td>900</td><td>1,000</td><td>90%</td></tr>
+            <tr><td>Pacific Lines</td><td>Hollywood Palladium</td><td>880</td><td>1,000</td><td>88%</td></tr>
+            <tr><td>Bay Signal</td><td>The Masonic</td><td>860</td><td>1,000</td><td>86%</td></tr>
+            <tr><td>River Run</td><td>White River</td><td>840</td><td>1,000</td><td>84%</td></tr>
+            <tr><td>Columbia Sky</td><td>The Gorge</td><td>820</td><td>1,000</td><td>82%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="proof-grid data-proof-grid">
+        <article class="proof-card">
+          <div><span class="card-label">Databricks evidence</span><a data-proof-link="databricks" href="https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence" target="_blank" rel="noreferrer">Open current sales evidence</a></div>
+          <p class="disclosure">Console login required with a signed-in account that has access.</p>
+          <p class="status-fact">Verified September 28, 2026 · VIEW · six validated synthetic rows · Serverless Starter Warehouse.</p>
+        </article>
+      </div>
     </section>
 
-    <section class="slide slide-proof" aria-labelledby="slide-5-title" tabindex="-1">
+    <section class="slide slide-proof" data-slide-topic="agentcore" aria-labelledby="slide-5-title" tabindex="-1">
       <p class="slide-position">Slide 5 of 5</p>
-      <p class="eyebrow">PROOF · PRESENTER ACCESS</p>
-      <h2 id="slide-5-title">Inspect the evidence with the right access.</h2>
-      <p class="lede">Verified September 28, 2026. Public visitors can inspect the source and the managed agent design. Authorized presenters can open the Databricks evidence.</p>
+      <p class="eyebrow">DRAFT · AGENTCORE HARNESS</p>
+      <h2 id="slide-5-title">The managed Harness prepares a draft, not an action.</h2>
+      <p class="lede">A managed Harness is a cloud service that runs the model and its configured tool. It reads the evidence, prepares a local draft, and leaves every action for human review.</p>
       <div class="proof-grid">
-        <article class="proof-card">
-          <span class="card-label">Databricks evidence</span>
-          <a data-proof-link="databricks" href="https://dbc-da714a97-83a0.cloud.databricks.com/explore/data/workspace/livenation_demo/current_sales_evidence" target="_blank" rel="noreferrer">Open current sales evidence</a>
-          <p class="disclosure">Console login required with a signed-in account that has access.</p>
-          <p class="status-fact">Sanitized status: VIEW · six validated synthetic rows · Serverless Starter Warehouse.</p>
-        </article>
         <article class="proof-card proof-card-harness">
           <span class="card-label">AWS AgentCore · Managed Harness</span>
           <div class="harness-diagram" role="img" aria-label="One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured to call get_sales_evidence with 3 iterations, 2,048 output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.">
@@ -143,15 +155,14 @@
               <small>Draft recommendation only</small>
             </div>
           </div>
-          <p class="status-fact">Sanitized status: livenation_demo-1on72c4veC · READY · configured allowedTools: get_sales_evidence.</p>
-        </article>
-        <article class="proof-card">
-          <span class="card-label">Public source</span>
-          <a data-proof-link="repository" href="https://github.com/elijahstr/livenation-demo" target="_blank" rel="noreferrer">Open the public repository</a>
-          <a data-proof-link="implementation" href="https://github.com/elijahstr/livenation-demo/blob/main/docs/plans/2026-09-28-west-region-sales-demo-implementation.md" target="_blank" rel="noreferrer">Read the implementation evidence</a>
-          <p class="status-fact">Public source evidence explains the synthetic-data and human-control boundaries.</p>
+          <p class="status-fact">Sanitized status: livenation_demo-1on72c4veC · READY · configured inline tool: get_sales_evidence</p>
         </article>
       </div>
+      <nav class="source-links" aria-label="Public evidence links">
+        <a data-proof-link="repository" href="https://github.com/elijahstr/livenation-demo" target="_blank" rel="noreferrer">Open the public repository</a>
+        <a data-proof-link="implementation" href="https://github.com/elijahstr/livenation-demo/blob/main/docs/plans/2026-09-28-west-region-sales-demo-implementation.md" target="_blank" rel="noreferrer">Read the implementation evidence</a>
+      </nav>
+      <p class="slide-note">The demo keeps the agent action local. A person reviews and approves any next step.</p>
     </section>
   </main>
 
