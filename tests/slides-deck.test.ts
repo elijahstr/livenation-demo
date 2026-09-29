@@ -125,7 +125,9 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain("Validated evidence");
     expect(agentCore).toContain("AgentCore Harness");
     expect(agentCore).toContain("Kimi K2.5");
+    expect(agentCore).toMatch(/<svg[^>]*data-kimi-logo[^>]*aria-hidden="true"/);
     expect(agentCore).toContain("DATABRICKS EVIDENCE");
+    expect(agentCore).toMatch(/<svg[^>]*data-databricks-logo[^>]*aria-hidden="true"/);
     expect(agentCore).toContain(configuredTool);
     expect(agentCore).toContain("Bounded rationale");
     expect(agentCore).toContain(`${harness.maxIterations} iterations`);
@@ -149,6 +151,7 @@ describe("GitHub Pages slide deck", () => {
     expect(css).toMatch(/\.slide-proof\s*\{[^}]*padding:\s*10px 60px 0/);
     expect(css).toMatch(/\.slide-proof\s+\.proof-grid\s*\{[^}]*margin-top:\s*14px/);
     expect(css).toMatch(/\.proof-grid\.data-proof-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
+    expect(css).toMatch(/@media \(max-width: 360px\)[\s\S]*\.harness-components\s*\{[^}]*grid-template-columns:\s*1fr/);
     expect(script).toContain('classList.add("interactive-deck")');
     expect(script).toContain("ArrowLeft");
     expect(script).toContain("ArrowRight");
