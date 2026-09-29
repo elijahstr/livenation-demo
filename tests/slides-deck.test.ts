@@ -95,7 +95,7 @@ describe("GitHub Pages slide deck", () => {
       tools: Array<{ name: string }>;
     };
     const configuredTool = harness.tools[0]?.name;
-    const accessibleDiagram = `One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured to call ${configuredTool} with ${harness.maxIterations} iterations, ${harness.maxTokens.toLocaleString("en-US")} output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.`;
+    const accessibleDiagram = `One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured with the inline ${configuredTool} tool, which returns validated Databricks evidence, ${harness.maxIterations} iterations, ${harness.maxTokens.toLocaleString("en-US")} output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.`;
 
     expect(Object.keys(slideData.proofLinks).sort()).toEqual(["databricks", "implementation", "repository"]);
     expect(Object.values(slideData.proofLinks).map(({ href }) => href)).toEqual([
@@ -125,7 +125,7 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain("Validated evidence");
     expect(agentCore).toContain("AgentCore Harness");
     expect(agentCore).toContain("Kimi K2.5");
-    expect(agentCore).toContain("CONFIGURED TOOL");
+    expect(agentCore).toContain("DATABRICKS EVIDENCE");
     expect(agentCore).toContain(configuredTool);
     expect(agentCore).toContain("Bounded rationale");
     expect(agentCore).toContain(`${harness.maxIterations} iterations`);
@@ -148,6 +148,7 @@ describe("GitHub Pages slide deck", () => {
     expect(css).toMatch(/\.interactive-deck\s+\.deck-controls\s*\{[^}]*display:\s*flex/);
     expect(css).toMatch(/\.slide-proof\s*\{[^}]*padding:\s*10px 60px 0/);
     expect(css).toMatch(/\.slide-proof\s+\.proof-grid\s*\{[^}]*margin-top:\s*14px/);
+    expect(css).toMatch(/\.proof-grid\.data-proof-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
     expect(script).toContain('classList.add("interactive-deck")');
     expect(script).toContain("ArrowLeft");
     expect(script).toContain("ArrowRight");

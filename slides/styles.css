@@ -80,13 +80,12 @@ h2 { font-size: clamp(1.85rem, 4.5vw, 3.65rem); }
 .sales-table th { background: var(--ink); color: var(--white); font-size: .61rem; letter-spacing: .06em; text-transform: uppercase; }
 .sales-table td:nth-child(n + 3) { font-variant-numeric: tabular-nums; }
 .sales-table .sales-alert td { background: #fff5f6; font-weight: 900; }
-.data-proof-grid { grid-template-columns: 1fr; margin-top: 14px; }
+.proof-grid.data-proof-grid { grid-template-columns: 1fr; margin-top: 14px; }
 .data-proof-grid .proof-card { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(180px, 1fr) minmax(240px, 1.5fr); gap: 14px; align-items: center; padding: 12px 16px; }
 .data-proof-grid .proof-card > div { display: grid; gap: 4px; }
 .data-proof-grid .proof-card .card-label, .data-proof-grid .proof-card p { margin: 0; }
 .data-proof-grid .proof-card .status-fact { padding-top: 0; border-top: 0; }
 
-.proof-grid { grid-template-columns: repeat(3, 1fr); }
 .proof-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .proof-card a { color: var(--red-dark); font-size: .86rem; font-weight: 900; line-height: 1.35; }
 .proof-card .disclosure { color: #333; font-weight: 800; }
@@ -146,7 +145,6 @@ h2 { font-size: clamp(1.85rem, 4.5vw, 3.65rem); }
   .setup-flow-outcomes { grid-template-columns: 1fr; }
   .setup-flow-outcomes article, .setup-flow-outcomes article:nth-child(2n), .setup-flow-outcomes article:nth-last-child(-n + 2) { border-right: 0; border-bottom: 1px solid var(--line); }
   .setup-flow-outcomes article:last-child { border-bottom: 0; }
-  .data-proof-grid { grid-template-columns: 1fr; }
   .data-proof-grid .proof-card { grid-template-columns: 1fr; }
   .sales-table { min-width: 0; table-layout: fixed; font-size: .66rem; }
   .sales-table th, .sales-table td { padding: 7px 5px; overflow-wrap: anywhere; }
