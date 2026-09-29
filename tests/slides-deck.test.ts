@@ -50,6 +50,38 @@ describe("GitHub Pages slide deck", () => {
     expect(html).not.toContain('class="verification-line"');
   });
 
+  test("uses the approved five-slide presentation structure", async () => {
+    if (!deckExists()) return;
+    const html = await source("index.html");
+    const topics = [...html.matchAll(/<section\b[^>]*class="[^"]*\bslide\b[^"]*"[^>]*data-slide-topic="([^"]+)"[^>]*>/g)].map(([, topic]) => topic);
+
+    expect(topics).toEqual(["scenario", "stack", "terraform", "databricks", "agentcore"]);
+    const components = [...html.matchAll(/data-stack-component="([^"]+)"/g)].map(([, name]) => name);
+    expect(components).toEqual(["browser", "bun", "databricks", "agentcore", "kimi", "local-action-store"]);
+    expect(html).toContain("Unsold suites and premium seats");
+    expect(html).toContain("workspace.livenation_demo.current_sales_evidence");
+    expect(html).toContain('class="harness-diagram"');
+  });
+
+  test("keeps the Databricks slide aligned with the synthetic sales fixture", async () => {
+    if (!deckExists()) return;
+    const html = await source("index.html");
+    const rows = JSON.parse(await Bun.file(resolve(slidesDirectory, "../fixtures/west-region-sales.json")).text()) as Array<{
+      event_name: string;
+      tickets_sold_cumulative: number;
+      tickets_target_cumulative: number;
+    }>;
+
+    expect(rows).toHaveLength(6);
+    for (const row of rows) {
+      const percent = Math.round((row.tickets_sold_cumulative / row.tickets_target_cumulative) * 100);
+      expect(html).toContain(`<td>${row.event_name}</td>`);
+      expect(html).toContain(`<td>${row.tickets_sold_cumulative.toLocaleString("en-US")}</td>`);
+      expect(html).toContain(`<td>${row.tickets_target_cumulative.toLocaleString("en-US")}</td>`);
+      expect(html).toContain(`<td>${percent}%`);
+    }
+  });
+
   test("generates safe proof-link fallbacks from reviewed slide data", async () => {
     if (!deckExists()) return;
     const [html, script, data] = await Promise.all([source("index.html"), source("app.js"), source("slide-data.json")]);
@@ -101,7 +133,8 @@ describe("GitHub Pages slide deck", () => {
     expect(harness.memory).toHaveProperty("disabled");
     expect(agentCore).toContain("Memory off");
     expect(agentCore).toContain("READY");
-    expect(agentCore).toContain(`configured allowedTools: ${configuredTool}`);
+    expect(agentCore).toContain(`configured inline tool: ${configuredTool}`);
+    expect(agentCore).not.toContain("configured allowedTools");
   });
 
   test("uses light progressive enhancement and accessible navigation", async () => {
