@@ -24,6 +24,17 @@ bun run dev
 
 Open `http://127.0.0.1:3000`.
 
+## Sales workspace mock
+
+The [sales workspace mock](docs/prototypes/premium-sales/index.html) includes a simulated scan, account conversations, renewals, new leads, and a parking upsell.
+It runs locally without AWS or Databricks credentials.
+
+```sh
+bun docs/prototypes/premium-sales/serve.ts
+```
+
+Open `http://127.0.0.1:4409`.
+
 ## Interview slide deck
 
 The static deck source is in [`slides/`](slides/).
