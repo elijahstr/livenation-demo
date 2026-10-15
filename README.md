@@ -35,6 +35,8 @@ bun docs/prototypes/premium-sales/serve.ts
 
 Open `http://127.0.0.1:4409`.
 
+The [decision record and research brief](docs/design/premium-sales/decisions-and-research.md) records the agreed scenarios, proposed architecture, source summaries, and checks still required.
+
 ## Interview slide deck
 
 The static deck source is in [`slides/`](slides/).
