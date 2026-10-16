@@ -12,20 +12,54 @@ The hosted flow requires these local prerequisites:
 - Databricks CLI `1.18.0`
 - Configured `livenation-demo` profiles for AWS and Databricks
 
-From the repository root, install the locked dependencies and start the server:
+From the repository root, install the locked dependencies and start this worktree on port 3001:
 
 ```sh
 bun install --frozen-lockfile
 export AWS_PROFILE=livenation-demo
 export DATABRICKS_PROFILE=livenation-demo
-export HARNESS_ARN="$(terraform -chdir=infra output -raw harness_arn)"
+export PORT=3001
 bun run dev
 ```
 
-Open `http://127.0.0.1:3000`.
+Open `http://127.0.0.1:3001`.
+
+Startup needs a valid AWS session unless you set `HARNESS_ARN` explicitly. An explicit ARN allows the UI to start without discovery; live calls still need valid credentials. The server uses `HARNESS_ARN` when you set it. Otherwise, it uses the AWS CLI to find the exact ready `livenation_demo` harness. Do not copy Terraform state into a worktree.
 
 The Recovery Case File flow identifies a verified sales risk, shows recovery recommendations, and prepares a local draft for owner approval.
 The email, campaign, and dismissal actions are simulated; the demo does not send email or create campaigns.
+
+## AgentCore chat and traces
+
+The sales UI includes chat code in the Recovery Agent area. The default server keeps live chat disabled.
+
+Enable live chat only after a bounded AWS selector verification succeeds:
+
+```sh
+AGENTCORE_CHAT_ENABLED=1 AGENTCORE_CHAT_TOOL_SELECTOR=qualified PORT=3001 bun run dev
+```
+
+Use only the selector that passed the recorded verification. Try `qualified` first because the earlier plain-name probe failed. The browser cannot enable chat or select a tool.
+
+Developer details show the stable conversation ID and a separate runtime ID for each turn. The runtime ID is submitted to AWS. Live trace correlation remains to be verified. Browser chat and AWS CloudWatch are separate surfaces.
+
+Current behavior: the chat code exists and has local tests. Required live verification remains pending AWS authentication. The existing fixed recovery flow still uses a legacy wildcard tool setting. Do not change it until the safe selector succeeds.
+
+Run the bounded live verification only after the cost check permits it:
+
+```sh
+bun run scripts/verify-agentcore-chat.ts --selector qualified
+```
+
+The command requires current observed cost below $13. It records no more than three attempts. It reads the current six fresh Databricks rows. Its shell request is supporting evidence only. It does not prove that every built-in tool is unavailable.
+
+Use an existing runtime ID for trace lookup. This command makes no new model calls:
+
+```sh
+bun run scripts/verify-agentcore-chat.ts --trace RUNTIME_SESSION_UUID
+```
+
+The required Databricks CLI is 1.18.0. The recorded local CLI is 1.17.0. Do not install or upgrade it without approval.
 
 ## Sales workspace mock
 

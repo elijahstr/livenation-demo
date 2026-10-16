@@ -12,12 +12,12 @@ export type SalesCheckProgress =
   | { type: "tool"; status: "started" | "completed"; toolName: string; message: string; elapsedMs: number }
   | { type: "token"; text: string; elapsedMs: number };
 
-export type SalesCheckOptions = { signal?: AbortSignal; onEvent?: (event: SalesCheckProgress) => void | Promise<void> };
+export type SalesCheckOptions = { signal?: AbortSignal; onEvent?: (event: SalesCheckProgress) => void | Promise<void>; onInvocationStart?: () => void };
 type WithoutElapsed<T> = T extends unknown ? Omit<T, "elapsedMs"> : never;
 type SalesReader = { read(now?: Date, signal?: AbortSignal): Promise<WestSalesEvidence[]> };
 type HarnessDiagnosis = { text: string; toolCalls: Array<{ name: string }> };
 type HarnessProgress = { type: "tool"; status: "started" | "completed"; toolName: string } | { type: "token"; text: string };
-type Harness = { diagnose(input: { prompt: string; evidence: WestSalesEvidence; signal?: AbortSignal; onEvent?: (event: HarnessProgress) => void | Promise<void> }): Promise<HarnessDiagnosis> };
+type Harness = { diagnose(input: { prompt: string; evidence: WestSalesEvidence; signal?: AbortSignal; onEvent?: (event: HarnessProgress) => void | Promise<void>; onInvocationStart?: () => void }): Promise<HarnessDiagnosis> };
 
 export class DemoService {
   #lastCheck: Extract<SalesCheck, { status: "alert" }> | undefined;
@@ -54,6 +54,7 @@ export class DemoService {
         prompt,
         evidence: alert.evidence,
         signal: options.signal,
+        onInvocationStart: options.onInvocationStart,
         onEvent: async (event) => {
           if (event.type === "token") return emit({ type: "token", text: event.text });
           return emit({

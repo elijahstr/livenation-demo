@@ -78,7 +78,7 @@ export type HarnessProgressEvent =
 type StreamResult = {
   text: string;
   stopReason: string;
-  toolUse?: HarnessToolUse;
+  toolUses?: HarnessToolUse[];
   usage: {
     inputTokens: number;
     outputTokens: number;
@@ -100,6 +100,7 @@ async function consumeStream(
   stream: AsyncIterable<HarnessEvent>,
   options: {
     signal?: AbortSignal;
+    maxToolCallsPerResponse?: number;
     onToolStart?: (toolName: string) => void | Promise<void>;
     onText?: (text: string) => void | Promise<void>;
   } = {},
@@ -163,29 +164,19 @@ async function consumeStream(
 
   if (!stopReason) throw new Error("Harness stream ended without a stop reason");
   if (stopReason !== "tool_use") return { text, stopReason, usage };
-  if (toolUses.size !== 1) {
-    throw new Error(`Expected one inline tool request, received ${toolUses.size}`);
+  const limit = options.maxToolCallsPerResponse ?? 1;
+  if (!toolUses.size || toolUses.size > limit) {
+    throw new Error(`Expected at most ${limit} inline tool requests, received ${toolUses.size}`);
   }
-
-  const pending = [...toolUses.values()][0];
-  let input: unknown;
-  try {
-    input = JSON.parse(pending.input);
-  } catch {
-    throw new Error("Harness returned invalid tool input JSON");
-  }
-
-  return {
-    text,
-    stopReason,
-    usage,
-    toolUse: {
-      toolUseId: pending.toolUseId,
-      name: pending.name,
-      input,
-      type: "tool_use",
-    },
-  };
+  const pending = [...toolUses.entries()].sort(([a], [b]) => a - b).map(([, value]) => value);
+  if (new Set(pending.map(tool => tool.toolUseId)).size !== pending.length) throw new Error("Duplicate inline tool ID");
+  const parsed = pending.map(tool => {
+    let input: unknown;
+    try { input = JSON.parse(tool.input || "{}"); }
+    catch { throw new Error("Harness returned invalid tool input JSON"); }
+    return { toolUseId: tool.toolUseId, name: tool.name, input, type: "tool_use" as const };
+  });
+  return { text, stopReason, usage, toolUses: parsed };
 }
 
 function nextWithAbort(
@@ -216,6 +207,8 @@ export async function runHarnessToolCycle(options: {
   resolveEvidence: (input: unknown) => unknown | Promise<unknown>;
   invoke: HarnessInvoker;
   maxIterations?: number;
+  maxToolCallsPerResponse?: number;
+  streamInitialText?: boolean;
   signal?: AbortSignal;
   onEvent?: (event: HarnessProgressEvent) => void | Promise<void>;
 }) {
@@ -238,13 +231,14 @@ export async function runHarnessToolCycle(options: {
       messages,
     }, options.signal);
     const current = await consumeStream(response.stream, {
+      maxToolCallsPerResponse: options.maxToolCallsPerResponse,
       signal: options.signal,
       onToolStart: (toolName) => options.onEvent?.({
         type: "tool",
         status: "started",
         toolName,
       }),
-      onText: iteration > 0
+      onText: iteration > 0 || options.streamInitialText
         ? (text) => options.onEvent?.({ type: "token", text })
         : undefined,
     });
@@ -260,42 +254,20 @@ export async function runHarnessToolCycle(options: {
         usage,
       };
     }
-    if (current.stopReason !== "tool_use" || !current.toolUse) {
+    if (current.stopReason !== "tool_use" || !current.toolUses?.length) {
       throw new Error(`Harness stopped with ${current.stopReason}`);
     }
 
-    throwIfAborted(options.signal);
-    const result = await options.resolveEvidence(current.toolUse.input);
-    throwIfAborted(options.signal);
-    toolCalls.push({
-      name: current.toolUse.name,
-      input: current.toolUse.input,
-      result,
-    });
-    await options.onEvent?.({
-      type: "tool",
-      status: "completed",
-      toolName: current.toolUse.name,
-    });
-    messages = [
-      {
-        role: "assistant",
-        content: [{ toolUse: current.toolUse }],
-      },
-      {
-        role: "user",
-        content: [
-          {
-            toolResult: {
-              toolUseId: current.toolUse.toolUseId,
-              status: "success",
-              type: "tool_use",
-              content: [{ text: JSON.stringify(result) }],
-            },
-          },
-        ],
-      },
-    ];
+    const content: HarnessMessage["content"] = [];
+    for (const tool of current.toolUses) {
+      throwIfAborted(options.signal);
+      const result = await options.resolveEvidence(tool.input);
+      throwIfAborted(options.signal);
+      toolCalls.push({ name: tool.name, input: tool.input, result });
+      await options.onEvent?.({ type: "tool", status: "completed", toolName: tool.name });
+      content.push({ toolResult: { toolUseId: tool.toolUseId, status: "success", type: "tool_use", content: [{ text: JSON.stringify(result) }] } });
+    }
+    messages = [{ role: "user", content }];
   }
 
   throw new Error(`Harness exceeded ${maxIterations} tool iterations`);

@@ -6,12 +6,8 @@ import { DemoService } from "./demo-service";
 import { AgentCoreHarnessClient, createWestEvidenceResolver } from "./agentcore-harness-client";
 import { runHarnessToolCycle } from "./harness-tool-cycle";
 import { createServer } from "./server";
-
-function terraformOutput(name: string): string {
-  const result = Bun.spawnSync({ cmd: ["terraform", "-chdir=infra", "output", "-raw", name], stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error(`Cannot read Terraform output ${name}`);
-  return result.stdout.toString().trim();
-}
+import { ChatService } from "./chat-service";
+import { resolveHarnessArn } from "./harness-discovery";
 
 const config = {
   port: Number(process.env.PORT ?? runtime.port),
@@ -19,18 +15,27 @@ const config = {
   profile: process.env.DATABRICKS_PROFILE ?? runtime.databricksProfile,
   awsProfile: process.env.AWS_PROFILE ?? runtime.awsProfile,
   awsRegion: process.env.AWS_REGION ?? runtime.awsRegion,
-  harnessArn: process.env.HARNESS_ARN ?? terraformOutput("harness_arn"),
+  harnessArn: await resolveHarnessArn({ explicitArn: process.env.HARNESS_ARN, profile: process.env.AWS_PROFILE ?? runtime.awsProfile, region: process.env.AWS_REGION ?? runtime.awsRegion }),
 };
 if (!config.warehouseId || !config.harnessArn) throw new Error("DATABRICKS_WAREHOUSE_ID and HARNESS_ARN are required");
 const sales = new DatabricksSalesAdapter({ profile: config.profile, warehouseId: config.warehouseId });
 const harness = new AgentCoreHarnessClient(config.awsRegion, config.awsProfile);
-const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, evidence, signal, onEvent }) => {
+const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, evidence, signal, onEvent, onInvocationStart }) => {
   const invoke = await harness.createKimiEvidenceInvoker(evidence.event_id);
-  return runHarnessToolCycle({ harnessArn: config.harnessArn!, sessionId: crypto.randomUUID(), prompt, invoke, resolveEvidence: createWestEvidenceResolver(evidence), signal, onEvent });
+  return runHarnessToolCycle({ harnessArn: config.harnessArn!, sessionId: crypto.randomUUID(), prompt, invoke: async (input, abortSignal) => { onInvocationStart?.(); return invoke(input, abortSignal); }, resolveEvidence: createWestEvidenceResolver(evidence), signal, onEvent });
 } } });
+const selector = process.env.AGENTCORE_CHAT_TOOL_SELECTOR ?? "plain";
+if (selector !== "plain" && selector !== "qualified") throw new Error("Invalid chat tool selector");
+const chat = new ChatService({
+  harnessArn: config.harnessArn, region: config.awsRegion,
+  enabled: process.env.AGENTCORE_CHAT_ENABLED === "1",
+  invoke: await harness.createChatInvoker(selector),
+  readEvidence: (now, signal) => sales.read(now, signal),
+});
 const actions = new ActionStore(`${import.meta.dir}/../outputs/demo-actions.json`);
 const server = createServer({
   port: config.port,
+  chat,
   salesCheck: (options) => service.salesCheck(new Date(), options),
   state: async () => ({ check: service.lastCheck, actions: await actions.list() }),
   getAction: async (id) => { const value = await actions.get(id); if (!value) throw new Error("Action not found"); return value; },

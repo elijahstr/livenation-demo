@@ -114,19 +114,6 @@ describe("runHarnessToolCycle", () => {
     expect(calls[0].runtimeSessionId).toBe(calls[1].runtimeSessionId);
     expect(calls[1].messages).toEqual([
       {
-        role: "assistant",
-        content: [
-          {
-            toolUse: {
-              toolUseId: "tool-1",
-              name: "get_sales_evidence",
-              input: { event_id: "hayden-homes-001", region: "west" },
-              type: "tool_use",
-            },
-          },
-        ],
-      },
-      {
         role: "user",
         content: [
           {
@@ -144,6 +131,23 @@ describe("runHarnessToolCycle", () => {
         ],
       },
     ]);
+  });
+
+  test("can stream initial response text when requested", async () => {
+    const emitted: HarnessProgressEvent[] = [];
+    await runHarnessToolCycle({
+      harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+      sessionId: "12345678-1234-1234-1234-123456789012",
+      prompt: "Say hello.",
+      streamInitialText: true,
+      resolveEvidence: () => selected,
+      onEvent: (event) => emitted.push(event),
+      invoke: async () => ({ stream: events([
+        { contentBlockDelta: { contentBlockIndex: 0, delta: { text: "Hello." } } },
+        { messageStop: { stopReason: "end_turn" } },
+      ]) }),
+    });
+    expect(emitted).toEqual([{ type: "token", text: "Hello." }]);
   });
 
   test("emits evidence progress and final tokens only after evidence succeeds", async () => {

@@ -29,6 +29,16 @@
           <header class="section-head"><h2 id="agent-heading">RECOVERY AGENT</h2><span class="agent-presence"><i aria-hidden="true"></i><span id="agent-status">READY</span></span></header>
           <div class="agent-chat" role="region" aria-label="Recovery agent"><div class="agent-card"><div class="agent-identity"><span class="agent-avatar" aria-hidden="true">AI</span><div><strong>WEST SALES RECOVERY</strong><small>PORTFOLIO SIGNAL REVIEW</small></div></div><button id="run-check" class="button button-primary" type="button">Run recovery agent</button></div>
           <ol id="agent-activity" class="agent-activity" aria-live="polite" aria-relevant="additions text" aria-label="Agent activity" hidden><li class="activity-empty">The recovery agent is ready.</li></ol></div>
+          <section class="sales-chat" aria-labelledby="chat-heading">
+            <div class="chat-heading"><div><h3 id="chat-heading">Ask the recovery agent</h3><p>Discuss West sales evidence and your next step.</p></div><button id="chat-new" class="chat-text-button" type="button">New chat</button></div>
+            <ol id="chat-transcript" class="chat-transcript" aria-label="Conversation"><li class="chat-empty">Ask which shows need attention, or ask a follow-up about the evidence.</li></ol>
+            <form id="chat-form" class="chat-composer">
+              <label for="chat-message">Your message</label>
+              <textarea id="chat-message" rows="2" maxlength="4000" placeholder="What needs attention in the West portfolio?" required></textarea>
+              <div class="chat-controls"><span id="chat-status" role="status" aria-live="polite">Enter to send. Shift + Enter adds a line.</span><button id="chat-stop" class="button button-secondary" type="button" hidden>Stop</button><button id="chat-send" class="button button-primary" type="submit">Send</button></div>
+            </form>
+            <details id="chat-details" class="chat-details"><summary>Developer details</summary><p>Each turn has an AWS session ID. Find that ID in the CloudWatch Sessions view.</p><a id="chat-cloudwatch" href="https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#gen-ai-observability" target="_blank" rel="noopener noreferrer">Open AWS traces</a><p id="chat-conversation"></p><ol id="chat-trace-turns"></ol></details>
+          </section>
         </div>
       </section>
 
@@ -71,5 +81,6 @@
   </main>
   <footer class="site-footer" data-demo-disclosure><span>LIVE NATION WEST SALES</span><span>SYNTHETIC DATA · LOCAL ACTIONS ONLY</span></footer>
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/chat-client.js"></script>
 </body>
 </html>
