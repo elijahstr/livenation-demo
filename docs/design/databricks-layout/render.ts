@@ -33,6 +33,11 @@ function blocks(source: string, digest = false, figures = FIGURES) {
     if (/^\d+\. /.test(line)) { const items: string[] = []; while (/^\d+\. /.test(lines[index] ?? "")) items.push(`<li>${inline(lines[index++].replace(/^\d+\. /, ""))}</li>`); output.push(`<ol>${items.join("")}</ol>`); continue; }
     const paragraph: string[] = [];
     while ((lines[index] ?? "").trim() && !/^### |^<!-- fig:|^<!-- digest|^[-*] |^\d+\. /.test(lines[index]) && !((lines[index] ?? "").includes("|") && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1] ?? ""))) paragraph.push(lines[index++]);
+    if (paragraph.length === 0) {
+      output.push(`<p>${inline(line)}</p>`);
+      index++;
+      continue;
+    }
     output.push(`<p>${inline(paragraph.join(" "))}</p>`);
   }
   return output.join("");
