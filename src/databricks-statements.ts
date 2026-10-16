@@ -16,6 +16,7 @@ type StatementResponse = {
 };
 
 export type StatementTransport = (args: string[], body: unknown | undefined, timeoutMs: number) => Promise<StatementResponse>;
+export type DatabricksJsonRequest = (args: string[], body: unknown | undefined, options: { timeoutMs: number; maxBytes: number; signal?: AbortSignal }) => Promise<unknown>;
 type Event = { kind: string; statementId?: string; state?: string; [key: string]: unknown };
 type Options = {
   profile: string;
@@ -55,7 +56,8 @@ async function readBounded(stream: ReadableStream<Uint8Array>, maxBytes: number)
   return new TextDecoder().decode(Buffer.concat(chunks));
 }
 
-async function runCli(args: string[], body: unknown | undefined, timeoutMs: number, maxBytes = MAX_OUTPUT_BYTES): Promise<StatementResponse> {
+async function runCli(args: string[], body: unknown | undefined, timeoutMs: number, maxBytes = MAX_OUTPUT_BYTES, signal?: AbortSignal): Promise<StatementResponse> {
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new Error("Databricks command timeout must be a positive finite number");
   let directory: string | undefined;
   let payloadPath: string | undefined;
   const commandArgs = [...args];
@@ -68,18 +70,26 @@ async function runCli(args: string[], body: unknown | undefined, timeoutMs: numb
       await chmod(payloadPath, 0o600);
       commandArgs.push("--json", `@${payloadPath}`);
     }
+    if (signal?.aborted) throw signal.reason ?? new DOMException("The operation was aborted.", "AbortError");
     const process = Bun.spawn(["databricks", ...commandArgs], { stdout: "pipe", stderr: "pipe" });
     let timedOut = false;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const terminate = () => {
+      process.kill("SIGTERM");
+      killTimer ??= setTimeout(() => process.kill("SIGKILL"), 2_000);
+    };
     const timer = setTimeout(() => {
       timedOut = true;
-      process.kill("SIGTERM");
-      killTimer = setTimeout(() => process.kill("SIGKILL"), 2_000);
-    }, Math.max(1, timeoutMs));
+      terminate();
+    }, timeoutMs);
+    const abort = () => terminate();
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
     const stdout = readBounded(process.stdout, maxBytes);
     const stderr = readBounded(process.stderr, maxBytes);
     try {
       const [code, output] = await Promise.all([process.exited, stdout, stderr]);
+      if (signal?.aborted) throw signal.reason ?? new DOMException("The operation was aborted.", "AbortError");
       if (timedOut) throw genericFailure("command deadline");
       if (code !== 0) throw genericFailure("command");
       try { return JSON.parse(output) as StatementResponse; } catch { throw genericFailure("JSON response parsing"); }
@@ -87,10 +97,12 @@ async function runCli(args: string[], body: unknown | undefined, timeoutMs: numb
       process.kill("SIGKILL");
       await process.exited.catch(() => undefined);
       if (error instanceof Error && error.message.includes("configured limit")) throw error;
+      if (signal?.aborted) throw error;
       throw error instanceof Error && error.message.startsWith("Databricks ") ? error : genericFailure("command");
     } finally {
       clearTimeout(timer);
       if (killTimer) clearTimeout(killTimer);
+      signal?.removeEventListener("abort", abort);
     }
   } finally {
     if (directory) await rm(directory, { recursive: true, force: true });
@@ -102,6 +114,16 @@ export async function runDatabricksJson(args: string[], options: { timeoutMs?: n
   if (args[0] !== "api" || args[1] !== "get" || args.includes("--json")) throw new Error("runDatabricksJson accepts only body-free Databricks API GET commands");
   return runCli(args, undefined, options.timeoutMs ?? 30_000, Math.min(options.maxBytes ?? MAX_OUTPUT_BYTES, MAX_OUTPUT_BYTES));
 }
+
+/** Runs one bounded Databricks REST GET or POST command without exposing CLI credentials. */
+export const runDatabricksJsonRequest: DatabricksJsonRequest = async (args, body, options) => {
+  if (args[0] !== "api" || !["get", "post"].includes(args[1] ?? "")) throw new Error("runDatabricksJsonRequest accepts only Databricks API GET or POST commands");
+  if (args[1] === "get" && body !== undefined) throw new Error("Databricks API GET commands cannot have a body");
+  if (args.includes("--json")) throw new Error("runDatabricksJsonRequest owns the JSON request body");
+  const maxBytes = Math.min(options.maxBytes, MAX_OUTPUT_BYTES);
+  if (!Number.isInteger(maxBytes) || maxBytes < 1) throw new Error("Databricks JSON response limit is invalid");
+  return runCli(args, body, options.timeoutMs, maxBytes, options.signal);
+};
 
 function apiArgs(method: "get" | "post", path: string, profile: string): string[] {
   return ["api", method, path, "--profile", profile, "--output", "json"];

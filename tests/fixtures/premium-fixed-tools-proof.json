@@ -1,0 +1,6 @@
+{
+  "attention": {"origin":"synthetic","data_as_of":"2026-10-16T12:00:00Z","rows":{"attention":[{"account_id":"A100","contract_id":"CT100"}]}},
+  "brief": {"origin":"synthetic","data_as_of":"2026-10-16T12:00:00Z","rows":{"attention":[{"account_id":"A100","contract_id":"CT100"}],"artist_evidence":[{"account_id":"A100","artist_id":"AR100","purchased_admission_tickets":3,"accepted_ticket_uses":3}]}},
+  "options": {"origin":"synthetic","data_as_of":"2026-10-16T12:00:00Z","rows":{"options":[{"account_id":"A100","event_id":"E200","product_id":"premier-parking","available_quantity":12,"unit_price":40}]}},
+  "analytics": {"origin":"synthetic","data_as_of":"2026-10-16T12:00:00Z","queryItems":[{"ready":true,"statementState":"SUCCEEDED","totalRowCount":1,"columns":["net_admission_revenue","net_parking_revenue","valid_admission_tickets","admission_buying_accounts"],"rows":[["300.00","40.00","3","1"]]}]}
+}

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabricksStatements, runDatabricksJson, type StatementTransport } from "../src/databricks-statements";
+import { DatabricksStatements, runDatabricksJson, runDatabricksJsonRequest, type StatementTransport } from "../src/databricks-statements";
 
 const ok = (id = "s1") => ({ statement_id: id, status: { state: "SUCCEEDED" }, manifest: { schema: { columns: [{ name: "value" }] } }, result: { data_array: [["1"]] } });
 const transport = (responses: any[], calls: string[][]): StatementTransport => async (args) => { calls.push(args); const result = responses.shift(); if (result instanceof Error) throw result; return result; };
@@ -85,6 +85,24 @@ describe("DatabricksStatements", () => {
       await chmod(executable, 0o700);
       process.env.PATH = `${directory}:${oldPath ?? ""}`;
       await expect(runDatabricksJson(["api", "get", "/api/2.0/test"], { maxBytes: 8 })).rejects.toThrow("configured limit");
+    } finally {
+      process.env.PATH = oldPath;
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  test("terminates an aborted CLI subprocess within the bounded cleanup window", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "databricks-statements-abort-test-"));
+    const executable = join(directory, "databricks");
+    const oldPath = process.env.PATH; const controller = new AbortController();
+    try {
+      await writeFile(executable, "#!/bin/sh\ntrap '' TERM\nwhile :; do :; done\n", { mode: 0o700 });
+      await chmod(executable, 0o700);
+      process.env.PATH = `${directory}:${oldPath ?? ""}`;
+      setTimeout(() => controller.abort(new DOMException("cancelled", "AbortError")), 20);
+      const started = Date.now();
+      await expect(runDatabricksJsonRequest(["api", "post", "/api/2.0/test"], {}, { timeoutMs: 15_000, maxBytes: 1024, signal: controller.signal })).rejects.toThrow("cancelled");
+      expect(Date.now() - started).toBeLessThan(3_500);
     } finally {
       process.env.PATH = oldPath;
       await rm(directory, { recursive: true, force: true });

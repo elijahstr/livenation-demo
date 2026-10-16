@@ -1,0 +1,66 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "10000000000000000000000000000001",
+        "question": ["What account evidence is available for Harbor Works?"]
+      },
+      {
+        "id": "10000000000000000000000000000002",
+        "question": ["What upcoming premium options are available?"]
+      },
+      {
+        "id": "10000000000000000000000000000003",
+        "question": ["What are the all-time California sales metrics?"]
+      }
+    ]
+  },
+  "data_sources": {
+    "tables": [
+      { "identifier": "workspace.ln_premium_gold.account_artist_evidence" },
+      { "identifier": "workspace.ln_premium_gold.account_attention" },
+      { "identifier": "workspace.ln_premium_gold.account_event_benefits" },
+      { "identifier": "workspace.ln_premium_gold.regional_sales" },
+      { "identifier": "workspace.ln_premium_gold.upcoming_options" }
+    ],
+    "metric_views": [
+      { "identifier": "workspace.ln_premium_gold.sales_metrics" }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "20000000000000000000000000000001",
+        "content": [
+          "Use only the attached Premium Gold sources.",
+          "AS OF refers to the frozen 2026-10-16T12:00:00Z snapshot context.",
+          "Filter sale_date only for the date range explicitly requested. All-time metrics have no date filter. Snapshot AS OF never implies sale_date.",
+          "General Parking and Premier Parking are different products.",
+          "Net revenue excludes refunds. Valid admission tickets count issued, non-refunded tickets. Admission buyers count distinct accounts. Do not infer visitors from duplicate scans.",
+          "Do not claim a live artist match, inventory hold, or seller action."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "30000000000000000000000000000001",
+        "question": ["What are the all-time sales metrics?"],
+        "sql": [
+          "SELECT MEASURE(net_admission_revenue) AS net_admission_revenue, MEASURE(net_parking_revenue) AS net_parking_revenue, MEASURE(valid_admission_tickets) AS valid_admission_tickets, MEASURE(admission_buying_accounts) AS admission_buying_accounts\n",
+          "FROM workspace.ln_premium_gold.sales_metrics"
+        ]
+      },
+      {
+        "id": "30000000000000000000000000000002",
+        "question": ["What are the all-time California sales metrics?"],
+        "sql": [
+          "SELECT venue_state, MEASURE(net_admission_revenue) AS net_admission_revenue, MEASURE(net_parking_revenue) AS net_parking_revenue, MEASURE(valid_admission_tickets) AS valid_admission_tickets, MEASURE(admission_buying_accounts) AS admission_buying_accounts\n",
+          "FROM workspace.ln_premium_gold.sales_metrics\n",
+          "WHERE venue_state = 'CA'\n",
+          "GROUP BY venue_state"
+        ]
+      }
+    ]
+  }
+}
