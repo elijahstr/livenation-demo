@@ -1,106 +1,111 @@
 # How the seller agent uses Databricks
 
-<!-- chips:10k synthetic records|15 linked tables|5 seller views -->
+<!-- chips:10k synthetic records|17 silver tables|5 seller views -->
 
-Status: **Proposed demo architecture.** This page explains the current design. It does not describe a deployed workspace or a live data load.
+Status: **Proposal only.** New finance tables, the seller OAuth flow, and the trace example are not implemented or verified.
 
 ### 🎓 High School
 
-Think of the system as a school records office. Bronze keeps the original forms, silver checks the forms, and gold makes small reports for staff. The saved records are the data. A SQL warehouse is the computer that reads those records. Unity Catalog is the access rule book. The demo starts with 10,000 fake admission tickets and related records. The agent does not receive every row in its prompt.
+Think of this as a school records office. Bronze keeps the original envelopes. Silver checks and links the forms. Gold makes small reports for staff. The records are data. A SQL warehouse reads them. Unity Catalog is the rule book that decides who can read each record.
 
-For Smith & Smith, the agent finds an unanswered renewal. It then looks up linked purchase and ticket-use facts. It presents the evidence and a next action to the seller. A seller must approve any delivery action. A ticket scan shows that a ticket was used. It does not prove who attended.
+The locked baseline has 10,000 synthetic records. This proposal treats them as tickets. CRM records are **synthetic Salesforce-shaped CSV or JSON exports** for accounts, contacts, renewals, opportunities, and activities. No connector or real Salesforce data exists.
 
-The team can correct a bad import without losing the original source evidence.
+For Smith & Smith, the seller asks why a renewal needs attention. The agent reads allowed gold evidence from contracts and activities. It does not read finance records. A locked staff record stays locked even when the agent asks for it. A ticket scan means a ticket was used. It does not prove who attended.
 
 <!-- fig:pipeline -->
 
 ### 🏛️ College
 
-Databricks is an analytics platform for data, queries, and governed access. SQL is the language used to ask database questions. Delta is a table format with data and a log of valid changes. A SQL warehouse provides query compute that stays separate from storage. Unity Catalog organizes data, controls access, and records lineage, or the source and transformations of data.
+Databricks stores and queries data. SQL asks database questions. A table stores rows. A view is a saved SQL question. An ordinary view calculates its answer at read time. It is not a stored summary or a materialized cache. Unity Catalog groups data and controls access.
 
-| Term | Job | Example |
+| Part | Role | Example |
 | --- | --- | --- |
-| Metastore | Top-level catalog registry. | The Unity Catalog registry. |
+| Metastore | Top-level Unity Catalog registry. | The catalog registry used by this workspace. |
 | Catalog | Group of schemas. | `livenation_demo` |
 | Schema | Group of tables and views. | `silver` |
-| Table or view | Rows of facts or a saved query. | `livenation_demo.silver.tickets` |
+| Table or view | Rows of facts or a saved question. | `silver.tickets` or `gold.account_attention` |
 
-The layout moves source envelopes, or original records with origin metadata, from bronze to checked, linked silver facts. Silver holds 15 tables across customer, commerce and ticket use, events and artists, and benefits and inventory. Gold exposes five question-oriented virtual views. An ordinary view stores SQL and calculates when queried. It does not store precomputed or cached output. Fixed queries serve the known account scan and account brief paths. Genie remains optional for broad regional questions.
+| Layer | Proposed contents | Job and example |
+| --- | --- | --- |
+| Bronze | `ticketmaster_raw`, `salesforce_raw`, `inventory_raw`, `artist_catalog_raw`, `finance_raw` | Preserve original records, source ID, `ingested_at`, and `batch_id`. |
+| Silver | 17 accepted, typed, linked tables: CRM 5; commerce 4; events and artists 4; benefits and inventory 2; finance 2. | `contracts`, `activities`, `tickets`, `events`, and restricted finance facts. |
+| Gold | Five ordinary views: `account_attention`, `account_artist_evidence`, `upcoming_options`, `account_event_benefits`, `regional_sales`. | Give sellers small answers from permitted operational facts. |
 
-The locked baseline is 10,000 synthetic source records. This proposal interprets them as admission tickets. Related rows can grow without changing that proposed interpretation. A fixed seed is the same starting value for a synthetic generator. Reproducible snapshots also need the same inputs, versions, and transformations.
+The Salesforce flow is: simulated Salesforce export → `bronze.salesforce_raw` → `silver.accounts`, `contacts`, `contracts`, and `activities` → `gold.account_attention`. Bronze keeps source envelopes, including invalid records. A linked validation report records each source ID and rejection reason. Silver accepts only checked records. Gold is about question shape. Bronze, silver, and gold describe data quality. They do not grant access.
 
-Azure Synapse Analytics is a useful broad comparison. It combines SQL, Spark data work, and pipelines. It is not a drop-in replacement. [Synapse overview](https://learn.microsoft.com/en-us/azure/synapse-analytics/overview-what-is)
+Each seller has one dedicated restricted Databricks user. The demo has one seller. The MCP request uses that user OAuth identity. The model does not supply a seller ID. A scheduled scan is different. It uses a least-privilege system job identity and must say that it is a system job.
+
+<!-- fig:authorization -->
+
+Azure Synapse Analytics is a useful broad comparison. It combines SQL, Spark data work, and pipelines. It is not a drop-in replacement for Databricks. [Synapse overview](https://learn.microsoft.com/en-us/azure/synapse-analytics/overview-what-is)
 
 ### Azure concepts that explain these parts
 
-| Databricks part | Comparable Azure idea | What the comparison means |
+| Databricks part | Comparable Azure idea | Meaning |
 | --- | --- | --- |
-| Table data and Delta | [ADLS Gen2 and Blob files](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction) | Files hold bytes. Delta adds a table format and transaction log. Delta is not a storage account. |
-| SQL warehouse | [Synapse serverless SQL pool](https://learn.microsoft.com/en-us/azure/synapse-analytics/sql/on-demand-workspace-overview) | Compute asks SQL questions over lake files. SQL features, performance, and authentication can differ. |
-| Catalog and schema organization | [Azure SQL database and schema](https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/ownership-and-user-schema-separation) | Named groups organize tables and views. This is conceptual; a Unity Catalog catalog is not an Azure SQL database engine. |
-| Bronze, silver, and gold transformations | [Data Factory pipeline](https://learn.microsoft.com/en-us/azure/data-factory/introduction) | A pipeline copies, validates, and transforms data. Medallion names quality layers; Data Factory runs steps. |
-| Unity Catalog | [Purview catalog and lineage](https://learn.microsoft.com/en-us/azure/synapse-analytics/catalog-and-governance/how-to-discover-connect-analyze-azure-purview) with database permissions | Purview helps discovery and origin tracing. Unity Catalog also enforces Databricks access. |
+| Delta table data | [ADLS Gen2 and Blob files](https://learn.microsoft.com/en-us/azure/storage/blobs/data-lake-storage-introduction) | Files hold bytes. Delta adds a table format and change log. |
+| SQL warehouse | [Synapse serverless SQL pool](https://learn.microsoft.com/en-us/azure/synapse-analytics/sql/on-demand-workspace-overview) | Compute asks SQL questions over lake data. |
+| Catalog and schema | [Azure SQL database and schema](https://learn.microsoft.com/en-us/sql/relational-databases/security/authentication-access/ownership-and-user-schema-separation) | Named groups organize tables and views. |
+| Medallion layers | [Data Factory pipeline](https://learn.microsoft.com/en-us/azure/data-factory/introduction) | A pipeline copies, checks, and transforms data. |
+| Unity Catalog | [Purview catalog and lineage](https://learn.microsoft.com/en-us/azure/synapse-analytics/catalog-and-governance/how-to-discover-connect-analyze-azure-purview) with database permissions | Unity Catalog also enforces Databricks access. |
 
-These are role comparisons, not interchangeable services.
+These comparisons have different features and authentication.
 
 ### 🔬 Pro
 
-The proposed catalog is `livenation_demo`, with bronze, silver, and gold schemas. The medallion layout is a recommended data design pattern. It does not require three compute clusters. Delta consists of data files and a transaction log. A SQL warehouse supplies compute and does not store Delta data. Unity Catalog supplies the access and lineage boundary. [Medallion architecture](https://docs.databricks.com/aws/en/lakehouse/medallion), [Unity Catalog](https://docs.databricks.com/aws/en/data-governance/unity-catalog/), and [managed tables](https://docs.databricks.com/aws/en/tables/managed)
+The proposed new `livenation_demo` catalog has `bronze`, `silver`, and `gold` schemas. It does not rename the older `workspace.livenation_demo` demo. Bronze appends and preserves original payloads, source IDs, `ingested_at`, `batch_id`, and a source-specific `synthetic` flag. Public ListenBrainz rows can be public and need not be fabricated. A linked validation report records rejected source IDs and reasons.
 
-Bronze preserves `ticketmaster_raw`, `crm_raw`, `inventory_raw`, and `artist_catalog_raw`. Each source row retains `payload`, source identifier, `ingested_at`, `batch_id`, and `synthetic`. Silver validation rejects bad identifiers and preserves rejected rows in bronze. A batch validation report records the source ID and rejection reason. If catalog creation is unavailable, the proposed fallback uses `workspace.ln_premium_bronze`, `workspace.ln_premium_silver`, and `workspace.ln_premium_gold`. This fallback is unverified.
+Silver has 15 previously proposed operational tables: `accounts`, `contacts`, `identity_links`, `contracts`, `activities`, `orders`, `order_items`, `tickets`, `scans`, `venues`, `events`, `artists`, `artist_relations`, `entitlements`, and `inventory_snapshots`. It adds two small synthetic finance tables: `event_financials(event_id, production_cost, net_margin)` and `artist_deal_terms(deal_id, event_id, artist_id, guaranteed_fee, revenue_share)`. These make 17 silver tables. They use few synthetic rows and do not change the scale target.
 
-A repeatable batch requires the same input files, versions, seed, and transformations. The proposed design runs batches only. No live Ticketmaster import runs. An optional 100k or 1m stress tier follows baseline measurement. It does not prove that scale is required.
+The proposed seller grants are `USE CATALOG livenation_demo`, `USE SCHEMA gold`, `USE SCHEMA silver`, and `SELECT` on only the five gold views. `USE SCHEMA silver` lets a finance query reach the table check. It does not grant finance `SELECT`. Before a grant, inspect all accessible or bound catalogs, default schemas, groups, ownership, and inherited privileges. A workspace can auto-grant create privileges on `workspace.default`. Finance `SELECT` must remain absent. Optional `BROWSE` can show that tables exist. It does not grant `SELECT`. No broad revoke or shared-policy change is proposed.
 
-Databricks primary and foreign keys are informational and do not enforce rows. Ingestion must enforce duplicate, orphan, ambiguous identity, and invalid status checks. Grain means what one row represents. A fact grain prevents fan-out errors. Two tickets with two scan attempts each create four joined rows. Revenue remains one $1,000 order item, not $4,000. Canonical use logic counts accepted tickets once. Raw `scans` facts preserve every attempt. Artist relations are catalog evidence, not a calibrated customer preference. [Constraints](https://docs.databricks.com/aws/en/tables/constraints)
+Finance does not feed any seller gold view. Each gold definition uses an explicit operational column list. Its owner needs only the permitted operational sources. This prevents a broad view or function from exposing finance columns. Databricks checks the view owner's underlying permissions, so the view-owner grant set also matters. Missing effective `SELECT` denies the table query. This design does not depend on a SQL `DENY` command.
 
-<!-- fig:fanout -->
+The model sees approved application tools only: three planned account tools, `check_data_access(resource)`, and an optional analytics wrapper. It never sees Gateway, native `execute_sql`, or user query text. `check_data_access` is a trusted application-side Harness tool. It calls Gateway and SQL MCP with seller JWT context, then returns a sanitized result. Tokens remain outside model context. The server sets explicit Harness tools and `allowedTools`, with no `*`. Its enum permits one gold and two finance probes. Implementation verifies names.
 
-Gold contains ordinary read-only views, not materialized or cached results. The server exposes `scan_attention(as_of)`, `get_account_brief(account_id, as_of)`, and `find_options(account_id, as_of)`. The authenticated session supplies seller identity. The adapter and optional Genie use a gold-only restricted read principal. Missing or ambiguous identity links cannot expose personal history. Proposed limits are 50 scan rows, 100 brief rows, 32 KiB serialized JSON, and a 30-second deadline. Each result retains source IDs, `data_as_of`, and a statement ID. The server creates selection holds and drafts. Seller approval releases once after a fresh synthetic inventory check. Idempotency means a repeated request has one effect. Inventory snapshots remain evidence and never reserve inventory. [Views](https://docs.databricks.com/aws/en/views/) and [Statement Execution API](https://docs.databricks.com/api/statement-execution/v1/execute-statement)
+The preferred proof uses the built-in Databricks SQL MCP at `https://<workspace>/ai-gateway/mcp-services/system.ai.dbsql`. It needs the `ai-gateway` OAuth scope, seller `EXECUTE`, parent privileges, warehouse `CAN USE`, and proposed seller grants. Native SQL MCP currently requires the Unity Gateway beta and permits writes by default. Closed fixed probes form the main SQL write control. No seller `MODIFY` or write grant is proposed. `disallow_writes=true` on `system.ai.dbsql_policy` is an optional approved demo-scope restriction. If an inherited shared policy cannot change, record that setup result. Do not mutate a broad workspace policy. Availability is unverified. A Statement Execution custom MCP adds code and is not native MCP proof.
 
-Gold keeps source identifiers so a reviewer can trace each claim to accepted facts.
+The demonstration uses three matched probes: `SELECT session_user() AS executing_user, event_id FROM <table> LIMIT 1`. The table is only `gold.regional_sales`, `silver.event_financials`, or `silver.artist_deal_terms`. A nonempty gold fixture must return the expected restricted user. Finance probes pass through the handler, Gateway, and native MCP. Unity Catalog must reject their table `SELECT`. If Gateway blocks first, the proof fails. For each denial, verify the effective caller in audit or query evidence when available. Early denial might have no query-history row or statement ID. Without caller evidence, the proof remains incomplete. Use an opaque principal reference and no administrator fallback.
 
-The baseline optimizes query count and result size before physical layout. Compare equal answers with the same dataset and cache regime. Record tool calls, result bytes, read bytes, rows, statement IDs, and latency. Start with unpartitioned managed tables and no manual clustering. Predictive optimization can be inherited. Inspect its state and cost before any load. The proposed outreach rule remains open: the renewal is due in 0 to 30 calendar days, unsigned, has renewal outreach at least 14 elapsed days old, and has no later renewal reply. Missing outreach evidence gives an unknown result, not a stall. [Liquid clustering](https://docs.databricks.com/aws/en/tables/clustering), [predictive optimization](https://docs.databricks.com/aws/en/optimizations/predictive-optimization), and [query history](https://docs.databricks.com/aws/en/admin/system-tables/query-history)
+<!-- fig:trace -->
 
-The design gives the seller small, traceable evidence while the server retains every action that changes state.
+AgentCore can show the tool result as evidence in its trace. This is observability, not the Unity Catalog decision itself. Managed Harness automatically traces model and tool timing and payloads after CloudWatch Transaction Search setup. This proposed user-delegated Gateway flow needs an inbound OAuth JWT to the Harness, identity propagation through Gateway, and an outbound Databricks user OAuth three-legged credential flow. The inbound app JWT and outbound Databricks token are separate. SigV4 alone does not establish a verified seller identity for this flow. The Databricks OAuth provider and gateway token bindings need a test.
+
+The proposed trace returns only a sanitized result: `outcome`, `resource`, `principal_ref`, `source`, `upstream_code`, `request_id`, and a statement ID when returned. It returns no protected rows, tokens, or authorization headers. It labels `source: databricks_unity_catalog` only after a verified table denial. A custom OpenTelemetry span can make a normal error payload searchable. If IDs exist, it correlates the AWS trace and tool-call IDs with Databricks request or statement IDs. Databricks audit and query history remain the evidence of the Unity Catalog decision.
+
+The proposed success criterion is narrow: gold reads work, both finance probes are rejected under the same seller identity, and the AgentCore trace includes the sanitized denial and available IDs. The trace example is illustrative. It has not been observed.
 
 ## Technical reference
 
 <details>
-<summary>Show the table, view, case, and source reference</summary>
+<summary>Show the relational model and current evidence</summary>
 
 <!-- fig:erd -->
 
-### Data dictionary
+### Unchanged design
 
-| Family | Tables and grain | Key relations and purpose |
-| --- | --- | --- |
-| Customer | `accounts`, `contacts`, `identity_links`, `contracts`, `activities` | Verified identity links connect people to accounts. Contracts retain value, quote, allotment, signature, and renewal facts. |
-| Commerce and use | `orders`, `order_items`, `tickets`, `scans` | One order item can create many tickets. Scans are attempts. Use counts distinct accepted ticket IDs. |
-| Events and artists | `venues`, `events`, `artists`, `artist_relations` | Events join a venue and featured artist. Relations retain source and batch provenance. |
-| Benefits and stock | `entitlements`, `inventory_snapshots` | Benefits and purchased quantities stay separate. Latest inventory orders by `observed_at`, then `snapshot_id`. |
+Prepared tools keep fixed account scans and briefs. Repeatable batches use the same inputs, versions, seed, and transformations. Accepted-ticket use counts each accepted ticket once. Current-contract and entitlement rules remain explicit. The seller approves release after a fresh synthetic inventory check. Query count and payload size are optimized before storage tuning. The current OAuth design supersedes the earlier shared-principal approach. Field details remain in the [original detailed schema](https://github.com/elijahstr/livenation-demo/blob/c47eb5f/docs/design/databricks-layout/proposal.md).
 
 ### Seller views
 
 | View | Grain | Purpose |
 | --- | --- | --- |
-| `account_attention` | Account | Shows observable renewal and activity inputs. |
-| `account_artist_evidence` | Account and artist | Separates direct purchases from related-artist evidence. |
-| `upcoming_options` | Event, product, and source | Shows the latest inventory evidence. |
-| `account_event_benefits` | Account, event, and product | Separates included and purchased quantities. |
+| `account_attention` | Account | Shows renewal and activity inputs. |
+| `account_artist_evidence` | Account and artist | Separates direct purchase from artist relation evidence. |
+| `upcoming_options` | Event, product, and source | Shows latest inventory evidence. |
+| `account_event_benefits` | Account, event, and product | Separates included and purchased quantity. |
 | `regional_sales` | Order item | Keeps admission and parking revenue explicit. |
 
-### Seller cases and limits
+`regional_sales` uses order-item net price from commerce. It does not use finance profit.
 
-The ten cases cover renewals, leads, a reply, a budget concern, a contact change, underuse, a visit, and an upsell. A wrong identity link returns no history. Missing renewal-outreach evidence produces an unknown result. Included or purchased parking prevents an upsell. A seller scope failure returns not found. Public artist IDs can go to ListenBrainz. Customer data cannot go there.
+### Sources and review state
 
-### Open choices
+SQL MCP is asynchronous. Inspect start and poll terminal responses. Verified current behavior: [SQL MCP](https://docs.databricks.com/aws/en/agents/mcp-tools/databricks-sql), [MCP privileges and discovery](https://docs.databricks.com/aws/en/agents/mcp-tools/mcp-services), [Unity Catalog privileges](https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/privileges), [workspace privileges](https://docs.databricks.com/aws/en/data-governance/unity-catalog/manage-privileges/), [views](https://docs.databricks.com/aws/en/views/), [`session_user`](https://docs.databricks.com/aws/en/sql/language-manual/functions/session_user), [AgentCore MCP tools](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-tools.html), [AgentCore security](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-security.html), [AgentCore operations](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-operations.html), [runtime OAuth](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-oauth.html), and [custom observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-configure.html).
 
-1. Confirm the outreach-anchored stall rule.
-2. Verify workspace catalog availability, warehouse choice, and optimization cost.
-3. Measure the baseline before an optional 100k or 1m stress tier.
+AgentCore Gateway supports outbound authorization-code OAuth for MCP targets. Use user consent and session binding for the future Databricks token. Do not infer Databricks token exchange support from that AWS feature. Gateway dynamic tool lists do not work with three-legged OAuth. Use default synchronization or a static tool schema. Static administrator discovery must not supply credentials for seller data calls. [Gateway outbound auth](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-outbound-auth.html) and [MCP targets](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/gateway-target-MCPservers.html).
 
-### Sourcebook and review state
+### Review record
 
-The deleted field detail remains in the [original detailed schema](https://github.com/elijahstr/livenation-demo/blob/c47eb5f/docs/design/databricks-layout/proposal.md). Azure sources appear in the concept comparison. The prior architecture completed an independent Sonnet 5 context review and Opus 5 judgment review on 2026-10-15. This educational rewrite received no new external review. No deployment, live load, or delete action is proposed.
+An independent Sonnet 5 and Opus 5 review on 2026-10-16 found material revisions. This page applies the accepted handler boundary and minor clarifications. The uninspected workspace defaults remain a partial finding. On-behalf-of proof remains conditional on Databricks caller evidence. Live integration remains unverified.
 
 </details>
