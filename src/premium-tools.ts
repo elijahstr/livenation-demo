@@ -70,22 +70,29 @@ SELECT 'artist_evidence' AS section,to_json(collect_list(named_struct('account_i
 UNION ALL
 SELECT 'benefits' AS section,to_json(collect_list(named_struct('account_id',account_id,'event_id',event_id,'product_id',product_id,'included_quantity',included_quantity,'purchased_quantity',purchased_quantity))) AS evidence FROM benefits`;
 
-const OPTIONS_SQL = `WITH owned AS (
+const OPTIONS_SQL = `WITH relevant_events AS (
+  SELECT DISTINCT event_id FROM ${GOLD}.account_event_benefits WHERE account_id=:account_id
+), owned AS (
   SELECT event_id,product_id FROM ${GOLD}.account_event_benefits
   WHERE account_id=:account_id AND included_quantity+purchased_quantity>0
 ), options AS (
   SELECT o.event_id,o.product_id,o.source,o.available_quantity,o.unit_price,o.snapshot_at
   FROM ${GOLD}.upcoming_options o
+  JOIN relevant_events r ON r.event_id=o.event_id
   LEFT ANTI JOIN owned b ON o.event_id=b.event_id AND o.product_id = b.product_id
   LIMIT 51
 )
 SELECT 'options' AS section,to_json(collect_list(named_struct('account_id','${ACCOUNT_ID}','event_id',event_id,'product_id',product_id,'source',source,'available_quantity',available_quantity,'unit_price',unit_price,'snapshot_at',snapshot_at))) AS evidence FROM options`;
 
-const ATTENTION_SQL = `WITH attention AS (
-  SELECT account_id,contract_id,contract_end,latest_activity_at,latest_order_id
-  FROM ${GOLD}.account_attention ORDER BY account_id LIMIT 51
+const ATTENTION_SUMMARY_SQL = `SELECT 'attention' AS section,to_json(array(named_struct('account_count',count(*),'latest_activity_at',max(latest_activity_at)))) AS evidence
+FROM ${GOLD}.account_attention`;
+
+const SALES_METRICS_SQL = `WITH metrics AS (
+  SELECT sum(admission_net_amount) net_admission_revenue,sum(parking_net_amount) net_parking_revenue,
+    sum(valid_admission_quantity) valid_admission_tickets,count(DISTINCT admission_account_id) admission_buying_accounts
+  FROM ${GOLD}.regional_sales
 )
-SELECT 'attention' AS section,to_json(collect_list(named_struct('account_id',account_id,'contract_id',contract_id,'contract_end',contract_end,'latest_activity_at',latest_activity_at,'latest_order_id',latest_order_id))) AS evidence FROM attention`;
+SELECT 'sales_metrics' AS section,to_json(array(named_struct('net_admission_revenue',net_admission_revenue,'net_parking_revenue',net_parking_revenue,'valid_admission_tickets',valid_admission_tickets,'admission_buying_accounts',admission_buying_accounts))) AS evidence FROM metrics`;
 
 function inputError(message: string): never { throw new HarnessToolInputError(message); }
 
@@ -209,13 +216,21 @@ export function createPremiumTools(options: PremiumToolsOptions): Readonly<Recor
   };
 }
 
-export async function readAccountAttention(options: Omit<PremiumToolsOptions, "askAnalytics">): Promise<FixedToolResult> {
+async function readServerSummary(options: Omit<PremiumToolsOptions, "askAnalytics">, sql: string, section: string, sources: string[]): Promise<FixedToolResult> {
   const now = options.now ?? Date.now;
   const toolOptions: PremiumToolsOptions = { ...options, askAnalytics: async () => undefined };
   const execute = options.execute ?? defaultExecute(toolOptions, now);
   assertActive(toolOptions, now);
   const started = now();
-  const result = await execute(ATTENTION_SQL);
+  const result = await execute(sql);
   assertActive(toolOptions, now);
-  return fixedResult(result, started, now, ["attention"], [`${GOLD}.account_attention`], undefined);
+  return fixedResult(result, started, now, [section], sources, undefined);
+}
+
+export function readAccountAttentionSummary(options: Omit<PremiumToolsOptions, "askAnalytics">): Promise<FixedToolResult> {
+  return readServerSummary(options, ATTENTION_SUMMARY_SQL, "attention", [`${GOLD}.account_attention`]);
+}
+
+export function readCurrentSalesMetrics(options: Omit<PremiumToolsOptions, "askAnalytics">): Promise<FixedToolResult> {
+  return readServerSummary(options, SALES_METRICS_SQL, "sales_metrics", [`${GOLD}.regional_sales`]);
 }

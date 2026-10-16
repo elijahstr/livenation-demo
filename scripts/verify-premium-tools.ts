@@ -8,7 +8,7 @@ import { ChatService } from "../src/chat-service";
 import { verifyConversationMemory } from "../src/conversation-memory";
 import { GenieMcpClient } from "../src/genie-mcp-client";
 import { resolveHarnessArn } from "../src/harness-discovery";
-import { createPremiumTools, readAccountAttention } from "../src/premium-tools";
+import { createPremiumTools, readAccountAttentionSummary, readCurrentSalesMetrics } from "../src/premium-tools";
 import { AS_OF } from "../src/premium-foundation";
 import { ACCOUNT, aws } from "./inspect-configure-agentcore-observability";
 
@@ -111,12 +111,15 @@ function sameNumber(value: unknown, expected: number): boolean {
   return Number.isFinite(Number(value)) && Number(value) === expected;
 }
 
-export function assertPremiumData(attention: unknown, brief: unknown, options: unknown, analytics: unknown): void {
+type SalesMetrics = { net_admission_revenue: number; net_parking_revenue: number; valid_admission_tickets: number; admission_buying_accounts: number };
+
+export function assertPremiumData(attention: unknown, brief: unknown, options: unknown, analytics: unknown, expected: SalesMetrics): void {
   assertOrigin(attention, "attention");
   assertOrigin(brief, "brief");
   assertOrigin(options, "options");
   assertOrigin(analytics, "analytics");
-  if (!hasRow(rowsOf(attention, "attention"), { account_id: "A100", contract_id: "CT100" })) throw new Error("Premium attention evidence did not contain A100 and CT100");
+  const summary = rowsOf(attention, "attention");
+  if (summary.length !== 1 || !Number.isInteger(Number(summary[0].account_count)) || Number(summary[0].account_count) < 1) throw new Error("Premium attention summary is invalid");
   if (!hasRow(rowsOf(brief, "attention"), { account_id: "A100", contract_id: "CT100" })) throw new Error("Premium brief did not contain the A100 contract");
   if (!hasRow(rowsOf(brief, "artist_evidence"), { account_id: "A100", artist_id: "AR100", purchased_admission_tickets: 3, accepted_ticket_uses: 3 })) throw new Error("Premium brief did not contain the expected artist ticket use");
   if (!hasRow(rowsOf(options, "options"), { account_id: "A100", event_id: "E200", product_id: "premier-parking", available_quantity: 12, unit_price: 40 })) throw new Error("Premium options did not contain E200 Premier Parking");
@@ -126,9 +129,10 @@ export function assertPremiumData(attention: unknown, brief: unknown, options: u
     if (item.ready !== true || item.statementState !== "SUCCEEDED" || item.totalRowCount !== 1 || !Array.isArray(item.columns) || !Array.isArray(item.rows) || item.rows.length !== 1) return false;
     if (item.columns.length !== 4 || new Set(item.columns).size !== 4) return false;
     const values = Object.fromEntries(item.columns.map((column: string, index: number) => [column, item.rows[0]?.[index]]));
-    return sameNumber(values.net_admission_revenue, 300) && sameNumber(values.net_parking_revenue, 40) && sameNumber(values.valid_admission_tickets, 3) && sameNumber(values.admission_buying_accounts, 1);
+    const value = (name: keyof SalesMetrics) => values[name] ?? values[`total_${name}`];
+    return (Object.keys(expected) as Array<keyof SalesMetrics>).every(name => sameNumber(value(name), expected[name]));
   });
-  if (!valid) throw new Error("Premium analytics metrics did not match 300, 40, 3, 1");
+  if (!valid) throw new Error("Premium analytics metrics did not match the current Gold oracle");
 }
 
 export function paidTurnCount(attempts: Attempt[]): number {
@@ -178,7 +182,12 @@ function premiumHandlers(signal: AbortSignal, deadlineAt: number) {
 }
 
 async function verifyData(signal: AbortSignal): Promise<Record<string, unknown>> {
-  const attention = await readAccountAttention({
+  const attention = await readAccountAttentionSummary({
+    profile: runtime.databricksProfile,
+    warehouseId: runtime.warehouseId,
+    signal,
+  });
+  const oracle = await readCurrentSalesMetrics({
     profile: runtime.databricksProfile,
     warehouseId: runtime.warehouseId,
     signal,
@@ -189,8 +198,11 @@ async function verifyData(signal: AbortSignal): Promise<Record<string, unknown>>
   const analytics = await tools.ask_analytics({
     question: "For the Premium Gold foundation, return all-time sales_metrics. Treat AS OF 2026-10-16T12:00:00Z as snapshot context, not a sale_date filter.",
   });
-  assertPremiumData(attention, brief, options, analytics);
-  return { attention: compactData(attention), brief: compactData(brief), options: compactData(options), analytics: compactData(analytics) };
+  const metricRow = rowsOf(oracle, "sales_metrics")[0];
+  const expected = Object.fromEntries(["net_admission_revenue", "net_parking_revenue", "valid_admission_tickets", "admission_buying_accounts"].map(name => [name, Number(metricRow?.[name])])) as SalesMetrics;
+  if (Object.values(expected).some(value => !Number.isFinite(value))) throw new Error("Premium Gold oracle is invalid");
+  assertPremiumData(attention, brief, options, analytics, expected);
+  return { attention: compactData(attention), oracle: compactData(oracle), brief: compactData(brief), options: compactData(options), analytics: compactData(analytics) };
 }
 
 async function verifyAgentcore(observedAccountCost: number, attempt: Attempt, attempts: Attempt[], signal: AbortSignal): Promise<Array<Record<string, unknown>>> {

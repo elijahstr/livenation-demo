@@ -80,7 +80,7 @@ The [decision record and research brief](docs/design/premium-sales/decisions-and
 
 ## Premium Databricks foundation
 
-The [operational guide](docs/data/premium-databricks-foundation.md) records the reviewed synthetic Bronze, Silver, and Gold setup and its two verified complete runs.
+The [foundation guide](docs/data/premium-databricks-foundation.md) records the reviewed synthetic Bronze, Silver, and Gold setup. The foundation contributes 28 Bronze envelopes and 27 accepted Silver rows. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows after the first scale batch.
 
 Run its default local dry run before any authorized workspace change:
 
@@ -89,6 +89,16 @@ timeout --kill-after=2s 5s bun scripts/setup-premium-databricks.ts
 ```
 
 The `--apply` mode writes the reviewed Databricks workspace scope: the three `workspace.ln_premium_*` schemas.
+
+## Premium 10k scale loader
+
+The scale implementation is complete. The live apply for `premium-scale-v1-0001` completed. It added 36 records. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows. One of 277 scale bundles is complete. No later bundle was applied.
+
+The verified current Gold metrics are $490 admission revenue, $75 parking revenue, 11 valid admission tickets, and two admission buyers. The A100 premier option remains `E200` / `premier-parking` / quantity 12 / price $40. Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran.
+
+The next default dry run selects `premium-scale-v1-0002` through `premium-scale-v1-0008`. It selects 252 records.
+
+Read the [beginner scale guide](docs/data/premium-10k-scale.md) before an apply. It defines the 10-second dry run, the 25-minute bounded apply, local lock and recovery records, and manual batch progression. It never runs a loop to reach the target.
 
 ## Premium Gold chat tools
 
@@ -132,7 +142,7 @@ The first plain-selector attempt made zero tool calls. Together with the two suc
 
 The verified Genie retrieval returned `300.00`, `40.00`, `3`, and `1` from an existing read-only query result. The Genie room is [Live Nation Premium Gold](https://dbc-da714a97-83a0.cloud.databricks.com/genie/rooms/01f1c9a2b3421c1ca755c65e625104ad?o=7474650774099237). CloudWatch returned 20 matching span records in the first-page limit. This does not prove that exactly 20 records exist or that standalone MCP spans exist.
 
-Browser verification proved only that the app loaded on port 3011 and created a chat session with HTTP 201. The paid checks used `ChatService`, not the browser UI. The current CLI identity can have administrator permissions. This work does not add seller identities, grants, OAuth, or user impersonation. The synthetic foundation remains 28 raw records and 27 accepted records. It does not load 10,000 records.
+Browser verification proved only that the app loaded on port 3011 and created a chat session with HTTP 201. The paid checks used `ChatService`, not the browser UI. The current CLI identity can have administrator permissions. This work does not add seller identities, grants, OAuth, or user impersonation. The synthetic foundation remains 28 raw records and 27 accepted records. The first scale batch adds 36 records. It does not load 10,000 records.
 
 Read the [Premium Gold tools guide](docs/data/premium-gold-tools.md) before an apply or live verifier run.
 

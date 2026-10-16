@@ -14,6 +14,7 @@
     "verify-agentcore-chat": "bun run scripts/verify-agentcore-chat.ts",
     "verify-agentcore-memory": "bun run scripts/verify-agentcore-memory.ts",
     "setup-premium-genie": "bun run scripts/setup-premium-genie.ts",
+    "setup-premium-scale": "bun run scripts/setup-premium-scale.ts",
     "verify-premium-tools": "bun run scripts/verify-premium-tools.ts"
   },
   "dependencies": {

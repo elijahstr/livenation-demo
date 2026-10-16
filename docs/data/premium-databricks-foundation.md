@@ -1,8 +1,8 @@
 # Premium Databricks foundation operational guide
 
-## Live result
+## Current workspace
 
-**Two complete runs verified.** The first manifest is `outputs/premium-databricks/2026-10-16T19-51-23.186Z/manifest.json`. The second manifest is `outputs/premium-databricks/2026-10-16T19-56-14.670Z/manifest.json`. Both published successfully.
+**Foundation verification completed.** The foundation contributes 28 Bronze envelopes and 27 accepted Silver rows. The first scale apply, `premium-scale-v1-0001`, completed. It added 36 records. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows. One of 277 scale bundles is complete. No later bundle was applied.
 
 ## Purpose and scope
 
@@ -21,6 +21,14 @@ The runner uses only these schemas:
 - `workspace.ln_premium_bronze`
 - `workspace.ln_premium_silver`
 - `workspace.ln_premium_gold`
+
+## Scale compatibility
+
+The foundation is compatible with the Premium 10k scale loader. A foundation rerun compares rows, payload hashes, and counts only for the foundation `BATCH_ID`.
+
+Do not capture unbounded global Gold rows during a foundation rerun. The foundation manifest remains historical evidence. The scale loader owns cumulative metrics and post-batch proof.
+
+The scale loader preserves the 28 Bronze envelopes, 27 accepted Silver rows, and one `AC-E-BAD` rejection. The completed first scale batch added 36 records. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows. See the [Premium 10k scale guide](premium-10k-scale.md).
 
 ## Run the safe local check
 
@@ -77,13 +85,13 @@ SELECT
 FROM workspace.ln_premium_gold.sales_metrics;
 ```
 
-Both queries returned `300.00`, `40.00`, `3`, and `1` in that order. The fixture uses frozen `as_of` time `2026-10-16T12:00:00Z`.
+Both foundation queries returned `300.00`, `40.00`, `3`, and `1` in that order. The fixture uses frozen `as_of` time `2026-10-16T12:00:00Z`. The first scale batch later verified current Gold metrics of $490 admission revenue, $75 parking revenue, 11 valid admission tickets, and two admission buyers.
+
+The A100 premier option remains `E200` / `premier-parking` / quantity 12 / price $40. Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran.
 
 ## Test status
 
-Verified focused checks: 24 passed.
-
-The full suite has 103 passing checks and three failing checks. The three failures are pre-existing West seed stale-date checks.
+The complete local suite has 231 passing tests, zero failures, 813 assertions, and 35 files.
 
 ## Live result record
 
@@ -95,6 +103,9 @@ The full suite has 103 passing checks and three failing checks. The three failur
 | Gold dependencies and view definitions | Six Gold objects: five views and one `METRIC_VIEW`; all grain checks passed; no Finance source reference |
 | Metric view result and explicit oracle result | Both returned `300.00`, `40.00`, `3`, `1` |
 | Full rerun writes, DDL, and content hashes | Second run `2026-10-16T19-56-14.670Z` published `true`, wrote zero rows, and matched the first full stable object and stable hash exactly. Bronze remained 28, Silver remained 27, and all four metric values remained unchanged. |
+| First scale batch | `premium-scale-v1-0001` completed. It added 36 records. The proof reported 64 Bronze envelopes, 63 accepted Silver rows, and Gold metrics of $490, $75, 11, and 2. |
+| Next scale action | The next default dry run selects `premium-scale-v1-0002` through `premium-scale-v1-0008`, or 252 records. No later bundle was applied. |
+| Managed maintenance | Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran. |
 | Warehouse auto-stop state | The warehouse is running with zero active sessions and a ten-minute auto-stop. Idle stop is not yet observed. |
 | Remaining limitation | Seller permissions, OAuth, Genie, MCP, and application connection to this data are not configured. Finance rows are illustrative. This milestone did not load 10,000 records. |
 
@@ -106,6 +117,9 @@ The runner accepts a successful DDL response with zero result columns. It also r
 
 ## Sources
 
+- [Delta MERGE](https://docs.databricks.com/aws/en/delta/merge) documents source-key uniqueness requirements for merge operations.
+- [Predictive Optimization](https://docs.databricks.com/aws/en/optimizations/predictive-optimization) documents inherited managed maintenance behavior.
+- [Statement Execution API](https://docs.databricks.com/api/workspace/statementexecution/executestatement) documents statement submission and status retrieval.
 - [Get a table](https://docs.databricks.com/api/uc-tables/v1/get-table) documents the returned TableInfo shape, including `comment` and `METRIC_VIEW`.
 - [Metric view YAML syntax](https://docs.databricks.com/aws/en/uc-semantics/metric-views/yaml-reference) documents the YAML `comment` field.
 - [Statement Execution API](https://docs.databricks.com/api/workspace/statementexecution/executestatement) documents `INLINE` and `JSON_ARRAY` result format.

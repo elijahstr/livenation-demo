@@ -39,6 +39,11 @@ test("the fixed SQL guard accepts generated scope and rejects unsafe mutations",
   ]) expect(() => assertFoundationSql(sql)).toThrow();
 });
 
+test("foundation comparison reads only the foundation batch after Scale rows exist", () => {
+  const source = "SELECT batch_id, source_id, record_type, source_system, ingested_at, synthetic, payload_json, payload_sha256 FROM workspace.ln_premium_bronze.salesforce_raw";
+  expect(comparisonSql(expectedBronze.fullName, bronzeColumns, source)).toContain("WHERE batch_id='harbor-works-foundation-v1'");
+});
+
 test("metadata requires the exact managed Delta shape and no row policy or mask", () => {
   expect(() => assertTableMetadata(completeMetadata, expectedBronze as never)).not.toThrow();
   for (const metadata of [

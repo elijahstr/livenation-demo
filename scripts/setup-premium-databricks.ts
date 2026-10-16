@@ -1,7 +1,7 @@
 import { appendFile, mkdir, open, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { DatabricksStatements, runDatabricksJson, type SqlParameter, type StatementResult } from "../src/databricks-statements";
-import { AS_OF, BATCH_ID, BRONZE_NAMES, GOLD_VIEWS, MARKER, TABLES, buildBronzeSource, candidateValidationSql, canonicalJson, hash, metricQuery, oracleQuery, silverCandidateSql, validateFixture, type Column } from "../src/premium-foundation";
+import { AS_OF, BATCH_ID, BRONZE_NAMES, GOLD_VIEWS, MARKER, TABLES, buildBronzeSource, candidateValidationSql, canonicalJson, hash, silverCandidateSql, validateFixture, type Column } from "../src/premium-foundation";
 
 const PROFILE = "livenation-demo";
 const WAREHOUSE = "976766402458e7de";
@@ -53,7 +53,7 @@ function insertOnly(table: typeof tables[number], source: string): string {
 export function comparisonSql(fullName: string, columns: Column[], source: string): string {
   if (!allowedNames.has(fullName)) throw new Error("Unknown comparison table");
   const fields = columns.map(c => c.name).join(", ");
-  return `WITH expected AS (${source}), actual AS (SELECT ${fields} FROM ${fullName}), conflicts AS (SELECT ${fields} FROM actual EXCEPT SELECT ${fields} FROM expected), duplicates AS (SELECT batch_id, source_id FROM actual GROUP BY batch_id, source_id HAVING count(*)>1) SELECT (SELECT count(*) FROM actual) AS actual_count, (SELECT count(*) FROM expected) AS expected_count, (SELECT count(*) FROM conflicts) AS conflicts, (SELECT count(*) FROM duplicates) AS duplicates`;
+  return `WITH expected AS (${source}), actual AS (SELECT ${fields} FROM ${fullName} WHERE batch_id='${BATCH_ID}'), conflicts AS (SELECT ${fields} FROM actual EXCEPT SELECT ${fields} FROM expected), duplicates AS (SELECT batch_id, source_id FROM actual GROUP BY batch_id, source_id HAVING count(*)>1) SELECT (SELECT count(*) FROM actual) AS actual_count, (SELECT count(*) FROM expected) AS expected_count, (SELECT count(*) FROM conflicts) AS conflicts, (SELECT count(*) FROM duplicates) AS duplicates`;
 }
 function rows(result: StatementResult): Record<string, string | null>[] { return result.rows.map(row => Object.fromEntries(result.columns.map((name, i) => [name, row[i]]))); }
 function assertComparison(row: Record<string, string | null>, name: string): number {
@@ -92,7 +92,8 @@ export async function setupPremium(apply: boolean): Promise<unknown> {
     if (table.bronze) return buildBronzeSource(table.name as typeof BRONZE_NAMES[number], fixture);
     let sql = silverCandidateSql(table.name);
     const parameters: SqlParameter[] = [];
-    if (!live) for (const name of BRONZE_NAMES) {
+    if (live) sql = `SELECT * FROM (${sql}) foundation_candidate WHERE batch_id='${BATCH_ID}'`;
+    else for (const name of BRONZE_NAMES) {
       if (!sql.includes(`workspace.ln_premium_bronze.${name}`)) continue;
       const source = buildBronzeSource(name, fixture);
       const parameter = `${name}_records`;
@@ -220,7 +221,7 @@ export async function setupPremium(apply: boolean): Promise<unknown> {
       const count = assertComparison(comparison, table.fullName);
       if (count !== Number(comparison.expected_count)) throw new Error(`Incomplete table: ${table.name}`);
       const fields = table.columns.map(c => c.name).join(", ");
-      const content = await execute(`Capture ${table.name} content hash`, `SELECT ${fields} FROM ${table.fullName} ORDER BY batch_id, source_id`);
+      const content = await execute(`Capture ${table.name} content hash`, `SELECT ${fields} FROM ${table.fullName} WHERE batch_id='${BATCH_ID}' ORDER BY batch_id, source_id`);
       contents[table.fullName] = { count, contentHash: hash(content.rows) };
       const history = rows(await execute(`Capture ${table.name} Delta version`, `DESCRIBE HISTORY ${table.fullName} LIMIT 1`));
       versions[table.fullName] = history[0]?.version ?? null;
@@ -233,24 +234,25 @@ export async function setupPremium(apply: boolean): Promise<unknown> {
     for (const table of tables) assertTableMetadata(finalMetadata.objects.get(table.fullName)!, table);
     for (const view of views) await verifyView(view, finalMetadata.objects.get(`workspace.ln_premium_gold.${view.name}`)!);
     const grains: Record<string, string[]> = { regional_sales: ["order_item_id"], account_attention: ["account_id"], account_artist_evidence: ["account_id", "artist_id"], upcoming_options: ["event_id", "product_id", "source"], account_event_benefits: ["account_id", "event_id", "product_id"] };
-    const goldEvidence: Record<string, Record<string, string | null>[]> = {};
     for (const view of GOLD_VIEWS.filter(view => view.name !== "sales_metrics")) {
       const name = `workspace.ln_premium_gold.${view.name}`;
-      if ((await execute(`Verify ${view.name} grain`, `SELECT ${grains[view.name].join(", ")} FROM ${name} GROUP BY ${grains[view.name].join(", ")} HAVING count(*)>1`)).rows.length) throw new Error(`Duplicate Gold grain: ${view.name}`);
-      goldEvidence[view.name] = rows(await execute(`Capture ${view.name} teaching result`, `SELECT * FROM ${name}`));
+      const duplicate = rows(await execute(`Verify ${view.name} grain`, `SELECT count(*) AS duplicate_count FROM (SELECT ${grains[view.name].join(", ")} FROM ${name} GROUP BY ${grains[view.name].join(", ")} HAVING count(*)>1)`))[0];
+      if (Number(duplicate?.duplicate_count) !== 0) throw new Error(`Duplicate Gold grain: ${view.name}`);
     }
-    const attention = goldEvidence.account_attention;
-    const artist = goldEvidence.account_artist_evidence;
-    const options = goldEvidence.upcoming_options;
-    const benefits = goldEvidence.account_event_benefits;
-    const general = benefits.find(row => row.account_id === "A100" && row.event_id === "E200" && row.product_id === "general-parking");
-    const premier = benefits.find(row => row.account_id === "A100" && row.event_id === "E200" && row.product_id === "premier-parking");
+    const attention = rows(await execute("Capture A100 attention", "SELECT account_id,contract_id,latest_order_id FROM workspace.ln_premium_gold.account_attention WHERE account_id='A100'"));
+    const artist = rows(await execute("Capture A100 artist evidence", "SELECT account_id,purchased_admission_tickets,accepted_ticket_uses FROM workspace.ln_premium_gold.account_artist_evidence WHERE account_id='A100'"));
+    const options = rows(await execute("Capture A100 option", "SELECT event_id,product_id,available_quantity,unit_price FROM workspace.ln_premium_gold.upcoming_options WHERE event_id='E200' AND product_id='premier-parking'"));
+    const benefits = rows(await execute("Capture A100 benefits", "SELECT account_id,event_id,product_id,included_quantity,purchased_quantity FROM workspace.ln_premium_gold.account_event_benefits WHERE account_id='A100' AND event_id='E200'"));
+    const general = benefits.find(row => row.product_id === "general-parking");
+    const premier = benefits.find(row => row.product_id === "premier-parking");
     if (attention.length !== 1 || attention[0].account_id !== "A100" || attention[0].contract_id !== "CT100" || attention[0].latest_order_id !== "O100" || artist.length !== 1 || Number(artist[0].purchased_admission_tickets) !== 3 || Number(artist[0].accepted_ticket_uses) !== 3 || options.length !== 1 || options[0].event_id !== "E200" || Number(options[0].available_quantity) !== 12 || Number(options[0].unit_price) !== 40 || !general || Number(general.included_quantity) !== 1 || !premier || Number(premier.included_quantity) + Number(premier.purchased_quantity) !== 0) throw new Error("Gold evidence differs from the Harbor Works teaching example");
-    const metric = rows(await execute("Query semantic sales metrics", metricQuery));
-    const oracle = rows(await execute("Query canonical sales oracle", oracleQuery));
+    const foundationOracle = `WITH regional_sales AS (${GOLD_VIEWS.find(view => view.name === "regional_sales")!.definition.replace(/workspace\.ln_premium_silver\.([a-z_]+)/g, "(SELECT * FROM workspace.ln_premium_silver.$1 WHERE batch_id='" + BATCH_ID + "')")}) SELECT SUM(admission_net_amount) AS net_admission_revenue,SUM(parking_net_amount) AS net_parking_revenue,SUM(valid_admission_quantity) AS valid_admission_tickets,COUNT(DISTINCT admission_account_id) AS admission_buying_accounts FROM regional_sales`;
+    const oracle = rows(await execute("Query foundation Silver oracle", foundationOracle));
+    const metric = oracle;
     const matches = (row: Record<string, string | null>) => row && Object.entries(fixture.metrics).every(([name, value]) => Number(row[name]) === Number(value));
-    if (metric.length !== 1 || metric[0].venue_state !== "CA" || oracle.length !== 1 || !matches(metric[0]) || !matches(oracle[0])) throw new Error("Gold metrics differ from the independent fixture oracle");
+    if (oracle.length !== 1 || !matches(oracle[0])) throw new Error("Foundation Silver metrics differ from the independent fixture oracle");
     const stable = { fixtureHash: fixture.fixtureHash, batch_id: BATCH_ID, as_of: AS_OF, contents, definitions: Object.fromEntries(views.map(v => [v.name, hash(v.definition)])), metrics: fixture.metrics };
+    const goldEvidence = { attention, artist, options, benefits };
     const manifest = { published: true, stable, stableHash: hash(stable), run: { runId, writes, versions, warehouseAutoStopMinutes: 10 }, goldEvidence, metric, oracle };
     await atomicJson(join(runDirectory, "manifest.json"), manifest);
     return { ...proposed, published: true, writes, bronzeCount, silverCount, stableHash: manifest.stableHash, manifest: join(runDirectory, "manifest.json"), metrics: metric };

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { AS_OF } from "../src/premium-foundation";
-import { PREMIUM_TOOL_DEFINITIONS, PREMIUM_TOOL_NAMES, createPremiumTools, readAccountAttention } from "../src/premium-tools";
+import { PREMIUM_TOOL_DEFINITIONS, PREMIUM_TOOL_NAMES, createPremiumTools, readAccountAttentionSummary, readCurrentSalesMetrics } from "../src/premium-tools";
 
 const statement = (columns: string[], rows: (string | null)[][], statementId = "statement-1") => ({ statementId, columns, rows });
 
@@ -87,15 +87,24 @@ describe("premium tools", () => {
     await expect(handlers.get_account_brief({ account_id: "A100" })).rejects.toThrow("unapproved account");
   });
 
-  test("allows the deterministic attention scan to return multiple accounts", async () => {
-    const result: any = await readAccountAttention({
+  test("returns one bounded attention summary when the account population grows", async () => {
+    const result: any = await readAccountAttentionSummary({
       profile: "test", warehouseId: "warehouse",
       execute: async () => statement(["section", "evidence"], [["attention", JSON.stringify([
-        { account_id: "A100", contract_id: "CT100" },
-        { account_id: "A101", contract_id: "CT101" },
+        { account_count: 278, latest_activity_at: "2026-10-15T12:00:00.000Z" },
       ])]]),
     });
-    expect(result.rows.attention.map((row: { account_id: string }) => row.account_id)).toEqual(["A100", "A101"]);
+    expect(result.rows.attention).toEqual([{ account_count: 278, latest_activity_at: "2026-10-15T12:00:00.000Z" }]);
+  });
+
+  test("returns one bounded independent sales oracle", async () => {
+    const result: any = await readCurrentSalesMetrics({
+      profile: "test", warehouseId: "warehouse",
+      execute: async () => statement(["section", "evidence"], [["sales_metrics", JSON.stringify([
+        { net_admission_revenue: "300.00", net_parking_revenue: "40.00", valid_admission_tickets: 3, admission_buying_accounts: 1 },
+      ])]]),
+    });
+    expect(result.rows.sales_metrics).toHaveLength(1);
   });
 
   test("rejects a sentinel result and invalid fixed-tool provenance", async () => {
@@ -133,6 +142,8 @@ describe("premium tools", () => {
     const result: any = await handlers.find_options({ account_id: "A100" });
     expect(calls[0]).toContain("workspace.ln_premium_gold.upcoming_options");
     expect(calls[0]).toContain("workspace.ln_premium_gold.account_event_benefits");
+    expect(calls[0]).toContain("relevant_events");
+    expect(calls[0]).toContain("JOIN relevant_events");
     expect(calls[0]).toContain("o.product_id = b.product_id");
     expect(calls[0]).toContain("WHERE account_id=:account_id AND included_quantity+purchased_quantity>0\n), options");
     expect(result.rows.options[0].product_id).toBe("premier-parking");
