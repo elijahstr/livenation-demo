@@ -1,0 +1,669 @@
+<!doctype html>
+<!-- THROWAWAY UI PROTOTYPE: Three premium-recovery portfolio variants, switchable with ?variant=A|B|C. -->
+<!--
+  DESIGN READ: Premium inventory recovery console for venue sales teams, with a backstage ledger visual language.
+  DIALS: ENERGY 2 / RHYTHM 2 / MOTION 1.
+  COLOR: Warm paper and black resemble a working call sheet. Burnt orange marks the one decision that needs attention.
+  LAYOUT: Each variant starts with the portfolio decision, then exposes two recovery lanes only for the flagged show.
+  TYPE: Aptos and Segoe UI keep dense sales data readable. Georgia marks the financial consequence.
+  SPACING: Tight rows support scanning. Wider gaps separate evidence from approval work.
+  CARDS: Cards group reviewable actions. Ordinary portfolio data stays in rows or lists.
+  SHADOW: Only the modal and prototype switcher float because they sit above the current task.
+  MOTION: Hover feedback and direct state changes confirm interaction. Nothing moves for decoration.
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'/%3E">
+  <title>Premium Recovery UI Prototype</title>
+  <style>
+    :root,
+    :root[data-theme="dark"] {
+      color-scheme: light;
+      --canvas: #f1ede3;
+      --surface: #fffdf7;
+      --surface-2: #ebe5d9;
+      --ink: #171815;
+      --ink-2: #30322d;
+      --muted: #565c52;
+      --faint: #62685e;
+      --line: #d6cebf;
+      --line-strong: #938b7c;
+      --accent: #bc4a2b;
+      --accent-2: #96381f;
+      --accent-soft: #f9e7de;
+      --risk: #ac3029;
+      --risk-soft: #f8e8e4;
+      --risk-line: #dfa59c;
+      --success: #245f4c;
+      --success-soft: #e4efe8;
+      --warning: #735313;
+      --warning-soft: #f7eed5;
+      --shadow-lg: 0 24px 60px rgba(22, 24, 30, .14);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--canvas); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Aptos, "Segoe UI", Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    button { font: inherit; }
+    button:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid var(--accent-2);
+      outline-offset: 2px;
+    }
+
+    .prototype-ribbon {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      height: 27px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: #fff;
+      background: #202126;
+      font-size: 10px;
+      font-weight: 760;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .prototype-ribbon span { color: #ffd1c2; }
+    #prototype { min-height: 100vh; padding-top: 27px; padding-bottom: 112px; }
+
+    .app-header {
+      min-height: 66px;
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand-mark { color: var(--ink); font-family: Georgia, serif; font-size: 24px; font-weight: 700; }
+    .brand-copy strong { display: block; font-size: 13px; letter-spacing: -.01em; }
+    .brand-copy small { display: block; margin-top: 2px; color: var(--muted); font-size: 10px; }
+
+    .header-user { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+
+    .page { max-width: 1460px; margin: 0 auto; padding: 32px 34px; }
+    .page-intro { display: flex; justify-content: space-between; align-items: flex-end; gap: 28px; margin-bottom: 23px; }
+    .eyebrow { color: var(--accent-2); font-size: 10px; font-weight: 800; letter-spacing: .025em; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { margin-top: 7px; font-size: clamp(28px, 3vw, 44px); line-height: 1.04; letter-spacing: -.045em; }
+    .page-intro p { max-width: 610px; margin-top: 9px; color: var(--muted); line-height: 1.6; }
+
+    .status-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 25px;
+      padding: 4px 9px;
+      border-radius: 4px;
+      color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pill.risk { color: var(--risk); background: var(--risk-soft); border-color: var(--risk-line); }
+    .pill.good { color: var(--success); background: var(--success-soft); border-color: #bde1cd; }
+    .pill.blue { color: var(--accent-2); background: var(--accent-soft); border-color: #cbd4fb; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { min-height: 62px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--line); }
+    .panel-head h2 { font-size: 14px; letter-spacing: -.01em; }
+    .panel-head p { margin-top: 4px; color: var(--muted); font-size: 10px; }
+
+    .btn {
+      min-height: 44px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      padding: 8px 13px;
+      color: var(--ink);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 720;
+    }
+    .btn:hover { border-color: #aaa9a3; background: var(--surface-2); }
+    .btn.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+    .btn.primary:hover { background: var(--accent-2); }
+    .btn.approved { color: var(--success); background: var(--success-soft); border-color: #bde1cd; }
+    .btn.risk { color: var(--risk); background: var(--risk-soft); border-color: var(--risk-line); }
+    .risk-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 18px;
+      border: 1px solid var(--risk-line);
+      border-radius: 4px;
+      background: var(--risk-soft);
+    }
+    .risk-banner strong { font-size: 13px; }
+    .risk-banner p { margin-top: 4px; color: #76524d; font-size: 10px; line-height: 1.5; }
+    .risk-amount { text-align: right; flex: 0 0 auto; }
+    .risk-amount strong { display: block; color: var(--risk); font-family: Georgia, serif; font-size: 22px; letter-spacing: -.03em; }
+    .risk-amount small { color: var(--muted); font-size: 9px; }
+
+    .lane-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .lane { padding: 18px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+    .lane-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .lane-kicker { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .025em; }
+    .lane h3 { margin-top: 5px; font-size: 16px; letter-spacing: -.02em; }
+    .lane > p { margin-top: 7px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+    .lane-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; }
+    .lane-fact { padding: 10px; border-radius: 9px; background: var(--surface-2); }
+    .lane-fact span { display: block; color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+    .lane-fact strong { display: block; margin-top: 4px; font-size: 12px; }
+    .lane-actions { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-top: 14px; }
+
+    .account-list { display: grid; gap: 7px; }
+    .account { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .account-logo { width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center; color: var(--accent-2); background: var(--accent-soft); font-size: 9px; font-weight: 850; }
+    .account div { min-width: 0; }
+    .account strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+    .account small { display: block; margin-top: 2px; color: var(--muted); font-size: 8px; }
+
+    /* Variant A: operations table with an anchored review panel. */
+    .a-shell { min-height: calc(100vh - 27px); }
+    .a-work { min-width: 0; }
+    .a-content { padding: 28px; }
+    .a-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(340px, .75fr); gap: 18px; align-items: start; }
+    .a-layout > * { min-width: 0; }
+    .a-detail { position: sticky; top: 18px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { padding: 11px 15px; color: var(--faint); background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+    td { padding: 14px 15px; border-bottom: 1px solid var(--line); font-size: 10px; vertical-align: middle; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--surface-2); }
+    tbody tr.active { background: var(--risk-soft); box-shadow: inset 3px 0 var(--risk); }
+    .show-cell strong { display: block; font-size: 11px; }
+    .show-cell small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+    .date-stack strong { display: block; font-size: 11px; }
+    .date-stack small { color: var(--muted); font-size: 8px; }
+    .detail-body { padding: 17px; }
+    .detail-body .risk-banner { margin-bottom: 15px; }
+    .a-detail .lane-grid { grid-template-columns: 1fr; }
+
+    /* Variant B: visual portfolio board with a wide recovery stage. */
+    .b-header { border-bottom: 1px solid var(--line); background: var(--surface); }
+    .b-page { max-width: 1390px; margin: 0 auto; padding: 30px 34px 46px; }
+    .b-summary { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; margin-bottom: 22px; }
+    .b-summary h1 { max-width: 690px; }
+    .b-stat { text-align: right; }
+    .b-stat strong { display: block; font-family: Georgia, serif; font-size: 36px; font-weight: 500; letter-spacing: -.04em; }
+    .b-stat span { color: var(--muted); font-size: 10px; }
+    .poster-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 134px; gap: 10px; }
+    .poster {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: 7px;
+      color: #fff;
+      background: var(--poster);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .15s ease;
+    }
+    .poster { grid-column: span 2; }
+    .poster:first-child { grid-column: span 4; grid-row: span 2; }
+    .poster:nth-child(4), .poster:nth-child(5), .poster:nth-child(6) { grid-column: span 4; }
+    .poster::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.30); }
+    .poster > * { position: relative; z-index: 1; }
+    .poster:hover { transform: translateY(-2px); }
+    .poster.active { outline: 3px solid var(--risk); outline-offset: 2px; }
+    .poster .poster-date { align-self: flex-start; padding: 5px 7px; border-radius: 3px; color: #202126; background: #fff; font-size: 8px; font-weight: 820; }
+    .poster h3 { font-size: 17px; line-height: 1.05; letter-spacing: -.03em; }
+    .poster p { margin-top: 5px; color: rgba(255,255,255,.72); font-size: 9px; line-height: 1.4; }
+    .poster-alert { margin-bottom: 9px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; border-radius: 3px; background: #fff; color: var(--risk); font-size: 8px; font-weight: 850; letter-spacing: .025em; }
+    .recovery-stage { margin-top: 18px; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .stage-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .stage-title { display: flex; align-items: center; gap: 14px; }
+    .stage-index { width: 43px; height: 43px; display: grid; place-items: center; border-radius: 4px; color: var(--risk); background: var(--risk-soft); font-size: 17px; font-weight: 850; }
+    .stage-title h2 { font-size: 20px; letter-spacing: -.025em; }
+    .stage-title p { margin-top: 4px; color: var(--muted); font-size: 10px; }
+    .stage-flow { display: grid; grid-template-columns: 1fr 36px 1fr; gap: 8px; align-items: stretch; padding-top: 18px; }
+    .flow-arrow { display: grid; place-items: center; color: var(--faint); font-size: 20px; }
+    .b-lane { padding: 18px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); }
+    .b-lane-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .b-lane h3 { margin-top: 5px; font-size: 17px; }
+    .b-lane .lane-facts { margin-bottom: 13px; }
+    .route-line { display: flex; align-items: center; gap: 7px; margin: 15px 0; color: var(--muted); font-size: 9px; }
+    .route-node { padding: 5px 7px; border-radius: 7px; background: #fff; border: 1px solid var(--line); color: var(--ink-2); font-weight: 700; }
+
+    /* Variant C: command center with show rail, evidence stack, and action queue. */
+    .c-shell { min-height: calc(100vh - 27px); background: var(--canvas); }
+    .c-topbar { display: grid; grid-template-columns: 250px minmax(0, 1fr) 300px; min-height: 67px; align-items: center; border-bottom: 1px solid var(--line); background: var(--surface); }
+    .c-topbar > div { padding: 0 20px; }
+    .c-topbar > div + div { border-left: 1px solid var(--line); }
+    .c-top-context { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+    .c-top-context strong { font-size: 12px; }
+    .c-top-context span { color: var(--muted); font-size: 9px; }
+    .c-columns { display: grid; grid-template-columns: 250px minmax(420px, 1fr) 300px; min-height: calc(100vh - 94px); }
+    .c-rail, .c-main, .c-queue { min-width: 0; }
+    .c-rail { padding: 18px 12px; border-right: 1px solid var(--line); background: var(--surface); }
+    .c-main { padding: 24px; }
+    .c-queue { padding: 18px; border-left: 1px solid var(--line); background: var(--surface); }
+    .rail-title { padding: 0 8px 11px; display: flex; justify-content: space-between; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; }
+    .show-item { width: 100%; min-height: 48px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 9px; border: 1px solid transparent; border-radius: 5px; padding: 9px; color: var(--ink); background: transparent; cursor: pointer; text-align: left; }
+    .show-item + .show-item { margin-top: 5px; }
+    .show-item:hover { background: var(--surface); border-color: var(--line); }
+    .show-item.active { background: var(--surface); border-color: var(--risk-line); }
+    .show-date { width: 36px; height: 36px; border-radius: 4px; display: grid; place-items: center; color: var(--muted); background: var(--surface-2); font-size: 8px; font-weight: 800; }
+    .show-item.active .show-date { color: var(--risk); background: var(--risk-soft); }
+    .show-item strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+    .show-item small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+    .show-signal { width: 7px; height: 7px; border-radius: 50%; background: #acd1bd; }
+    .show-signal.risk { background: var(--risk); box-shadow: 0 0 0 4px var(--risk-soft); }
+    .case-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+    .case-head h1 { font-size: 32px; }
+    .case-head p { margin-top: 7px; color: var(--muted); font-size: 11px; }
+    .case-value { text-align: right; }
+    .case-value strong { display: block; color: var(--risk); font-family: Georgia, serif; font-size: 28px; letter-spacing: -.04em; }
+    .case-value span { color: var(--muted); font-size: 9px; }
+    .evidence-card { margin-top: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+    .evidence-title { display: flex; justify-content: space-between; gap: 15px; align-items: center; }
+    .evidence-title h2 { font-size: 13px; }
+    .evidence-title span { color: var(--muted); font-size: 9px; }
+    .evidence-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+    .evidence-row { padding: 13px; border-radius: 11px; background: var(--surface-2); }
+    .evidence-row-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .evidence-row strong { font-size: 11px; }
+    .evidence-row span { color: var(--muted); font-size: 9px; }
+    .decision-map { margin-top: 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; }
+    .decision-node { padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+    .decision-node h3 { font-size: 12px; }
+    .decision-node p { margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .decision-join { color: var(--faint); font-size: 20px; }
+    .queue-title { display: flex; align-items: center; justify-content: space-between; padding-bottom: 11px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+    .approval-card { padding: 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+    .approval-card + .approval-card { margin-top: 10px; }
+    .approval-card h3 { margin-top: 8px; font-size: 13px; }
+    .approval-card p { margin-top: 6px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .approval-meta { margin-top: 12px; display: grid; gap: 6px; }
+    .approval-meta div { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 9px; }
+    .approval-meta span { color: var(--muted); }
+    .approval-card .btn { width: 100%; margin-top: 12px; }
+    .activity { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .activity h3 { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+    .activity-item { position: relative; padding: 11px 0 0 15px; color: var(--muted); font-size: 8px; line-height: 1.5; }
+    .activity-item::before { content: ""; position: absolute; left: 0; top: 15px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .activity-item strong { color: var(--ink-2); }
+
+    .prototype-switcher {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 100;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px;
+      color: #fff;
+      background: #1f2025;
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 999px;
+      box-shadow: 0 18px 45px rgba(0,0,0,.26);
+    }
+    .prototype-switcher button { width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 50%; color: #fff; background: transparent; cursor: pointer; font-size: 17px; }
+    .prototype-switcher button:hover { background: rgba(255,255,255,.1); }
+    .variant-name { min-width: 180px; text-align: center; }
+    .variant-name strong { display: block; font-size: 11px; }
+    .variant-name small { display: block; margin-top: 2px; color: #aeb2bd; font-size: 8px; }
+    .view-state-control { display: flex; align-items: center; gap: 6px; padding-left: 7px; border-left: 1px solid rgba(255,255,255,.22); color: #d4d6dc; font-size: 9px; }
+    .view-state-control select { min-height: 44px; border: 1px solid rgba(255,255,255,.25); border-radius: 4px; padding: 0 8px; color: #fff; background: #2d2e34; font: inherit; }
+    .state-debug {
+      position: fixed;
+      right: 18px;
+      bottom: 20px;
+      z-index: 90;
+      max-width: 340px;
+      padding: 8px 11px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      color: var(--muted);
+      background: rgba(255,255,255,.94);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 8px;
+      line-height: 1.5;
+    }
+    .state-debug strong { color: var(--ink-2); }
+
+    dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 50px); padding: 0; border: 0; border-radius: 18px; color: var(--ink); background: var(--surface); box-shadow: var(--shadow-lg); }
+    dialog::backdrop { background: rgba(25,27,32,.42); backdrop-filter: blur(4px); }
+    .modal-head { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; border-bottom: 1px solid var(--line); }
+    .modal-head h2 { font-size: 18px; }
+    .modal-head p { margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .close-btn { width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--surface); cursor: pointer; }
+    .modal-body { padding: 20px; overflow-y: auto; }
+    .email-shell { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .email-bar { padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; background: #f5f7fb; border-bottom: 1px solid var(--line); font-size: 9px; }
+    .email-row { padding: 10px 14px; display: grid; grid-template-columns: 55px 1fr; gap: 10px; border-bottom: 1px solid var(--line); font-size: 10px; }
+    .email-row span { color: var(--muted); }
+    .email-body { padding: 17px 14px 22px; font-size: 11px; line-height: 1.7; }
+    .campaign-preview { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .campaign-block { padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+    .campaign-block span { color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+    .campaign-block strong { display: block; margin-top: 5px; font-size: 12px; }
+    .modal-foot { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--line); background: var(--surface-2); }
+    .modal-foot p { color: var(--muted); font-size: 8px; }
+    .state-screen { max-width: 860px; margin: 13vh auto 0; padding: 0 24px; }
+    .state-panel { padding: 32px; border-top: 4px solid var(--accent); background: var(--surface); }
+    .state-panel h1 { margin-top: 0; font-size: clamp(26px, 4vw, 42px); }
+    .state-panel p { max-width: 600px; margin-top: 10px; color: var(--muted); line-height: 1.65; }
+    .loading-rule { width: 46%; height: 5px; margin-top: 24px; background: var(--accent); }
+
+    @media (max-width: 1100px) {
+      .poster-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: auto; }
+      .poster, .poster:nth-child(4), .poster:nth-child(5), .poster:nth-child(6) { grid-column: span 1; min-height: 180px; }
+      .poster:first-child { grid-column: span 2; grid-row: auto; min-height: 230px; }
+      .a-layout { grid-template-columns: 1fr; }
+      .a-detail { position: static; }
+      .c-topbar, .c-columns { grid-template-columns: 210px minmax(0, 1fr); }
+      .c-topbar > div:last-child, .c-queue { grid-column: 1 / -1; }
+      .c-queue { border-left: 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .queue-title, .activity { grid-column: 1 / -1; }
+      .approval-card + .approval-card { margin-top: 0; }
+    }
+
+    @media (max-width: 760px) {
+      .app-header { padding: 0 16px; }
+      .header-user span:first-child { display: none; }
+      .page, .b-page { padding: 22px 16px 42px; }
+      .page-intro, .b-summary { align-items: flex-start; flex-direction: column; }
+      .a-shell { grid-template-columns: 1fr; }
+      .a-content { padding: 20px 14px; }
+      .table-wrap { overflow: visible; }
+      table, tbody { display: block; width: 100%; }
+      thead { display: none; }
+      tbody { padding: 8px; }
+      tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin-bottom: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 5px; }
+      tbody tr.active { box-shadow: inset 3px 0 var(--risk); }
+      td { display: flex; min-width: 0; flex-direction: column; gap: 4px; padding: 7px 2px; border: 0; white-space: normal; }
+      td::before { content: attr(data-label); color: var(--muted); font-size: 8px; font-weight: 700; }
+      td:first-child, td:last-child { grid-column: 1 / -1; }
+      .poster-grid { grid-template-columns: 1fr; }
+      .poster, .poster:first-child, .poster:nth-child(4), .poster:nth-child(5), .poster:nth-child(6) { grid-column: span 1; grid-row: auto; min-height: 144px; }
+      .poster:first-child { min-height: 210px; }
+      .stage-flow { grid-template-columns: 1fr; }
+      .flow-arrow { transform: rotate(90deg); }
+      .lane-grid { grid-template-columns: 1fr; }
+      .c-topbar { grid-template-columns: 1fr; }
+      .c-topbar > div:not(:first-child) { display: none; }
+      .c-columns { grid-template-columns: 1fr; }
+      .c-rail { border-right: 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+      .c-rail .rail-title { display: none; }
+      .show-item { min-width: 0; }
+      .c-main { padding: 20px 14px; }
+      .c-queue { grid-template-columns: 1fr; padding: 15px; }
+      .queue-title, .activity { grid-column: auto; }
+      .approval-card + .approval-card { margin-top: 0; }
+      .evidence-grid, .decision-map { grid-template-columns: 1fr; }
+      .decision-join { transform: rotate(90deg); text-align: center; }
+      .campaign-preview { grid-template-columns: 1fr; }
+      .state-debug { display: none; }
+      #prototype { padding-bottom: 24px; }
+      .prototype-switcher { position: relative; left: auto; bottom: auto; width: auto; margin: 12px; transform: none; flex-wrap: wrap; justify-content: center; border-radius: 12px; }
+      .variant-name { min-width: 142px; }
+      .view-state-control { flex-basis: 100%; justify-content: center; padding: 6px 0 0; border-left: 0; border-top: 1px solid rgba(255,255,255,.22); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="prototype-ribbon">Throwaway UI prototype <span>synthetic data · no external actions</span></div>
+  <main id="prototype"></main>
+
+  <dialog id="review-modal" aria-labelledby="modal-title"></dialog>
+  <div class="state-debug" id="state-debug"></div>
+  <nav class="prototype-switcher" aria-label="Prototype variant switcher">
+    <button id="previous-variant" aria-label="Previous variant">‹</button>
+    <div class="variant-name"><strong id="variant-title"></strong><small>Use the arrow keys to compare</small></div>
+    <button id="next-variant" aria-label="Next variant">›</button>
+    <label class="view-state-control">Data state
+      <select id="view-state" aria-label="Choose a data state">
+        <option value="ready">Ready</option>
+        <option value="loading">Loading</option>
+        <option value="empty">Empty</option>
+        <option value="error">Error</option>
+      </select>
+    </label>
+  </nav>
+
+  <script>
+    const shows = [
+      { id: 'show-a', artist: '[SHOW A]', venue: '[VENUE A]', market: '[MARKET]', date: '[EVENT DATE]', timing: '[DAYS TO SHOW]', pace: 'Below target', suites: '[SUITES OPEN]', premium: '[SEATS OPEN]', risk: '[REVENUE AT RISK]', status: 'risk', tone: '#59332e' },
+      { id: 'show-b', artist: '[SHOW B]', venue: '[VENUE B]', market: '[MARKET]', date: '[EVENT DATE]', timing: 'On schedule', pace: 'On target', suites: 'Placed', premium: 'Within plan', risk: '', status: 'good', tone: '#29473f' },
+      { id: 'show-c', artist: '[SHOW C]', venue: '[VENUE C]', market: '[MARKET]', date: '[EVENT DATE]', timing: 'On schedule', pace: 'On target', suites: 'Placed', premium: 'Within plan', risk: '', status: 'good', tone: '#29473f' },
+      { id: 'show-d', artist: '[SHOW D]', venue: '[VENUE D]', market: '[MARKET]', date: '[EVENT DATE]', timing: 'On schedule', pace: 'On target', suites: 'Placed', premium: 'Within plan', risk: '', status: 'good', tone: '#29473f' },
+      { id: 'show-e', artist: '[SHOW E]', venue: '[VENUE E]', market: '[MARKET]', date: '[EVENT DATE]', timing: 'On schedule', pace: 'On target', suites: 'Placed', premium: 'Within plan', risk: '', status: 'good', tone: '#29473f' },
+      { id: 'show-f', artist: '[SHOW F]', venue: '[VENUE F]', market: '[MARKET]', date: '[EVENT DATE]', timing: 'On schedule', pace: 'On target', suites: 'Placed', premium: 'Within plan', risk: '', status: 'good', tone: '#29473f' }
+    ];
+
+    const variantMeta = {
+      A: 'A · Operations table',
+      B: 'B · Portfolio board',
+      C: 'C · Revenue command center'
+    };
+    const variants = ['A', 'B', 'C'];
+    const state = { selected: 'show-a', email: 'draft ready', campaign: 'proposal ready' };
+    const selectedShow = () => shows.find(show => show.id === state.selected) || shows[0];
+    const isRisk = show => show.status === 'risk';
+    const statusPill = show => isRisk(show)
+      ? '<span class="pill risk"><i class="dot"></i> Premium revenue at risk</span>'
+      : '<span class="pill good"><i class="dot"></i> On track</span>';
+
+    function header() {
+      return `<header class="app-header">
+        <div class="brand"><span class="brand-mark">[ ]</span><span class="brand-copy"><strong>[PRODUCT NAME]</strong><small>Premium sales prototype</small></span></div>
+        <div class="header-user"><span>Portfolio review</span><span class="pill">Synthetic scenario</span></div>
+      </header>`;
+    }
+
+    function laneCards(compact = false) {
+      const emailApproved = state.email === 'approved';
+      const campaignApproved = state.campaign === 'approved';
+      return `<div class="lane-grid">
+        <article class="lane">
+          <div class="lane-top"><div><div class="lane-kicker">Suite lane · Direct sales</div><h3>Prepare corporate outreach</h3></div><span class="pill blue">Approved account list</span></div>
+          <p>The prototype uses prior premium purchases, group size, market, and an approved contact relationship.</p>
+          <div class="lane-facts"><div class="lane-fact"><span>Inventory</span><strong>[SUITES OPEN]</strong></div><div class="lane-fact"><span>Buyer</span><strong>Corporate</strong></div><div class="lane-fact"><span>Value</span><strong>[SUITE VALUE]</strong></div></div>
+          ${compact ? '' : `<div class="account-list">
+            <div class="account"><span class="account-logo">A</span><div><strong>[ACCOUNT A]</strong><small>Prior suite buyer in the selected market</small></div></div>
+            <div class="account"><span class="account-logo">B</span><div><strong>[ACCOUNT B]</strong><small>Group-size fit recorded in the CRM</small></div></div>
+            <div class="account"><span class="account-logo">C</span><div><strong>[ACCOUNT C]</strong><small>Premium renewal conversation is open</small></div></div>
+          </div>`}
+          <div class="lane-actions"><span class="pill ${emailApproved ? 'good' : ''}">${emailApproved ? 'Approved for Outlook' : 'Outlook draft ready'}</span><button class="btn ${emailApproved ? 'approved' : 'primary'}" data-review="email">${emailApproved ? 'Review approval' : 'Review draft'}</button></div>
+        </article>
+        <article class="lane">
+          <div class="lane-top"><div><div class="lane-kicker">Seat lane · Demand</div><h3>Propose a premium-seat campaign</h3></div><span class="pill blue">Approved audience</span></div>
+          <p>The proposal targets in-market, high-intent buyers. It uses an approved audience label and no visible fan-level data.</p>
+          <div class="lane-facts"><div class="lane-fact"><span>Inventory</span><strong>[SEATS OPEN]</strong></div><div class="lane-fact"><span>Budget</span><strong>[BUDGET CAP]</strong></div><div class="lane-fact"><span>Window</span><strong>[CAMPAIGN DATES]</strong></div></div>
+          ${compact ? '' : `<div style="margin-top:3px;display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:9px"><span>Premium sales pace</span><strong style="color:var(--risk)">Below target</strong></div>`}
+          <div class="lane-actions"><span class="pill ${campaignApproved ? 'good' : ''}">${campaignApproved ? 'Approved simulation' : 'Campaign proposed'}</span><button class="btn ${campaignApproved ? 'approved' : 'primary'}" data-review="campaign">${campaignApproved ? 'Review approval' : 'Review campaign'}</button></div>
+        </article>
+      </div>`;
+    }
+
+    function variantA() {
+      const show = selectedShow();
+      return `<section class="a-shell">
+        <div class="a-work">
+          <header class="app-header"><div class="brand"><span class="brand-mark">[ ]</span><span class="brand-copy"><strong>[PRODUCT NAME]</strong><small>Premium sales prototype</small></span></div><div class="header-user"><span>Portfolio review</span><span class="pill">Synthetic scenario</span></div></header>
+          <div class="a-content">
+            <div class="page-intro"><div><div class="eyebrow">Premium portfolio review</div><h1>One show needs a recovery decision.</h1><p>The flagged show combines two inventory problems. Suites need direct outreach. Premium seats need a demand campaign.</p></div><div class="status-row"><span class="pill">${shows.length} placeholder shows</span><span class="pill risk"><i class="dot"></i> ${shows.filter(isRisk).length} alert</span></div></div>
+            <div class="a-layout">
+              <section class="panel">
+                <div class="panel-head"><div><h2>Shows in the review window</h2><p>Placeholders preserve the workflow without inventing customer data.</p></div></div>
+                <div class="table-wrap"><table><thead><tr><th>Show</th><th>Timing</th><th>Sales pace</th><th>Suite pipeline</th><th>Premium inventory</th><th>Status</th></tr></thead><tbody>
+                  ${shows.map(item => `<tr class="${item.id === state.selected ? 'active' : ''}" data-show="${item.id}" role="button" tabindex="0"><td data-label="Show"><div class="show-cell"><strong>${item.artist}</strong><small>${item.venue} · ${item.market}</small></div></td><td data-label="Timing"><div class="date-stack"><strong>${item.date}</strong><small>${item.timing}</small></div></td><td data-label="Sales pace">${item.pace}</td><td data-label="Suite pipeline">${item.suites}</td><td data-label="Premium inventory">${item.premium}</td><td data-label="Status">${statusPill(item)}</td></tr>`).join('')}
+                </tbody></table></div>
+              </section>
+              <aside class="panel a-detail">
+                <div class="panel-head"><div><h2>${show.artist}</h2><p>${show.venue} · ${show.date}</p></div>${statusPill(show)}</div>
+                <div class="detail-body">${isRisk(show) ? `<div class="risk-banner"><div><strong>Premium inventory alert</strong><p>${show.timing}. Two review items are ready.</p></div><div class="risk-amount"><strong>${show.risk}</strong><small>scenario placeholder</small></div></div>${laneCards(false)}` : `<div style="padding:25px 8px;text-align:center"><span class="pill good">On track</span><h3 style="margin-top:13px">No recovery action is needed.</h3><p style="margin:7px auto 0;max-width:280px;color:var(--muted);font-size:10px;line-height:1.6">The placeholder sales pace and premium inventory remain within the scenario thresholds.</p></div>`}</div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function variantB() {
+      const show = selectedShow();
+      return `<section class="b-header">${header()}</section><div class="b-page">
+        <div class="b-summary"><div><div class="eyebrow">Premium portfolio review</div><h1>Five shows are on track. Show A needs a recovery plan.</h1><p style="margin-top:9px;color:var(--muted);max-width:620px;line-height:1.6">Select a placeholder show to inspect its premium position and pending reviews.</p></div><div class="b-stat"><strong>${shows.filter(isRisk).length}</strong><span>flagged show</span></div></div>
+        <div class="poster-grid">${shows.map(item => `<button class="poster ${item.id === state.selected ? 'active' : ''}" data-show="${item.id}" style="--poster:${item.tone}"><span class="poster-date">${item.date} · ${item.timing}</span><div>${isRisk(item) ? '<span class="poster-alert">Premium risk</span>' : ''}<h3>${item.artist}</h3><p>${item.venue}<br>${item.market}</p></div></button>`).join('')}</div>
+        <section class="recovery-stage">
+          ${isRisk(show) ? `<div class="stage-top"><div class="stage-title"><span class="stage-index">!</span><div><div class="eyebrow">Combined premium alert · ${show.timing}</div><h2>${show.artist} needs two recovery actions.</h2><p>Direct outreach fits the suites. A bounded demand campaign fits the premium seats.</p></div></div><div class="risk-amount"><strong>${show.risk}</strong><small>scenario placeholder</small></div></div>
+          <div class="stage-flow"><div class="b-lane"><div class="b-lane-head"><div><div class="lane-kicker">Suites · Relationship sale</div><h3>Review corporate outreach</h3></div><span class="pill risk">${show.suites}</span></div><div class="lane-facts"><div class="lane-fact"><span>Accounts</span><strong>[APPROVED LIST]</strong></div><div class="lane-fact"><span>Value</span><strong>[SUITE VALUE]</strong></div><div class="lane-fact"><span>Owner</span><strong>Sales owner</strong></div></div><div class="route-line"><span class="route-node">CRM evidence</span><span>›</span><span class="route-node">Account fit</span><span>›</span><span class="route-node">Outlook draft</span></div><button class="btn primary" data-review="email">${state.email === 'approved' ? 'Review approved draft' : 'Review Outlook draft'}</button></div><div class="flow-arrow">+</div><div class="b-lane"><div class="b-lane-head"><div><div class="lane-kicker">Premium seats · Demand campaign</div><h3>Review targeted promotion</h3></div><span class="pill risk">${show.premium}</span></div><div class="lane-facts"><div class="lane-fact"><span>Audience</span><strong>[SEGMENT]</strong></div><div class="lane-fact"><span>Budget</span><strong>[BUDGET CAP]</strong></div><div class="lane-fact"><span>Window</span><strong>[DATES]</strong></div></div><div class="route-line"><span class="route-node">Inventory</span><span>›</span><span class="route-node">Audience</span><span>›</span><span class="route-node">Ad proposal</span></div><button class="btn primary" data-review="campaign">${state.campaign === 'approved' ? 'Review approved campaign' : 'Review campaign'}</button></div></div>` : `<div style="padding:38px;text-align:center"><span class="pill good">On track</span><h2 style="margin-top:13px">${show.artist} needs no recovery action.</h2><p style="margin-top:7px;color:var(--muted)">The placeholder inventory remains within the scenario threshold.</p></div>`}
+        </section>
+      </div>`;
+    }
+
+    function variantC() {
+      const show = selectedShow();
+      return `<section class="c-shell">
+        <header class="c-topbar"><div class="brand"><span class="brand-mark">[ ]</span><span class="brand-copy"><strong>[PRODUCT NAME]</strong><small>Premium sales prototype</small></span></div><div class="c-top-context"><div><strong>Portfolio review</strong><br><span>Synthetic scenario with placeholder values</span></div><div class="status-row"><span class="pill good">${shows.filter(show => !isRisk(show)).length} on track</span><span class="pill risk">${shows.filter(isRisk).length} alert</span></div></div><div class="c-top-context"><span>Human review queue</span><strong>${isRisk(show) ? 'Two decisions' : 'No decisions'}</strong></div></header>
+        <div class="c-columns">
+          <aside class="c-rail"><div class="rail-title"><span>Shows</span><span>Signal</span></div>${shows.map(item => `<button class="show-item ${item.id === state.selected ? 'active' : ''}" data-show="${item.id}"><span class="show-date">${item.date}</span><span><strong>${item.artist}</strong><small>${item.venue} · ${item.pace}</small></span><i class="show-signal ${isRisk(item) ? 'risk' : ''}"></i></button>`).join('')}</aside>
+          <main class="c-main">${isRisk(show) ? `<div class="case-head"><div><div class="eyebrow">Premium inventory alert</div><h1>${show.artist}</h1><p>${show.venue} · ${show.market} · ${show.date} · ${show.timing}</p></div><div class="case-value"><strong>${show.risk}</strong><span>scenario placeholder</span></div></div>
+            <section class="evidence-card"><div class="evidence-title"><h2>Why the portfolio flagged this show</h2><span>Read-only placeholder evidence</span></div><div class="evidence-grid"><div class="evidence-row"><div class="evidence-row-top"><strong>Suite pipeline</strong><span>${show.suites}</span></div><p style="margin-top:8px;color:var(--risk);font-size:10px">Corporate pipeline is below the scenario target.</p></div><div class="evidence-row"><div class="evidence-row-top"><strong>Premium seat pace</strong><span>${show.premium}</span></div><p style="margin-top:8px;color:var(--risk);font-size:10px">Consumer demand is below the scenario target.</p></div></div></section>
+            <div class="risk-banner" style="margin-top:14px"><div><strong>One revenue problem. Two recovery paths.</strong><p>Use relationship sales for the suites and demand marketing for individual premium seats.</p></div><span class="pill risk">Human review required</span></div>
+            <div class="decision-map"><article class="decision-node"><div class="lane-kicker">Suites</div><h3>Draft direct corporate outreach</h3><p>Approved placeholder accounts match through prior purchase and group-size evidence.</p></article><span class="decision-join">+</span><article class="decision-node"><div class="lane-kicker">Premium seats</div><h3>Propose targeted promotion</h3><p>An approved placeholder segment receives a bounded campaign proposal.</p></article></div>` : `<div style="padding:50px 10px;text-align:center"><span class="pill good">On track</span><h1 style="margin-top:14px">${show.artist}</h1><p style="margin-top:8px;color:var(--muted)">No premium inventory alert exists for this placeholder show.</p></div>`}</main>
+          <aside class="c-queue"><div class="queue-title"><span>Action queue</span><span>${isRisk(show) ? 'Two pending' : 'None pending'}</span></div>${isRisk(show) ? `<article class="approval-card"><span class="pill blue">Sales owner</span><h3>Outlook email draft</h3><p>Suite offer for [ACCOUNT A], [ACCOUNT B], and [ACCOUNT C].</p><div class="approval-meta"><div><span>External effect</span><strong>Draft only</strong></div><div><span>Recipients</span><strong>Approved list</strong></div><div><span>Status</span><strong>${state.email}</strong></div></div><button class="btn ${state.email === 'approved' ? 'approved' : 'primary'}" data-review="email">Review email</button></article><article class="approval-card"><span class="pill blue">Marketing owner</span><h3>Premium seat campaign</h3><p>Bounded campaign for [AUDIENCE SEGMENT]. The demo records a simulation only.</p><div class="approval-meta"><div><span>External effect</span><strong>Simulation</strong></div><div><span>Budget cap</span><strong>[BUDGET CAP]</strong></div><div><span>Status</span><strong>${state.campaign}</strong></div></div><button class="btn ${state.campaign === 'approved' ? 'approved' : 'primary'}" data-review="campaign">Review campaign</button></article>` : '<div style="padding:25px 5px;color:var(--muted);font-size:10px">This show has no pending decisions.</div>'}
+            <div class="activity"><h3>Activity record</h3><div class="activity-item">Portfolio scan identified one premium inventory alert.</div><div class="activity-item">The prototype prepared two bounded recommendations.</div>${state.email === 'approved' ? '<div class="activity-item">The sales owner approved the draft for Outlook.</div>' : ''}${state.campaign === 'approved' ? '<div class="activity-item">The marketing owner approved the campaign simulation.</div>' : ''}</div>
+          </aside>
+        </div>
+      </section>`;
+    }
+
+    function getVariant() {
+      const raw = new URLSearchParams(location.search).get('variant')?.toUpperCase();
+      return variants.includes(raw) ? raw : 'A';
+    }
+
+    function getViewState() {
+      const raw = new URLSearchParams(location.search).get('state')?.toLowerCase();
+      return ['ready', 'loading', 'empty', 'error'].includes(raw) ? raw : 'ready';
+    }
+
+    function setViewState(next) {
+      const url = new URL(location.href);
+      url.searchParams.set('state', next);
+      history.replaceState({}, '', url);
+      render();
+    }
+
+    function stateScreen(kind) {
+      const copy = {
+        loading: ['Loading the show portfolio', 'The prototype is reading placeholder inventory and sales signals.', '<div class="loading-rule" aria-hidden="true"></div>'],
+        empty: ['No shows in this review window', 'The selected portfolio has no scheduled shows. A production view would offer another date range.', ''],
+        error: ['The portfolio could not load', 'The data connection failed. Retry to return to the ready-state mock.', '<button class="btn primary" data-retry>Retry portfolio load</button>']
+      }[kind];
+      return `${header()}<section class="state-screen"><div class="state-panel"><div class="eyebrow">${kind} state</div><h1>${copy[0]}</h1><p>${copy[1]}</p><div style="margin-top:22px">${copy[2]}</div></div></section>`;
+    }
+
+    function setVariant(next) {
+      const url = new URL(location.href);
+      url.searchParams.set('variant', next);
+      history.replaceState({}, '', url);
+      render();
+    }
+
+    function cycle(direction) {
+      const current = getVariant();
+      const index = variants.indexOf(current);
+      setVariant(variants[(index + direction + variants.length) % variants.length]);
+    }
+
+    function render() {
+      const variant = getVariant();
+      const viewState = getViewState();
+      document.getElementById('prototype').innerHTML = viewState === 'ready' ? ({ A: variantA, B: variantB, C: variantC })[variant]() : stateScreen(viewState);
+      document.getElementById('variant-title').textContent = variantMeta[variant];
+      document.getElementById('view-state').value = viewState;
+      document.getElementById('state-debug').innerHTML = `<strong>PROTOTYPE STATE</strong> · variant=${variant} · data=${viewState} · selected=${state.selected} · email=${state.email} · campaign=${state.campaign} · mutations=none`;
+    }
+
+    function openReview(type) {
+      const modal = document.getElementById('review-modal');
+      const isEmail = type === 'email';
+      const approved = state[isEmail ? 'email' : 'campaign'] === 'approved';
+      modal.innerHTML = isEmail ? `
+        <div class="modal-head"><div><div class="eyebrow">Sales-owner review</div><h2 id="modal-title">Outlook suite outreach draft</h2><p>Placeholder accounts · draft only · no message will send</p></div><button class="close-btn" data-close aria-label="Close">×</button></div>
+        <div class="modal-body"><div class="email-shell"><div class="email-bar"><strong>New message · Draft</strong><span class="pill blue">Outlook preview</span></div><div class="email-row"><span>To</span><strong>[ACCOUNT A]; [ACCOUNT B]; [ACCOUNT C]</strong></div><div class="email-row"><span>Subject</span><strong>Suite availability for [SHOW A] at [VENUE A]</strong></div><div class="email-body">Hello [CONTACT NAME],<br><br>[SHOW A] comes to [VENUE A] on [EVENT DATE]. [SUITES OPEN] private suites remain available for groups of [CAPACITY].<br><br>Your approved account history suggests this offer may fit a client or team event. I can share the package details and current availability if the date works for you.<br><br>Regards,<br>[SALES OWNER]</div></div></div>
+        <div class="modal-foot"><p>Approval creates or confirms a draft. It never sends the message.</p><button class="btn ${approved ? 'approved' : 'primary'}" data-approve="email">${approved ? 'Approved · keep draft' : 'Approve for Outlook'}</button></div>` : `
+        <div class="modal-head"><div><div class="eyebrow">Marketing-owner review</div><h2 id="modal-title">Premium seat campaign proposal</h2><p>Fictional audience · simulated execution · no advertising spend</p></div><button class="close-btn" data-close aria-label="Close">×</button></div>
+        <div class="modal-body"><div class="campaign-preview"><div class="campaign-block"><span>Audience</span><strong>[APPROVED AUDIENCE]</strong></div><div class="campaign-block"><span>Inventory</span><strong>[SEATS OPEN]</strong></div><div class="campaign-block"><span>Placement</span><strong>Promoted listing + paid social</strong></div><div class="campaign-block"><span>Window</span><strong>[CAMPAIGN DATES]</strong></div><div class="campaign-block"><span>Budget cap</span><strong>[BUDGET CAP]</strong></div><div class="campaign-block"><span>Success signal</span><strong>Qualified premium purchases</strong></div></div><div class="risk-banner" style="margin-top:14px"><div><strong>The demo records a simulation only.</strong><p>No ad account changes, budget spend, or fan-level data access occur.</p></div><span class="pill blue">Human approval</span></div></div>
+        <div class="modal-foot"><p>Approval changes only the local prototype state.</p><button class="btn ${approved ? 'approved' : 'primary'}" data-approve="campaign">${approved ? 'Approved · simulated' : 'Approve simulation'}</button></div>`;
+      modal.showModal();
+    }
+
+    document.addEventListener('click', event => {
+      const show = event.target.closest('[data-show]');
+      const review = event.target.closest('[data-review]');
+      const approve = event.target.closest('[data-approve]');
+      const retry = event.target.closest('[data-retry]');
+      if (show) { state.selected = show.dataset.show; render(); }
+      if (review) openReview(review.dataset.review);
+      if (retry) setViewState('ready');
+      if (event.target.closest('[data-close]')) document.getElementById('review-modal').close();
+      if (approve) {
+        state[approve.dataset.approve] = 'approved';
+        document.getElementById('review-modal').close();
+        render();
+      }
+    });
+
+    document.addEventListener('keydown', event => {
+      const target = event.target;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+      if (event.key === 'ArrowLeft') cycle(-1);
+      if (event.key === 'ArrowRight') cycle(1);
+      if ((event.key === 'Enter' || event.key === ' ') && target.matches('[data-show]')) { event.preventDefault(); state.selected = target.dataset.show; render(); }
+    });
+
+    document.getElementById('previous-variant').addEventListener('click', () => cycle(-1));
+    document.getElementById('next-variant').addEventListener('click', () => cycle(1));
+    document.getElementById('view-state').addEventListener('change', event => setViewState(event.target.value));
+    document.getElementById('review-modal').addEventListener('click', event => {
+      if (event.target === event.currentTarget) event.currentTarget.close();
+    });
+
+    render();
+  </script>
+</body>
+</html>

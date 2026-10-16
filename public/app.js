@@ -1,77 +1,48 @@
+import { initialRecoveryWorkflow, presentTerminalResult, reduceRecoveryWorkflow } from "./recovery-workflow.js";
 import { initialStreamState, readNdjsonResponse, reduceStreamState } from "./stream-client.js";
 
 const get = (selector) => document.querySelector(selector);
+const workflow = get("[data-recovery-workflow]");
 const run = get("#run-check");
 const checkStatus = get("#check-status");
-const workArea = get(".work-area");
-const evidence = get("#evidence");
-const marketSignal = get("#market-signal");
-const venueRail = get("#venue-rail");
-const showCount = get("#show-count");
+const agentStatus = get("#agent-status");
+const activity = get("#agent-activity");
 const rationale = get("#rationale");
-const agentActivity = get("#agent-activity");
 const draft = get("#draft");
-const draftGuidance = get("#draft-guidance");
-const draftChannel = get("#draft-channel");
 const approve = get("#approve");
 const execute = get("#execute");
 const actionLog = get("#action-log");
 const approvalStream = get("#approval-stream");
 const actionButtons = [...document.querySelectorAll("[data-action]")];
+let state = initialRecoveryWorkflow();
+let actionId = null;
+let activeCheckController = null;
 
 const actionCopy = {
   email: {
-    channel: "OUTLOOK DRAFT",
-    guidance: "Review the corporate account offer before local approval.",
-    content: (event) => `Subject: Private suite opportunity for ${event.event_name}
-
-Hello [Account contact],
-
-We have a limited suite opportunity for ${event.event_name} at ${event.venue_name}. The synthetic account-fit review identified your company as a suitable match for client or employee hosting.
-
-Reply to this draft for package details, capacity, and current availability.
-
-Live Nation Premium Sales
-West Region
-
-Demo note: Synthetic accounts and inventory. This draft is not sent.`,
+    channel: "OUTLOOK · SUITE OUTREACH",
+    guidance: "Review the account offer before approval.",
+    content: (event) => `Subject: Private suite opportunity for ${event.event_name}\n\nHello [Account contact],\n\nWe have a limited suite opportunity for ${event.event_name} at ${event.venue_name}. Reply for package details and current availability.\n\nLive Nation Premium Sales\nWest Region\n\nThis local draft is not sent.`,
   },
   social: {
-    channel: "CAMPAIGN PROPOSAL",
-    guidance: "Review the audience, timing, and budget before local approval.",
-    content: (event) => `Campaign: ${event.event_name} premium inventory
-Objective: Sell remaining individual premium seats
-Audience: Approved ${event.city} market event-intent segment
-Inventory: 128 synthetic premium seats
-Budget cap: $2,500 synthetic demo value
-Flight: 10 days, ending 48 hours before the show
-Placement: Ticket marketplace promoted inventory and paid social
-Approval owner: West Region Marketing
-
-Demo note: This proposal does not create or fund a campaign.`,
+    channel: "META · SEAT CAMPAIGN",
+    guidance: "Review the audience, timing, and budget before approval.",
+    content: (event) => `Campaign: ${event.event_name} premium inventory\nObjective: Sell remaining individual premium seats\nAudience: Approved ${event.city} market event-intent segment\nInventory: 128 premium seats\nBudget cap: $2,500\nFlight: 10 days, ending 48 hours before the show\nApproval owner: West Region Marketing\n\nThis local proposal does not create or fund a campaign.`,
   },
   dismiss: {
-    channel: "AUDIT RECORD",
-    guidance: "Record the reason that no recovery action is required.",
-    content: `Decision: Dismiss the premium inventory alert
-
-Reason: Add the reviewer reason here.
-
-Demo note: This creates a local audit record only.`,
+    channel: "DISMISSAL RECORD",
+    guidance: "Review the closure record before approval.",
+    content: "Decision: Dismiss the premium inventory alert\n\nReason: Add the reviewer reason here.\n\nThis creates a local audit record only.",
   },
 };
 
-let snapshotHash = null;
-let actionId = null;
-let selectedEvidence = null;
-let activeCheckController = null;
 function formatNumber(value) {
   return typeof value === "number" ? new Intl.NumberFormat("en-US").format(value) : "—";
 }
 
-function formatDate(value, options = { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", options).format(parsed);
+function formatDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
 async function requestJson(url, options = {}) {
@@ -86,169 +57,109 @@ function setLog(message, isError = false) {
   actionLog.classList.toggle("is-error", isError);
 }
 
-function replaceStreamPlaceholder(feed, message) {
+function replacePlaceholder(feed, message) {
   const item = document.createElement("li");
   item.className = "activity-empty";
   item.textContent = message;
   feed.replaceChildren(item);
 }
 
-function appendStreamMessage(feed, message, elapsedMs) {
+function appendMessage(feed, message, elapsedMs) {
   const item = document.createElement("li");
   const elapsed = typeof elapsedMs === "number" ? `${(elapsedMs / 1000).toFixed(1)}s · ` : "";
   item.textContent = `${elapsed}${message}`;
-  const placeholder = feed.querySelector(".activity-empty");
-  if (placeholder) placeholder.remove();
+  feed.querySelector(".activity-empty")?.remove();
   feed.append(item);
 }
 
-function resetAgentActivity() {
-  replaceStreamPlaceholder(agentActivity, "The agent activity will appear during the portfolio check.");
-}
-
-function resetApprovalStream() {
-  replaceStreamPlaceholder(approvalStream, "Select a recovery route to prepare a local draft.");
-}
-
-function addApprovalStep(message) {
-  appendStreamMessage(approvalStream, message);
-}
-
-function resetAction() {
-  actionId = null;
-  draft.value = "";
-  draft.disabled = true;
-  draftGuidance.textContent = "Select a recovery route to create a local draft.";
-  draftChannel.textContent = "NOT SELECTED";
-  get("#approval-state").textContent = "NO DRAFT";
-  get("#approval-state").className = "task-state";
-  actionButtons.forEach((button) => button.classList.remove("is-selected"));
-  approve.disabled = true;
-  execute.disabled = true;
-  resetApprovalStream();
-  setLog("No external email or advertising action occurs in this demo.");
-}
-
-function setActionsEnabled(enabled) {
-  actionButtons.forEach((button) => { button.disabled = !enabled; });
-}
-
-function renderPortfolio(rows = [], alert) {
-  venueRail.replaceChildren();
-  showCount.textContent = `${rows.length} ${rows.length === 1 ? "SHOW" : "SHOWS"}`;
-  if (!rows.length) {
-    const item = document.createElement("li");
-    item.className = "venue-empty";
-    item.textContent = "No portfolio evidence is available.";
-    venueRail.append(item);
-    return;
-  }
-
-  rows.forEach((venue) => {
-    const ratio = venue.tickets_target_cumulative > 0 ? venue.tickets_sold_cumulative / venue.tickets_target_cumulative : 0;
-    const isAlert = alert?.evidence?.event_id === venue.event_id;
-    const date = new Date(`${venue.show_date}T12:00:00Z`);
-    const item = document.createElement("li");
-    item.className = `venue-item${isAlert ? " is-alert" : ""}`;
-
-    const dateBlock = document.createElement("span");
-    dateBlock.className = "venue-date";
-    const month = document.createElement("span");
-    month.textContent = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" }).format(date);
-    const day = document.createElement("strong");
-    day.textContent = new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone: "UTC" }).format(date);
-    dateBlock.append(month, day);
-
-    const copy = document.createElement("span");
-    copy.className = "venue-copy";
-    const eventName = document.createElement("strong");
-    eventName.textContent = venue.event_name;
-    const venueName = document.createElement("span");
-    venueName.textContent = `${venue.venue_name} · ${venue.city}, ${venue.state}`;
-    copy.append(eventName, venueName);
-    if (isAlert) {
-      const flag = document.createElement("em");
-      flag.className = "venue-flag";
-      flag.textContent = "PREMIUM INVENTORY ALERT";
-      copy.append(flag);
-    }
-
-    const score = document.createElement("span");
-    score.className = "venue-score";
-    if (ratio < 0.75) score.classList.add("is-below");
-    score.textContent = `${Math.round(ratio * 100)}%`;
-    item.append(dateBlock, copy, score);
-    venueRail.append(item);
+function renderStages() {
+  workflow.dataset.recoveryState = state.stage;
+  document.querySelectorAll("[data-stage]").forEach((section) => {
+    const stage = section.dataset.stage;
+    section.hidden = (stage === "at-risk" && !state.alert)
+      || (stage === "recommendations" && !["recommendations", "review"].includes(state.stage))
+      || (stage === "review" && state.stage !== "review");
   });
 }
 
-function renderAlert(result) {
-  const { alert } = result;
+function dispatch(event) {
+  state = reduceRecoveryWorkflow(state, event);
+  renderStages();
+}
+
+function resetApproval() {
+  actionId = null;
+  draft.value = "";
+  draft.disabled = true;
+  get("#draft-guidance").textContent = "Review the selected route before approval.";
+  get("#draft-channel").textContent = "NOT SELECTED";
+  get("#approval-state").textContent = "OWNER DECISION";
+  approve.disabled = true;
+  execute.disabled = true;
+  replacePlaceholder(approvalStream, "The selected route will appear here.");
+  setLog("No external email or advertising action occurs in this demo.");
+}
+
+function isCurrentAction(expectedActionId, expectedAlert) {
+  return actionId === expectedActionId && state.alert === expectedAlert;
+}
+
+function resetCase() {
+  dispatch({ type: "reset" });
+  resetApproval();
+  replacePlaceholder(activity, "The recovery agent is working.");
+  activity.hidden = false;
+  rationale.textContent = "The recovery agent is waiting for verified evidence.";
+  actionButtons.forEach((button) => {
+    button.disabled = true;
+    button.classList.remove("is-selected");
+  });
+}
+
+function renderAlert(alert) {
   const row = alert.evidence;
   const percent = Math.round(alert.ratio * 100);
-
   get("#event-name").textContent = row.event_name;
   get("#event-meta").textContent = `${row.venue_name} · ${row.city}, ${row.state} · ${formatDate(`${row.show_date}T12:00:00Z`)}`;
   get("#target-percent").textContent = `${percent}%`;
   get("#target-progress").style.width = `${Math.min(100, Math.max(0, percent))}%`;
   get("#tickets-sold").textContent = formatNumber(row.tickets_sold_cumulative);
   get("#tickets-target").textContent = formatNumber(row.tickets_target_cumulative);
-  get("#venue-capacity").textContent = formatNumber(row.public_capacity);
-  get("#data-as-of").textContent = formatDate(row.data_as_of, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  evidence.textContent = `${row.venue_name} is at ${percent}% of its cumulative ticket-sales target.`;
-  marketSignal.textContent = row.market_signals.join(" ");
-  rationale.textContent = result.rationale || "No model rationale is available.";
-  get("#alert-placeholder").hidden = true;
-  get("#combined-alert").hidden = false;
-  get("#alert-state").textContent = "ACTION REQUIRED";
-  get("#alert-state").className = "task-state is-alert";
-  checkStatus.textContent = `1 of ${result.evidence.length} shows needs action.`;
-  snapshotHash = alert.snapshotHash;
-  selectedEvidence = row;
-  setActionsEnabled(true);
+  get("#alert-state").textContent = "SALES EVIDENCE";
 }
 
-function clearAlertEvidence() {
-  get("#event-name").textContent = "No show selected";
-  get("#event-meta").textContent = "Run the portfolio check to select the show that needs action.";
-  get("#target-percent").textContent = "—";
-  get("#target-progress").style.width = "0%";
-  ["#tickets-sold", "#tickets-target", "#venue-capacity", "#data-as-of"].forEach((selector) => {
-    get(selector).textContent = "—";
-  });
-}
-
-function renderNoAlert(result) {
-  clearAlertEvidence();
-  const stateCopy = {
-    healthy: ["PORTFOLIO ON TRACK", "No shows fall below the approved sales threshold."],
-    empty: ["NO DATA", "The portfolio returned no sales evidence."],
-    stale: ["STALE DATA", "The sales evidence is too old for an action recommendation."],
-    error: ["CHECK FAILED", result.message || "The portfolio check could not complete."],
-  };
-  const [label, message] = stateCopy[result.status] || ["NO ALERT", "No action is available."];
-  get("#alert-state").textContent = label;
-  get("#alert-state").className = result.status === "healthy" ? "task-state is-success" : "task-state is-alert";
-  get("#alert-placeholder").hidden = false;
-  get("#placeholder-title").textContent = label;
-  get("#placeholder-message").textContent = message;
-  get("#combined-alert").hidden = true;
-  rationale.textContent = message;
-  checkStatus.textContent = message;
-  snapshotHash = null;
-  selectedEvidence = null;
-  setActionsEnabled(false);
+function handleStreamEvent(event, streamState) {
+  if (event.type === "phase" || event.type === "tool") {
+    const message = typeof event.message === "string" ? event.message : "The recovery agent updated its status.";
+    appendMessage(activity, message, event.elapsedMs);
+    checkStatus.textContent = message;
+  }
+  if (event.type === "token") rationale.textContent = streamState.rationale;
+  if (event.type === "risk-identified" && event.alert) {
+    dispatch({ type: "risk-identified", alert: event.alert });
+    renderAlert(event.alert);
+    const message = typeof event.message === "string" ? event.message : "Verified risk identified.";
+    appendMessage(activity, message, event.elapsedMs);
+    checkStatus.textContent = message;
+  }
+  if (event.type === "recommendations-ready") {
+    const wasReady = state.stage === "recommendations" || state.stage === "review";
+    dispatch({ type: "recommendations-ready" });
+    if (state.stage === "recommendations") {
+      if (!wasReady) appendMessage(activity, typeof event.message === "string" ? event.message : "Verified recovery recommendation completed.", event.elapsedMs);
+      actionButtons.forEach((button) => { button.disabled = false; });
+      agentStatus.textContent = "ROUTE READY";
+      checkStatus.textContent = "Recovery routes are ready for owner review.";
+    }
+  }
 }
 
 run.addEventListener("click", async () => {
   run.disabled = true;
-  run.textContent = "Checking portfolio…";
-  checkStatus.textContent = "Checking six West Region shows.";
-  workArea.setAttribute("aria-busy", "true");
-  resetAction();
-  resetAgentActivity();
-  setActionsEnabled(false);
-  rationale.textContent = "The recovery agent is waiting for verified sales evidence.";
+  run.textContent = "Recovery agent active";
+  agentStatus.textContent = "ACTIVE";
+  checkStatus.textContent = "Reading West Region sales evidence.";
+  resetCase();
   const controller = new AbortController();
   activeCheckController = controller;
   let streamState = initialStreamState();
@@ -260,31 +171,27 @@ run.addEventListener("click", async () => {
     }
     const terminal = await readNdjsonResponse(response, (event) => {
       streamState = reduceStreamState(streamState, event);
-      if (event.type === "phase" || event.type === "tool") {
-        const message = typeof event.message === "string" ? event.message : "The recovery agent updated its work status.";
-        appendStreamMessage(agentActivity, message, event.elapsedMs);
-        checkStatus.textContent = message;
-      }
-      if (event.type === "token") rationale.textContent = streamState.rationale;
+      handleStreamEvent(event, streamState);
     });
     if (terminal.type === "error") throw new Error(streamState.error || "The portfolio check failed.");
-    if (terminal.type !== "result" || !terminal.result || typeof terminal.result !== "object") throw new Error("Sales-check stream ended without a result.");
-    const result = terminal.result;
-    renderPortfolio(result.evidence || [], result.alert);
-    if (result.status === "alert" && result.alert) renderAlert(result);
-    else renderNoAlert(result);
+    if (terminal.type !== "result") throw new Error("Sales-check stream ended without a result.");
+    rationale.textContent = streamState.rationale || terminal.result?.rationale || rationale.textContent;
+    if (terminal.result?.status !== "alert") {
+      const presentation = presentTerminalResult(terminal.result);
+      if (presentation.kind === "error") throw new Error(presentation.message);
+      checkStatus.textContent = presentation.message;
+      agentStatus.textContent = presentation.agentStatus;
+    }
   } catch (error) {
-    const wasCancelled = controller.signal.aborted;
-    if (!wasCancelled) controller.abort();
-    renderPortfolio([]);
-    const message = wasCancelled ? "The portfolio check was cancelled." : error instanceof Error ? error.message : "The request failed.";
-    appendStreamMessage(agentActivity, message);
-    renderNoAlert({ status: "error", message });
+    if (!controller.signal.aborted) controller.abort();
+    const message = error instanceof Error ? error.message : "The portfolio check failed.";
+    appendMessage(activity, message);
+    checkStatus.textContent = message;
+    agentStatus.textContent = "CHECK FAILED";
   } finally {
     if (activeCheckController === controller) activeCheckController = null;
-    workArea.setAttribute("aria-busy", "false");
     run.disabled = false;
-    run.textContent = "Run portfolio check";
+    run.textContent = "Run recovery agent";
   }
 });
 
@@ -294,94 +201,101 @@ draft.addEventListener("input", () => {
   execute.disabled = true;
   approve.disabled = !draft.value.trim();
   get("#approval-state").textContent = draft.value.trim() ? "DRAFT EDITED" : "DRAFT EMPTY";
-  get("#approval-state").className = "task-state";
 });
 
-async function saveDraft() {
-  if (!actionId || !draft.value.trim()) throw new Error("Draft content is required.");
-  addApprovalStep("Saving the local draft edits.");
-  const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}`, {
+async function saveDraft(actionId, content) {
+  if (!actionId || !content.trim()) throw new Error("Draft content is required.");
+  appendMessage(approvalStream, "Saving local draft edits.");
+  return requestJson(`/api/actions/${encodeURIComponent(actionId)}`, {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ content: draft.value }),
+    body: JSON.stringify({ content }),
   });
-  addApprovalStep("The local draft edits were saved.");
-  return action;
 }
 
 actionButtons.forEach((button) => button.addEventListener("click", async () => {
-  if (!snapshotHash || !selectedEvidence || button.disabled) return;
+  if (!state.alert || button.disabled) return;
+  const requestedAlert = state.alert;
   const type = button.dataset.action;
   const copy = actionCopy[type];
-  const content = typeof copy.content === "function" ? copy.content(selectedEvidence) : copy.content;
-  setActionsEnabled(false);
-  resetApprovalStream();
-  addApprovalStep(`Creating the local ${type === "email" ? "Outlook" : type === "social" ? "campaign" : "dismissal"} draft.`);
-  setLog("Creating the local action draft.");
+  actionButtons.forEach((choice) => { choice.disabled = true; });
+  resetApproval();
+  appendMessage(approvalStream, `Creating the ${copy.channel.toLowerCase()} draft.`);
   try {
     const action = await requestJson("/api/actions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ alertSnapshotHash: snapshotHash, actionType: type, content }),
+      body: JSON.stringify({
+        alertSnapshotHash: requestedAlert.snapshotHash,
+        actionType: type,
+        content: typeof copy.content === "function" ? copy.content(requestedAlert.evidence) : copy.content,
+      }),
     });
+    if (state.alert !== requestedAlert) return;
     actionId = action.action_id;
+    dispatch({ type: "route-selected", route: type });
     draft.value = action.content;
     draft.disabled = false;
-    draftGuidance.textContent = copy.guidance;
-    draftChannel.textContent = copy.channel;
-    actionButtons.forEach((choice) => choice.classList.toggle("is-selected", choice === button));
+    get("#draft-guidance").textContent = copy.guidance;
+    get("#draft-channel").textContent = copy.channel;
     get("#approval-state").textContent = "AWAITING APPROVAL";
-    get("#approval-state").className = "task-state is-alert";
+    actionButtons.forEach((choice) => choice.classList.toggle("is-selected", choice === button));
     approve.disabled = !draft.value.trim();
-    execute.disabled = true;
-    addApprovalStep("The local draft is ready for review.");
-    setLog(`Local ${type === "email" ? "Outlook" : type === "social" ? "campaign" : "dismissal"} draft is ready for review.`);
+    appendMessage(approvalStream, "The local draft is ready for review.");
+    setLog(`The ${copy.channel.toLowerCase()} draft is ready for review.`);
     draft.focus();
   } catch (error) {
-    addApprovalStep("The local draft could not be created.");
-    setLog(error instanceof Error ? error.message : "The action draft could not be created.", true);
+    if (state.alert !== requestedAlert) return;
+    appendMessage(approvalStream, "The local draft could not be created.");
+    setLog(error instanceof Error ? error.message : "The local draft could not be created.", true);
   } finally {
-    setActionsEnabled(Boolean(snapshotHash));
+    if (state.alert === requestedAlert) actionButtons.forEach((choice) => { choice.disabled = !["recommendations", "review"].includes(state.stage); });
   }
 }));
 
 approve.addEventListener("click", async () => {
   if (!actionId) return;
+  const approvedActionId = actionId;
+  const approvedAlert = state.alert;
+  const content = draft.value;
   approve.disabled = true;
   execute.disabled = true;
-  setLog("Saving and approving the local draft.");
+  draft.disabled = true;
   try {
-    await saveDraft();
-    addApprovalStep("Recording local approval.");
-    const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/approve`, { method: "POST" });
+    await saveDraft(approvedActionId, content);
+    if (!isCurrentAction(approvedActionId, approvedAlert)) return;
+    const action = await requestJson(`/api/actions/${encodeURIComponent(approvedActionId)}/approve`, { method: "POST" });
+    if (!isCurrentAction(approvedActionId, approvedAlert)) return;
+    dispatch({ type: "approval-recorded" });
     get("#approval-state").textContent = "APPROVED";
-    get("#approval-state").className = "task-state is-success";
-    addApprovalStep("The local approval was recorded.");
+    appendMessage(approvalStream, "The local approval was recorded.");
     setLog(`Local ${action.action_type} simulation is approved. No external action has occurred.`);
     execute.disabled = action.status !== "approved";
   } catch (error) {
+    if (!isCurrentAction(approvedActionId, approvedAlert)) return;
     approve.disabled = false;
-    addApprovalStep("The local approval could not be recorded.");
     setLog(error instanceof Error ? error.message : "The draft could not be approved.", true);
+  } finally {
+    if (isCurrentAction(approvedActionId, approvedAlert)) draft.disabled = false;
   }
 });
 
 execute.addEventListener("click", async () => {
   if (!actionId) return;
+  const executedActionId = actionId;
+  const executedAlert = state.alert;
   execute.disabled = true;
-  addApprovalStep("Executing the local simulation.");
-  setLog("Executing the local simulation.");
   try {
-    const action = await requestJson(`/api/actions/${encodeURIComponent(actionId)}/execute`, { method: "POST" });
+    const action = await requestJson(`/api/actions/${encodeURIComponent(executedActionId)}/execute`, { method: "POST" });
+    if (!isCurrentAction(executedActionId, executedAlert)) return;
     get("#approval-state").textContent = "SIMULATION COMPLETE";
-    get("#approval-state").className = "task-state is-success";
-    addApprovalStep("The local simulation is complete.");
+    appendMessage(approvalStream, "The local simulation is complete.");
     setLog(`Local ${action.action_type} simulation is complete. No external system changed.`);
     draft.disabled = true;
     approve.disabled = true;
   } catch (error) {
+    if (!isCurrentAction(executedActionId, executedAlert)) return;
     execute.disabled = false;
-    addApprovalStep("The local simulation could not complete.");
     setLog(error instanceof Error ? error.message : "The local simulation could not complete.", true);
   }
 });

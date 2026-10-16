@@ -5,213 +5,71 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
   <link rel="icon" href="data:,">
-  <title>Live Nation West Sales</title>
+  <title>Recovery Case File · Live Nation West Sales</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+  <div class="utility"><span>LIVE NATION WEST SALES</span><span>RECOVERY WORKSPACE</span></div>
   <header class="site-header">
-    <div class="brand-lockup" aria-label="Live Nation Premium Sales">
-      <span class="brand">LIVE NATION<span class="brand-mark" aria-hidden="true">★</span></span>
-      <span class="brand-unit">PREMIUM SALES</span>
-    </div>
-    <nav class="primary-nav" aria-label="Current workspace">
-      <span class="nav-item nav-item-active">PORTFOLIO</span>
-      <span class="nav-item">INVENTORY</span>
-      <span class="nav-item">OUTREACH</span>
-      <span class="nav-item">ACTIVITY</span>
-    </nav>
-    <div class="account-block">
-      <span class="account-name">WEST REGION</span>
-      <span class="demo-label">INDEPENDENT DEMO</span>
-    </div>
+    <div class="brand-lockup" aria-label="Live Nation Premium Sales"><span class="brand">LIVE NATION<span class="brand-mark" aria-hidden="true">★</span></span><span class="brand-unit">PREMIUM SALES</span></div>
+    <nav class="primary-nav" aria-label="Current workspace"><span class="nav-item nav-item-active">PORTFOLIO</span><span class="nav-item">INVENTORY</span><span class="nav-item">OUTREACH</span><span class="nav-item">ACTIVITY</span></nav>
+    <div class="account-block"><span class="account-name">WEST REGION</span><span class="demo-label">INDEPENDENT DEMO</span></div>
   </header>
 
-  <div class="workspace-titlebar">
-    <div>
-      <p class="eyebrow">LIVE NATION PORTFOLIO VENUE · WEST</p>
-      <h1>Premium inventory recovery</h1>
-      <p class="subhead">Real venue with synthetic demonstration data.</p>
+  <main id="main-content" data-recovery-workflow data-recovery-state="agent" aria-label="Recovery case file">
+    <div class="workspace-titlebar">
+      <div><p class="eyebrow">PORTFOLIO VENUE · WEST</p><h1>Recovery Case File</h1><p class="subhead">Real venue with synthetic demonstration data.</p></div>
+      <div class="case-status"><i aria-hidden="true"></i><span id="check-status" aria-live="polite">CASE READY</span></div>
     </div>
-    <div class="title-actions">
-      <p id="check-status" class="check-status" aria-live="polite">Portfolio check has not run.</p>
-      <button id="run-check" class="button button-primary" type="button">Run portfolio check</button>
-    </div>
-  </div>
 
-  <main class="app-shell" id="main-content">
-    <aside class="portfolio-panel" aria-labelledby="portfolio-heading">
-      <div class="panel-heading">
-        <div>
-          <p class="section-kicker">WEST REGION</p>
-          <h2 id="portfolio-heading">Show portfolio</h2>
+    <div class="case-file">
+      <section class="case" data-stage="agent" aria-labelledby="agent-heading">
+        <div class="case-mark" aria-hidden="true"><span>●</span></div>
+        <div class="case-body">
+          <header class="section-head"><h2 id="agent-heading">RECOVERY AGENT</h2><span class="agent-presence"><i aria-hidden="true"></i><span id="agent-status">READY</span></span></header>
+          <div class="agent-chat" role="region" aria-label="Recovery agent"><div class="agent-card"><div class="agent-identity"><span class="agent-avatar" aria-hidden="true">AI</span><div><strong>WEST SALES RECOVERY</strong><small>PORTFOLIO SIGNAL REVIEW</small></div></div><button id="run-check" class="button button-primary" type="button">Run recovery agent</button></div>
+          <ol id="agent-activity" class="agent-activity" aria-live="polite" aria-relevant="additions text" aria-label="Agent activity" hidden><li class="activity-empty">The recovery agent is ready.</li></ol></div>
         </div>
-        <span class="show-count" id="show-count">0 SHOWS</span>
-      </div>
-      <p class="portfolio-note">Current cumulative sales versus each show target.</p>
-      <ol id="venue-rail" class="venue-list">
-        <li class="venue-empty">Run the portfolio check to load six shows.</li>
-      </ol>
-      <div class="legend" aria-label="Portfolio status legend">
-        <span><i class="legend-dot legend-dot-alert"></i>Needs action</span>
-        <span><i class="legend-dot legend-dot-ontrack"></i>On track</span>
-      </div>
-    </aside>
+      </section>
 
-    <div class="work-area" aria-busy="false">
-      <section class="task-section" aria-labelledby="alert-heading">
-        <div class="task-bar">
-          <span class="task-number">1</span>
-          <h2 id="alert-heading">Premium inventory alert</h2>
-          <span id="alert-state" class="task-state">AWAITING CHECK</span>
-        </div>
-        <div class="task-content">
-          <div class="event-header">
-            <div>
-              <p class="section-kicker">AT RISK SHOW</p>
-              <h3 id="event-name">No show selected</h3>
-              <p id="event-meta" class="event-meta">Run the portfolio check to select the show that needs action.</p>
-            </div>
-            <div class="target-score" aria-label="Sales versus cumulative target">
-              <span id="target-percent" class="target-value">—</span>
-              <span class="target-label">OF TARGET</span>
-            </div>
-          </div>
-
+      <section class="case" data-stage="at-risk" aria-labelledby="alert-heading" hidden>
+        <div class="case-mark" aria-hidden="true"><span>!</span></div>
+        <div class="case-body risk-content">
+          <header class="section-head"><h2 id="alert-heading">AT-RISK SHOW</h2><span id="alert-state">SALES EVIDENCE</span></header>
+          <div class="show-top"><div><h3 id="event-name">No show selected</h3><p id="event-meta" class="event-meta">Verified show evidence will appear here.</p></div><div class="target-score" aria-label="Sales versus cumulative target"><span id="target-percent" class="target-value">—</span><span class="target-label">OF CUMULATIVE TARGET</span></div></div>
           <div class="progress-track" aria-hidden="true"><span id="target-progress"></span></div>
-
-          <div class="evidence-grid">
-            <div><span class="data-label">TICKETS SOLD</span><strong id="tickets-sold">—</strong></div>
-            <div><span class="data-label">CUMULATIVE TARGET</span><strong id="tickets-target">—</strong></div>
-            <div><span class="data-label">PUBLIC CAPACITY</span><strong id="venue-capacity">—</strong></div>
-            <div><span class="data-label">DATA AS OF</span><strong id="data-as-of">—</strong></div>
-          </div>
-
-          <div id="alert-placeholder" class="empty-state">
-            <strong id="placeholder-title">No active alert</strong>
-            <span id="placeholder-message">The system will compare the six-show portfolio with the approved threshold.</span>
-          </div>
-
-          <div id="combined-alert" class="combined-alert" hidden>
-            <div class="alert-callout">
-              <span class="alert-icon" aria-hidden="true">!</span>
-              <div>
-                <strong>Combined premium recovery opportunity</strong>
-                <p id="evidence">Measured sales evidence will appear here.</p>
-                <p id="market-signal" class="market-signal"></p>
-              </div>
-            </div>
-            <div class="inventory-routes" aria-label="Synthetic recovery scenario">
-              <article>
-                <span class="route-type">SUITE INVENTORY</span>
-                <strong>3 unsold suites</strong>
-                <p>Match approved corporate accounts and prepare a representative-led offer.</p>
-                <span class="assumption">Synthetic scenario value</span>
-              </article>
-              <article>
-                <span class="route-type">PREMIUM SEATS</span>
-                <strong>128 seats at risk</strong>
-                <p>Prepare a targeted campaign for the remaining individual inventory.</p>
-                <span class="assumption">Synthetic scenario value</span>
-              </article>
-            </div>
-          </div>
+          <div class="evidence-grid"><div><span class="data-label">TICKETS SOLD</span><strong id="tickets-sold">—</strong></div><div><span class="data-label">CUMULATIVE TARGET</span><strong id="tickets-target">—</strong></div><div><span class="data-label">UNSOLD SUITES · SCENARIO VALUE</span><strong id="unsold-suites">3</strong></div><div><span class="data-label">PREMIUM SEATS · SCENARIO VALUE</span><strong id="premium-seats">128</strong></div></div>
         </div>
       </section>
 
-      <section class="task-section" aria-labelledby="recommendation-heading">
-        <div class="task-bar">
-          <span class="task-number">2</span>
-          <h2 id="recommendation-heading">Recovery recommendation</h2>
-          <span class="task-state">HUMAN REVIEW</span>
-        </div>
-        <div class="task-content">
-          <div class="agent-chat" role="region" aria-labelledby="agent-chat-heading">
-            <div class="agent-chat-header">
-              <div class="agent-identity">
-                <span class="agent-avatar" aria-hidden="true">AI</span>
-                <div>
-                  <span id="agent-chat-heading" class="agent-name">RECOVERY AGENT</span>
-                  <span class="agent-status">SYNTHETIC SALES ANALYSIS</span>
-                </div>
-              </div>
-              <span class="agent-presence"><i aria-hidden="true"></i>LIVE ACTIVITY</span>
-            </div>
-
-            <ol id="agent-activity" class="agent-activity" aria-live="polite" aria-relevant="additions text" aria-label="Agent activity">
-              <li class="activity-empty">The agent activity will appear during the portfolio check.</li>
-            </ol>
-
-            <div class="agent-message">
-              <span class="recommendation-label">RECOVERY RECOMMENDATION</span>
-              <p id="rationale">Run the portfolio check to request the model rationale.</p>
-            </div>
-
+      <section class="case" data-stage="recommendations" aria-labelledby="recommendation-heading" hidden>
+        <div class="case-mark" aria-hidden="true"><span>→</span></div>
+        <div class="case-body">
+          <header class="section-head"><h2 id="recommendation-heading">RECOVERY RECOMMENDATIONS</h2><span>SELECT A ROUTE</span></header>
+          <div class="recommendation-body"><div class="agent-message"><strong class="recommendation-label">RECOVERY ASSESSMENT</strong><p id="rationale">The verified recovery recommendation will appear here.</p></div>
             <div class="action-grid" aria-label="Recovery action choices">
-              <button class="action-choice" data-action="email" type="button" disabled>
-                <span class="action-index">A</span>
-                <span class="action-copy">
-                  <strong>Prepare suite outreach</strong>
-                  <span>Draft an Outlook email for approved corporate accounts.</span>
-                  <small>SALES OWNER REVIEW</small>
-                </span>
-                <span class="action-arrow" aria-hidden="true">→</span>
-              </button>
-              <button class="action-choice" data-action="social" type="button" disabled>
-                <span class="action-index">B</span>
-                <span class="action-copy">
-                  <strong>Create premium-seat campaign</strong>
-                  <span>Draft a targeted advertising proposal with a bounded budget.</span>
-                  <small>MARKETING OWNER REVIEW</small>
-                </span>
-                <span class="action-arrow" aria-hidden="true">→</span>
-              </button>
-              <button class="action-choice action-choice-dismiss" data-action="dismiss" type="button" disabled>
-                <span class="action-index">C</span>
-                <span class="action-copy">
-                  <strong>Dismiss alert</strong>
-                  <span>Record that no recovery action is required.</span>
-                  <small>LOCAL AUDIT RECORD</small>
-                </span>
-                <span class="action-arrow" aria-hidden="true">→</span>
-              </button>
+              <button class="action-choice" data-action="email" type="button" disabled><span class="route-type">RECOMMENDED ROUTE</span><span class="channel"><img src="/assets/outlook.png" alt="Outlook"><small>SUITE OUTREACH</small></span><strong>Prepare account offer</strong><span>Draft a private suite offer for approved local accounts.</span><em>Select outreach</em></button>
+              <button class="action-choice" data-action="social" type="button" disabled><span class="route-type">SUPPORT ROUTE</span><span class="channel"><img src="/assets/meta.png" alt="Meta"><small>SEAT CAMPAIGN</small></span><strong>Prepare campaign</strong><span>Prepare a paid media proposal for the remaining premium seats.</span><em>Select campaign</em></button>
+              <button class="action-choice action-choice-dismiss" data-action="dismiss" type="button" disabled><span class="route-type">NO ACTION</span><span class="channel"><small>CASE STATUS</small></span><strong>Dismiss alert</strong><span>Close the signal and record an owner reason for the decision.</span><em>Dismiss alert</em></button>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="task-section" aria-labelledby="approval-heading">
-        <div class="task-bar">
-          <span class="task-number">3</span>
-          <h2 id="approval-heading">Review and approve</h2>
-          <span id="approval-state" class="task-state">NO DRAFT</span>
-        </div>
-        <div class="task-content">
-          <div class="draft-heading">
-            <div>
-              <label for="draft">ACTION DRAFT</label>
-              <p id="draft-guidance">Select a recovery route to create a local draft.</p>
-            </div>
-            <span id="draft-channel" class="channel-label">NOT SELECTED</span>
-          </div>
-          <ol id="approval-stream" class="approval-stream" aria-live="polite" aria-relevant="additions text" aria-label="Draft review progress">
-            <li class="activity-empty">Select a recovery route to prepare a local draft.</li>
-          </ol>
+      <section class="case" data-stage="review" aria-labelledby="approval-heading" hidden>
+        <div class="case-mark" aria-hidden="true"><span>✓</span></div>
+        <div class="case-body"><header class="section-head"><h2 id="approval-heading">REVIEW AND APPROVE</h2><span id="approval-state">OWNER DECISION</span></header><div class="review-body">
+          <div class="draft-heading"><div><label for="draft">ACTION DRAFT</label><p id="draft-guidance">Review the selected route before approval.</p></div><span id="draft-channel" class="channel-label">NOT SELECTED</span></div>
+          <ol id="approval-stream" class="approval-stream" aria-live="polite" aria-relevant="additions text" aria-label="Draft review progress"><li class="activity-empty">Select a recovery route to prepare a local draft.</li></ol>
           <textarea id="draft" rows="8" spellcheck="true" disabled placeholder="The selected action draft will appear here."></textarea>
-          <div class="approval-controls">
-            <button id="approve" class="button button-primary" type="button" disabled>Approve draft</button>
-            <button id="execute" class="button button-secondary" type="button" disabled>Execute local simulation</button>
-          </div>
+          <div class="approval-controls"><button id="approve" class="button button-primary" type="button" disabled>Approve draft</button><button id="execute" class="button button-secondary" type="button" disabled>Execute local simulation</button></div>
           <p id="action-log" class="action-log" aria-live="polite">No external email or advertising action occurs in this demo.</p>
-        </div>
+        </div></div>
       </section>
     </div>
+
   </main>
-
-  <footer class="site-footer">
-    <span>LIVE NATION WEST SALES DEMO</span>
-    <span>SYNTHETIC DATA · LOCAL ACTIONS ONLY</span>
-  </footer>
-
+  <footer class="site-footer" data-demo-disclosure><span>LIVE NATION WEST SALES</span><span>SYNTHETIC DATA · LOCAL ACTIONS ONLY</span></footer>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

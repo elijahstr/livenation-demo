@@ -24,6 +24,9 @@ bun run dev
 
 Open `http://127.0.0.1:3000`.
 
+The Recovery Case File flow identifies a verified sales risk, shows recovery recommendations, and prepares a local draft for owner approval.
+The email, campaign, and dismissal actions are simulated; the demo does not send email or create campaigns.
+
 ## Sales workspace mock
 
 The [sales workspace mock](docs/prototypes/premium-sales/index.html) includes a simulated scan, account conversations, renewals, new leads, and a parking upsell.

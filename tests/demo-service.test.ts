@@ -34,13 +34,20 @@ describe("DemoService", () => {
     expect(result.status).toBe("alert");
     expect(salesSignal).toBe(controller.signal);
     expect(harnessSignal).toBe(controller.signal);
-    expect(events.map((event) => event.type)).toEqual(["phase", "phase", "phase", "tool", "tool", "token"]);
+    expect(events.map((event) => event.type)).toEqual(["phase", "phase", "risk-identified", "phase", "tool", "tool", "token", "recommendations-ready"]);
+    const identifiedRisk = events.find((event) => event.type === "risk-identified");
+    expect(identifiedRisk).toMatchObject({
+      message: "Verified risk identified for Hayden Homes Amphitheater.",
+      alert: { evidence: { event_id: "hayden-homes-001" } },
+    });
     expect(events.map((event) => event.message).filter(Boolean)).toEqual([
       "Reading six West Region shows.",
       "Evaluating cumulative sales risk.",
+      "Verified risk identified for Hayden Homes Amphitheater.",
       "Requesting a verified recovery recommendation.",
       "AgentCore requested synthetic sales evidence.",
       "Synthetic sales evidence verified.",
+      "Verified recovery recommendations are ready for review.",
     ]);
     expect(events.every((event) => typeof event.elapsedMs === "number")).toBe(true);
   });
@@ -59,8 +66,10 @@ describe("DemoService", () => {
   });
 
   test("returns an error if Kimi returns no structured evidence call", async () => {
+    const events: Array<Record<string, unknown>> = [];
     const service = new DemoService({ sales: { read: async () => [evidence, { ...evidence, event_id: "b", tickets_sold_cumulative: 700 }, { ...evidence, event_id: "c", tickets_sold_cumulative: 700 }, { ...evidence, event_id: "d", tickets_sold_cumulative: 700 }, { ...evidence, event_id: "e", tickets_sold_cumulative: 700 }, { ...evidence, event_id: "f", tickets_sold_cumulative: 700 }] }, harness: { diagnose: async () => ({ text: "answer", toolCalls: [] }) } });
-    expect((await service.salesCheck(new Date("2026-09-28T12:00:00.000Z"))).status).toBe("error");
+    expect((await service.salesCheck(new Date("2026-09-28T12:00:00.000Z"), { onEvent: (event) => events.push(event) })).status).toBe("error");
+    expect(events.some((event) => event.type === "recommendations-ready")).toBe(false);
   });
 
   test("reports stale evidence without a Kimi call", async () => {

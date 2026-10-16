@@ -25,6 +25,9 @@ describe("local command-center server", () => {
     expect((await fetch(`${base}/api/unknown`)).status).toBe(404);
     expect((await fetch(`${base}/api/state`, { method: "POST" })).status).toBe(405);
     expect((await fetch(`${base}/stream-client.js`)).status).toBe(200);
+    expect((await fetch(`${base}/recovery-workflow.js`)).status).toBe(200);
+    expect((await fetch(`${base}/assets/outlook.png`)).status).toBe(200);
+    expect((await fetch(`${base}/assets/meta.png`)).status).toBe(200);
   });
 
   test("streams ordered sales progress and refuses concurrent checks", async () => {
@@ -87,11 +90,11 @@ describe("local command-center server", () => {
     expect(app).toContain("textContent");
     expect(app).not.toContain("rationale.innerHTML");
     expect(app).toContain("/api/sales-check/stream");
-    expect(page).toContain("AT RISK SHOW");
+    expect(page).toContain("AT-RISK SHOW");
     expect(page).toContain('id="agent-activity"');
     expect(page).toContain('id="approval-stream"');
-    expect(page).toContain('class="agent-chat" role="region"');
-    const chatStart = page.indexOf('class="agent-chat"');
+    expect(page).toContain('data-stage="recommendations"');
+    const chatStart = page.indexOf('data-stage="recommendations"');
     const recommendationEnd = page.indexOf("</section>", chatStart);
     expect(chatStart).toBeLessThan(page.indexOf('data-action="email"'));
     expect(page.indexOf('data-action="dismiss"')).toBeLessThan(recommendationEnd);
@@ -102,8 +105,9 @@ describe("local command-center server", () => {
     servers.push(server);
     const base = `http://127.0.0.1:${server.port}`;
     const page = await (await fetch(`${base}/`)).text();
-    expect(page).toContain("LIVE NATION PORTFOLIO VENUE");
-    expect(page).toContain("Real venue with synthetic demonstration data");
+    expect(page).toContain("PORTFOLIO VENUE · WEST");
+    expect(page).toContain('data-demo-disclosure');
+    expect(page).toContain("SYNTHETIC DATA · LOCAL ACTIONS ONLY");
     expect((await fetch(`${base}/api/sales-check`, { method: "POST" })).status).toBe(200);
   }, 15_000);
 

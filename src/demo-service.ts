@@ -7,6 +7,8 @@ export type SalesCheck =
 
 export type SalesCheckProgress =
   | { type: "phase"; phase: "portfolio" | "risk" | "recommendation"; message: string; elapsedMs: number }
+  | { type: "risk-identified"; alert: NonNullable<ReturnType<typeof selectWestAlert>>; message: string; elapsedMs: number }
+  | { type: "recommendations-ready"; message: string; elapsedMs: number }
   | { type: "tool"; status: "started" | "completed"; toolName: string; message: string; elapsedMs: number }
   | { type: "token"; text: string; elapsedMs: number };
 
@@ -44,6 +46,7 @@ export class DemoService {
       return { status: message.includes("stale") ? "stale" : "error", ...(message.includes("stale") ? { evidence: rows } : { evidence: rows, message }) } as SalesCheck;
     }
     if (!alert) return { status: "healthy", evidence: rows };
+    await emit({ type: "risk-identified", alert, message: `Verified risk identified for ${alert.evidence.venue_name}.` });
     const prompt = `Use get_sales_evidence for event_id ${alert.evidence.event_id} in region west. Explain one safe synthetic recovery action for ${alert.evidence.venue_name}. Do not state unverified facts.`;
     await emit({ type: "phase", phase: "recommendation", message: "Requesting a verified recovery recommendation." });
     try {
@@ -65,6 +68,7 @@ export class DemoService {
       if (!response.toolCalls.some((call) => call.name === "get_sales_evidence")) return { status: "error", evidence: rows, message: "Kimi returned no structured evidence tool call" };
       const result = { status: "alert" as const, alert, rationale: response.text, evidence: rows, toolCallCount: response.toolCalls.length };
       this.#lastCheck = result;
+      await emit({ type: "recommendations-ready", message: "Verified recovery recommendations are ready for review." });
       return result;
     } catch (error) { throwIfAborted(); return { status: "error", evidence: rows, message: error instanceof Error ? error.message : "Kimi diagnosis failed" }; }
   }

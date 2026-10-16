@@ -1,7 +1,7 @@
 import { join, normalize } from "node:path";
 
 type Check = { status: string; [key: string]: unknown };
-type CheckProgress = { type: "phase" | "tool" | "token"; [key: string]: unknown };
+type CheckProgress = { type: "phase" | "risk-identified" | "recommendations-ready" | "tool" | "token"; [key: string]: unknown };
 type CheckOptions = { signal?: AbortSignal; onEvent?: (event: CheckProgress) => void | Promise<void> };
 type ServerDependencies = {
   port?: number;
@@ -48,7 +48,7 @@ export function createServer(dependencies: ServerDependencies) {
       if (origin && !isLoopbackOrigin(origin)) return new Response("Invalid Origin", { status: 400 });
       if (!url.pathname.startsWith("/api/")) {
         const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
-        if (!["/index.html", "/app.js", "/stream-client.js", "/styles.css"].includes(pathname)) return new Response("Not found", { status: 404 });
+        if (!["/index.html", "/app.js", "/stream-client.js", "/recovery-workflow.js", "/styles.css", "/assets/outlook.png", "/assets/meta.png"].includes(pathname)) return new Response("Not found", { status: 404 });
         const staticPath = normalize(join(publicDir, pathname));
         if (!staticPath.startsWith(`${publicDir}/`) || pathname.includes("..")) return new Response("Not found", { status: 404 });
         const file = Bun.file(staticPath);
