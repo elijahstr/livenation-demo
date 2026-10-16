@@ -24,6 +24,7 @@ type HarnessMessage = {
 export type HarnessInvokeInput = {
   harnessArn: string;
   runtimeSessionId: string;
+  actorId?: string;
   messages: HarnessMessage[];
 };
 
@@ -203,6 +204,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 export async function runHarnessToolCycle(options: {
   harnessArn: string;
   sessionId: string;
+  actorId?: string;
   prompt: string;
   resolveEvidence: (input: unknown) => unknown | Promise<unknown>;
   invoke: HarnessInvoker;
@@ -228,6 +230,7 @@ export async function runHarnessToolCycle(options: {
     const response = await options.invoke({
       harnessArn: options.harnessArn,
       runtimeSessionId: options.sessionId,
+      ...(options.actorId === undefined ? {} : { actorId: options.actorId }),
       messages,
     }, options.signal);
     const current = await consumeStream(response.stream, {

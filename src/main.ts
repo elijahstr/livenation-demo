@@ -8,6 +8,7 @@ import { runHarnessToolCycle } from "./harness-tool-cycle";
 import { createServer } from "./server";
 import { ChatService } from "./chat-service";
 import { resolveHarnessArn } from "./harness-discovery";
+import { verifyConversationMemory } from "./conversation-memory";
 
 const config = {
   port: Number(process.env.PORT ?? runtime.port),
@@ -26,9 +27,20 @@ const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, e
 } } });
 const selector = process.env.AGENTCORE_CHAT_TOOL_SELECTOR ?? "plain";
 if (selector !== "plain" && selector !== "qualified") throw new Error("Invalid chat tool selector");
+let chatEnabled = process.env.AGENTCORE_CHAT_ENABLED === "1";
+const checkMemory = () => verifyConversationMemory(config.harnessArn).then(() => undefined);
+if (chatEnabled) {
+  try { await checkMemory(); }
+  catch {
+    chatEnabled = false;
+    console.warn("Live chat is disabled because conversation memory could not be verified.");
+  }
+}
 const chat = new ChatService({
   harnessArn: config.harnessArn, region: config.awsRegion,
-  enabled: process.env.AGENTCORE_CHAT_ENABLED === "1",
+  enabled: chatEnabled,
+  memoryMode: "agentcore",
+  beforeTurn: checkMemory,
   invoke: await harness.createChatInvoker(selector),
   readEvidence: (now, signal) => sales.read(now, signal),
 });

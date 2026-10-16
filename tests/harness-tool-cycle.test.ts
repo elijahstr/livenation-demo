@@ -133,6 +133,26 @@ describe("runHarnessToolCycle", () => {
     ]);
   });
 
+  test("forwards the actor ID to each invocation, including tool-result handoff", async () => {
+    const calls: HarnessInvokeInput[] = [];
+    const streams = [toolUseEvents('{"event_id":"hayden-homes-001","region":"west"}'), [
+      { contentBlockDelta: { contentBlockIndex: 0, delta: { text: "Done." } } },
+      { messageStop: { stopReason: "end_turn" } },
+    ]];
+    await runHarnessToolCycle({
+      harnessArn: "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ",
+      sessionId: "12345678-1234-1234-1234-123456789012",
+      actorId: "demo-user",
+      prompt: "Use evidence.",
+      resolveEvidence: () => selected,
+      invoke: async (input) => {
+        calls.push(input);
+        return { stream: events(streams.shift()!) };
+      },
+    });
+    expect(calls.map((call) => call.actorId)).toEqual(["demo-user", "demo-user"]);
+  });
+
   test("can stream initial response text when requested", async () => {
     const emitted: HarnessProgressEvent[] = [];
     await runHarnessToolCycle({

@@ -6,6 +6,10 @@ import type { WestSalesEvidence } from "../src/west-sales";
 
 const clock = { value: 0 };
 const evidence: WestSalesEvidence[] = [];
+const handoffEvidence: WestSalesEvidence[] = [
+  ["hayden-homes-001", "Hayden Homes Amphitheater"], ["wiltern-001", "The Wiltern"], ["palladium-001", "Hollywood Palladium"],
+  ["masonic-001", "The Masonic"], ["white-river-001", "White River Amphitheatre"], ["gorge-001", "The Gorge Amphitheatre"],
+].map(([event_id, venue_name]) => ({ event_id, venue_name, region: "west" as const, city: "City", state: "CA", public_capacity: 1000, event_name: "Synthetic show", show_date: "2026-10-20", tickets_sold_cumulative: 500, tickets_target_cumulative: 600, data_as_of: "2026-10-01T00:00:00.000Z", market_signals: ["Synthetic awareness is healthy."], origin: "synthetic" as const }));
 const harnessArn = "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-ABCDEFGHIJ";
 
 async function* stream(items: HarnessEvent[]) { yield* items; }
@@ -44,6 +48,79 @@ describe("ChatService", () => {
     const second = await service.run({ sessionId: session.sessionId, message: "Hello again" }, {});
     expect(first.sessionId).toBe(session.sessionId);
     expect(first.runtimeSessionId).not.toBe(second.runtimeSessionId);
+  });
+
+  test("agentcore memory reuses one runtime session per conversation and separates conversations", async () => {
+    const requests: Array<{ runtimeSessionId: string; actorId?: string; prompt: string }> = [];
+    const service = createService({ memoryMode: "agentcore", invoke: async (request) => {
+      requests.push({ runtimeSessionId: request.runtimeSessionId, actorId: request.actorId, prompt: request.messages[0]!.content[0]!.text });
+      return { stream: stream([{ messageStop: { stopReason: "end_turn" } }]) };
+    } });
+    const first = service.createSession();
+    const second = service.createSession();
+    await service.run({ sessionId: first.sessionId, message: "First turn" }, {});
+    await service.run({ sessionId: first.sessionId, message: "Second turn" }, {});
+    await service.run({ sessionId: second.sessionId, message: "Other chat" }, {});
+    expect(requests.map((request) => request.runtimeSessionId)).toEqual([requests[0]!.runtimeSessionId, requests[0]!.runtimeSessionId, requests[2]!.runtimeSessionId]);
+    expect(requests[0]!.runtimeSessionId).not.toBe(requests[2]!.runtimeSessionId);
+    expect(requests.map((request) => request.actorId)).toEqual(["demo-user", "demo-user", "demo-user"]);
+  });
+
+  test("agentcore memory sends only the current raw user message", async () => {
+    const prompts: string[] = [];
+    const service = createService({ memoryMode: "agentcore", invoke: async (request) => {
+      prompts.push(request.messages[0]!.content[0]!.text);
+      return { stream: stream([{ contentBlockDelta: { contentBlockIndex: 0, delta: { text: "Answer." } } }, { messageStop: { stopReason: "end_turn" } }]) };
+    } });
+    const session = service.createSession();
+    await service.run({ sessionId: session.sessionId, message: "First message" }, {});
+    await service.run({ sessionId: session.sessionId, message: "Second message" }, {});
+    expect(prompts).toEqual(["First message", "Second message"]);
+  });
+
+  test("agentcore memory rejects a twenty-first turn before another invocation", async () => {
+    let invocations = 0;
+    const service = createService({ memoryMode: "agentcore", invoke: async () => {
+      invocations += 1;
+      return { stream: stream([{ messageStop: { stopReason: "end_turn" } }]) };
+    } });
+    const session = service.createSession();
+    for (let turn = 0; turn < 20; turn += 1) await service.run({ sessionId: session.sessionId, message: `Turn ${turn}` });
+    await expect(service.run({ sessionId: session.sessionId, message: "Turn 21" })).rejects.toThrow("turn limit");
+    expect(invocations).toBe(20);
+  });
+
+  test("agentcore preflight rejects before it invokes and invalidates only its conversation", async () => {
+    let invocations = 0;
+    const service = createService({
+      memoryMode: "agentcore",
+      beforeTurn: async () => { throw new Error("memory detached"); },
+      invoke: async () => { invocations++; return { stream: stream([]) }; },
+    });
+    const affected = service.createSession();
+    const unaffected = service.createSession();
+    await expect(service.run({ sessionId: affected.sessionId, message: "hello" }, {})).rejects.toThrow("memory detached");
+    expect(invocations).toBe(0);
+    expect(() => service.validateTurn({ sessionId: affected.sessionId, message: "again" })).toThrow("new chat");
+    expect(service.validateTurn({ sessionId: unaffected.sessionId, message: "hello" }).sessionId).toBe(unaffected.sessionId);
+  });
+
+  test("a rejected tool-result handoff invalidates only its conversation", async () => {
+    let calls = 0;
+    const service = createService({ readEvidence: async () => handoffEvidence, invoke: async () => {
+      calls += 1;
+      if (calls === 1) return { stream: stream([
+        { contentBlockStart: { contentBlockIndex: 0, start: { toolUse: { toolUseId: "tool-1", name: "get_sales_evidence" } } } },
+        { contentBlockDelta: { contentBlockIndex: 0, delta: { toolUse: { input: "{}" } } } },
+        { messageStop: { stopReason: "tool_use" } },
+      ]) };
+      throw new Error("tool result no longer has a pending handoff");
+    } });
+    const affected = service.createSession();
+    const unaffected = service.createSession();
+    await expect(service.run({ sessionId: affected.sessionId, message: "show sales" }, {})).rejects.toThrow("pending handoff");
+    expect(() => service.validateTurn({ sessionId: affected.sessionId, message: "again" })).toThrow("new chat");
+    expect(service.validateTurn({ sessionId: unaffected.sessionId, message: "hello" }).sessionId).toBe(unaffected.sessionId);
   });
 
   test("rejects unknown input keys before it invokes", () => {

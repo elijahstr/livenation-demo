@@ -1,7 +1,7 @@
 # Terraform deployment
 
 This module reads the same harness configuration as the offline checks.
-It manages one harness and its execution role in `us-east-1`.
+It manages one harness, its execution role, and a conversation-memory store in `us-east-1`.
 AWS also provisions the underlying Runtime resources for the harness.
 The caller bootstrap policy and service-created log group remain outside Terraform.
 The reviewed caller policy source is [`iam-harness-bootstrap-policy.json`](iam-harness-bootstrap-policy.json).
@@ -57,6 +57,32 @@ The configured token limits do not cap all AWS charges.
 The project target remains $13, with an operational stop at $15 and a $5 reserve.
 Runtime memory remains billable during idle sessions.
 See [AWS harness cost controls](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-operations.html).
+
+## Conversation memory change
+
+The September record above predates this change. On October 16, 2026, Terraform created the memory and its scoped policy, then attached the memory to the existing harness. No resource was destroyed. The subsequent plan reported no changes.
+
+The memory resource is `livenation_demo_conversation_memory-1Fd0yIE92A`. AWS reports `ACTIVE`, seven-day retention, and an empty strategy list. The first live probe verified saved events, recall after a 310-second wait, and separation between two conversations. No sales tool ran in that probe. This is not proof of the complete sales chat or direct MCP integration.
+
+Terraform reads `config/conversation-memory.json`. It creates a seven-day AgentCore Memory store with no long-term strategies. It attaches that store to the harness and grants the execution role access only to that memory ARN. `config/create-harness.json` remains the original bootstrap template; Terraform replaces its disabled-memory setting.
+
+Every invocation of this shared harness stores events. Chat uses `demo-user`, recovery uses `recovery-system`, and other scripts default to `demo-system`. These actor names separate demo records; they do not authenticate distinct human users. The app checks the attachment at startup and before each persistent turn. It retrieves up to twelve raw messages, which can include tool messages.
+
+The runtime still has a 300-second maximum lifetime. A restart during an inline-tool handoff can interrupt that conversation. The app requires a new chat after a failed handoff. No automatic model retry occurs.
+
+Use `/home/elijahstraight/repos/livenation-demo-agentcore` as the sole Terraform control point until main contains the same infrastructure configuration. **Do not apply Terraform from the older main configuration.** It would propose deletion of the new memory and policy. The task uses the original state at `/home/elijahstraight/repos/livenation-demo/infra/terraform.tfstate`, with its normal lock. Do not copy state, split ownership, use `state rm`, or bypass the lock.
+
+Prepare a private saved plan from this worktree with the original state path. Permit only the memory and policy additions and the in-place harness memory update. Reject deletion, replacement, or unrelated changes. After apply, verify that the original state lineage stays the same and its serial increases. No state file should appear in this worktree.
+
+Rollback must explicitly set `memory { disabled {} }` on the harness. Never omit the memory block: omission can select managed memory defaults. Retain the memory resource and policy declarations during rollback so Terraform does not delete stored events. Disable live chat before rollback. Review the rollback plan before apply.
+
+After deployment, the bounded recall check uses the real chat invoker and waits beyond the runtime's 300-second maximum lifetime:
+
+```sh
+bun run verify-agentcore-memory --run
+```
+
+This paid check requires observed cost below $13 and permits at most three recorded attempts. It tests saved events, recall, and separation between conversations. It does not prove the sales-tool path or direct MCP. Its ledger is separate from the sales-chat probe ledger. Cost Explorer can lag.
 
 ## Transaction Search inspection
 

@@ -1,0 +1,6 @@
+{
+  "name": "livenation_demo_conversation_memory",
+  "eventExpiryDuration": 7,
+  "actorId": "demo-user",
+  "messagesCount": 12
+}

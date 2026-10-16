@@ -1,9 +1,10 @@
 # Provider schema source: hashicorp/terraform-provider-aws v6.66.0,
 # website/docs/r/bedrockagentcore_harness.html.markdown.
 locals {
-  harness = jsondecode(file("${path.module}/../config/create-harness.json"))
-  model   = local.harness.model.bedrockModelConfig
-  runtime = local.harness.environment.agentCoreRuntimeEnvironment
+  harness             = jsondecode(file("${path.module}/../config/create-harness.json"))
+  model               = local.harness.model.bedrockModelConfig
+  runtime             = local.harness.environment.agentCoreRuntimeEnvironment
+  conversation_memory = jsondecode(file("${path.module}/../config/conversation-memory.json"))
 }
 
 resource "aws_iam_role" "harness" {
@@ -131,17 +132,44 @@ resource "aws_iam_role_policy" "harness" {
   })
 }
 
+resource "aws_bedrockagentcore_memory" "conversation" {
+  name                  = local.conversation_memory.name
+  event_expiry_duration = local.conversation_memory.eventExpiryDuration
+  description           = "Seven-day demo conversation history without long-term strategies"
+  tags                  = local.harness.tags
+}
+
+resource "aws_iam_role_policy" "conversation_memory" {
+  name = "livenation-demo-conversation-memory"
+  role = aws_iam_role.harness.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "ConversationMemory"
+      Effect = "Allow"
+      Action = [
+        "bedrock-agentcore:CreateEvent",
+        "bedrock-agentcore:DeleteEvent",
+        "bedrock-agentcore:GetEvent",
+        "bedrock-agentcore:ListEvents",
+        "bedrock-agentcore:RetrieveMemoryRecords"
+      ]
+      Resource = aws_bedrockagentcore_memory.conversation.arn
+    }]
+  })
+}
+
 resource "aws_bedrockagentcore_harness" "demo" {
   harness_name          = local.harness.harnessName
   execution_role_arn    = aws_iam_role.harness.arn
   allowed_tools         = local.harness.allowedTools
-  environment_variables = local.harness.environmentVariables
+  environment_variables = length(local.harness.environmentVariables) == 0 ? null : local.harness.environmentVariables
   max_iterations        = local.harness.maxIterations
   max_tokens            = local.harness.maxTokens
   timeout_seconds       = local.harness.timeoutSeconds
   tags                  = local.harness.tags
 
-  depends_on = [aws_iam_role_policy.harness]
+  depends_on = [aws_iam_role_policy.harness, aws_iam_role_policy.conversation_memory]
 
   model {
     bedrock_model_config {
@@ -173,7 +201,11 @@ resource "aws_bedrockagentcore_harness" "demo" {
   }
 
   memory {
-    disabled {}
+    agentcore_memory_configuration {
+      arn            = aws_bedrockagentcore_memory.conversation.arn
+      actor_id       = local.conversation_memory.actorId
+      messages_count = local.conversation_memory.messagesCount
+    }
   }
 
   truncation {

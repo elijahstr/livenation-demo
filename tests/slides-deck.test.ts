@@ -122,7 +122,7 @@ describe("GitHub Pages slide deck", () => {
       tools: Array<{ name: string }>;
     };
     const configuredTool = harness.tools[0]?.name;
-    const accessibleDiagram = `One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured with the inline ${configuredTool} tool, which returns validated Databricks evidence, ${harness.maxIterations} iterations, ${harness.maxTokens.toLocaleString("en-US")} output tokens, and memory off. The Harness returns a bounded rationale as a draft recommendation only.`;
+    const accessibleDiagram = `One validated synthetic aggregate enters the AgentCore managed Harness. Kimi K2.5 is configured with the inline ${configuredTool} tool, which returns validated Databricks evidence, ${harness.maxIterations} iterations, ${harness.maxTokens.toLocaleString("en-US")} output tokens, and seven-day event history. The Harness returns a bounded rationale as a draft recommendation only.`;
 
     expect(Object.keys(slideData.proofLinks).sort()).toEqual(["databricks", "implementation", "repository"]);
     expect(Object.values(slideData.proofLinks).map(({ href }) => href)).toEqual([
@@ -160,7 +160,7 @@ describe("GitHub Pages slide deck", () => {
     expect(agentCore).toContain(`${harness.maxIterations} iterations`);
     expect(agentCore).toContain(`${harness.maxTokens.toLocaleString("en-US")} output tokens`);
     expect(harness.memory).toHaveProperty("disabled");
-    expect(agentCore).toContain("Memory off");
+    expect(agentCore).toContain("7-day history");
     expect(agentCore).toContain("READY");
     expect(agentCore).not.toContain("Sanitized status");
     expect(agentCore).not.toContain(`configured inline tool: ${configuredTool}`);

@@ -100,10 +100,10 @@ export async function inspectTelemetry(): Promise<Snapshot & { harness: unknown;
     aws(["xray", "get-trace-segment-destination"]),
     aws(["xray", "get-indexing-rules"]),
     aws(["iam", "get-role-policy", "--role-name", "livenation-demo-harness", "--policy-name", "livenation-demo-harness-execution"]),
-    aws(["xray", "get-service-graph", "--start-time", String(now - 7 * 86400), "--end-time", String(now), "--query", "Services[].{Name:Name,Type:Type,ReferenceId:ReferenceId}"]),
+    aws(["xray", "get-service-graph", "--start-time", String(now - 6 * 3600), "--end-time", String(now), "--query", "Services[].{Name:Name,Type:Type,ReferenceId:ReferenceId}"]),
   ]);
   const groups = [...runtimeGroups.logGroups, ...sharedA.logGroups, ...sharedB.logGroups].filter(group => SHARED_GROUPS.includes(group.logGroupName) || group.logGroupName.startsWith(`/aws/bedrock-agentcore/runtimes/${runtimeId}-`)).map(group => ({ logGroupName: group.logGroupName, retentionInDays: group.retentionInDays }));
-  return { account: identity.Account, harnessArn, runtimeId, groups, policies: policies.resourcePolicies, destination, indexing, harness, executionPolicy: executionPolicy.PolicyDocument, serviceGraph };
+  return { account: identity.Account, harnessArn, runtimeId, groups, policies: policies.resourcePolicies, destination, indexing, harness, executionPolicy: executionPolicy.PolicyDocument, serviceGraph: { windowHours: 6, services: serviceGraph } };
 }
 
 async function main() {

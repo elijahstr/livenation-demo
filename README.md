@@ -41,9 +41,13 @@ AGENTCORE_CHAT_ENABLED=1 AGENTCORE_CHAT_TOOL_SELECTOR=qualified PORT=3001 bun ru
 
 Use only the selector that passed the recorded verification. Try `qualified` first because the earlier plain-name probe failed. The browser cannot enable chat or select a tool.
 
-Developer details show the stable conversation ID and a separate runtime ID for each turn. The runtime ID is submitted to AWS. Live trace correlation remains to be verified. Browser chat and AWS CloudWatch are separate surfaces.
+Developer details show the conversation ID and its AWS runtime ID. Persistent chat reuses that runtime ID for each turn. Live trace correlation remains unverified. Browser chat and AWS CloudWatch are separate surfaces.
 
-Current behavior: the chat code exists and has local tests. Required live verification remains pending AWS authentication. The existing fixed recovery flow still uses a legacy wildcard tool setting. Do not change it until the safe selector succeeds.
+Current behavior: the chat code exists and has local tests. AWS authentication works. The first restricted live test requested six evidence calls; the application rejected the batch at its three-call limit. The complete live chat remains unverified. The existing fixed recovery flow still uses a legacy wildcard tool setting.
+
+Conversation memory is deployed and retains demo events for seven days, with no long-term facts or preferences. The live test verified recall after the runtime's maximum lifetime and separation between conversations. Memory applies to every invocation of the shared harness. Chat and recovery use separate actor IDs. The current UI has no saved-chat list; a server restart or thirty-minute idle expiry requires a new chat. See the [memory plan](docs/plans/2026-10-16-agentcore-conversation-memory.md).
+
+Direct Databricks MCP is the selected next connection. It needs the approved sales Genie asset and an AWS-side Databricks credential. Neither is configured yet. The local Databricks CLI profile is authenticated.
 
 Run the bounded live verification only after the cost check permits it:
 

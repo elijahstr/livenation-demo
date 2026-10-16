@@ -11,12 +11,12 @@ export type HarnessDiscoveryOptions = {
   command?: (args: string[]) => Promise<string>;
 };
 
-function assertApprovedHarnessArn(value: unknown): string {
+export function assertApprovedHarnessArn(value: unknown): string {
   if (typeof value !== "string" || !harnessArn.test(value)) throw new Error("Harness ARN is not the approved demo harness");
   return value;
 }
 
-async function runAws(args: string[]): Promise<string> {
+export async function runAws(args: string[]): Promise<string> {
   const process = Bun.spawn(args, { stdout: "pipe", stderr: "pipe" });
   const stdout = new Response(process.stdout).text();
   const stderr = new Response(process.stderr).text();
