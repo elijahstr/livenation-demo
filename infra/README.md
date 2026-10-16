@@ -101,9 +101,50 @@ Use this command only after review of the dry-run scope and caller permissions:
 bun run scripts/inspect-configure-agentcore-observability.ts --apply
 ```
 
-The script uses a fixed scoped resource policy. It preserves existing group retention and existing indexing. It uses one-day retention only for a new shared group it creates. It records the prior X-Ray destination and indexing for rollback.
+The script uses a fixed scoped resource policy. It does not call `UpdateIndexingRule`. It creates the nonreserved `/aws/application-signals/data` group when needed. It waits for AWS to create the reserved `aws/spans` group. It then sets one-day retention. It records the prior X-Ray destination and indexing for rollback.
 
 The script rejects an absent Default indexing rule. It does not invent a rollback. Transaction Search indexing is not a promise of free ingestion or storage.
+
+## Observability setup record
+
+The September deployment record above remains historical. The following verified facts describe the AWS setup on October 16, 2026.
+
+- X-Ray trace-segment delivery uses the `CloudWatchLogs` destination. AWS reported the destination as `ACTIVE`.
+- AWS service-created `aws/spans` and `/aws/application-signals/data` log groups exist. Each has one-day retention.
+- The existing runtime group `/aws/bedrock-agentcore/runtimes/harness_livenation_demo-0XgsrOEUQn-DEFAULT` retains its existing one-day retention.
+- The Default Transaction Search summary-indexing value is `1` percent.
+- The setup did not call `UpdateIndexingRule`.
+- The scoped `livenation-demo-transaction-search` resource policy permits `xray.amazonaws.com` to use `logs:PutLogEvents` on only these three groups. It also restricts the source account and source ARN.
+- The setup did not change the harness, its execution role, or its IAM permissions.
+- A later inspection reported `ACTIVE` readiness, three one-day log groups, and zero remaining changes.
+
+Interpretation from the AWS Transaction Search documentation: full span delivery remains available in CloudWatch Logs. The one-percent setting indexes a summary sample for X-Ray search. It does not control full span ingestion. This free index fraction does not make CloudWatch span ingestion or storage free.
+
+Do not create `aws/spans` with `CreateLogGroup`. AWS creates this reserved group as part of Transaction Search enablement. The scripted setup waits for AWS to create it before it sets retention. The successful manual setup let AWS create both shared groups.
+
+The private rollback record is `outputs/agentcore-observability/1792181867102-documented-setup-rollback.json`. Git ignores this file. It records the prior destination and indexing values. Use the rollback permission command above before a rollback. The record does not authorize log-group deletion.
+
+The AWS documentation describes the AgentCore trace model, the required observability setup, Transaction Search prerequisites, and log-group creation behavior: [Harness operations](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-operations.html), [AgentCore observability](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-get-started.html), [Transaction Search](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Enable-TransactionSearch.html), and [`CreateLogGroup`](https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html).
+
+## Read a conversation trace
+
+A session groups conversation turns. A trace records one AgentCore invocation. A span records one operation within that invocation. Use the trace to inspect request flow and timing.
+
+Logs contain diagnostic events. Metrics contain aggregate service measurements. Neither is a record of model chain-of-thought. Do not infer hidden model reasoning from a trace, span, log event, or metric.
+
+Open [CloudWatch GenAI observability](https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#gen-ai-observability). Select **Amazon Bedrock AgentCore**, then **Sessions**, then a **Trace**. The AWS console needs a human AWS login. This setup does not verify console access.
+
+For a read-only API query with the runtime session ID, run:
+
+```sh
+bun run verify-agentcore-chat --trace RUNTIME_SESSION_UUID
+```
+
+Verified trace example: the bounded synthetic model probe replied `OBSERVABILITY_OK` at `2026-10-16T20:24:14Z` (4:24 PM New York). It used session `744ee4a4-77f1-4c4d-b176-a3c27bd6821d` and trace `df1de91d6be54f57b6a31a1eed873008`. It used 39 tokens and no tool calls.
+
+CloudWatch Logs Insights verified 13 structured spans in the runtime group. The span stream contained `name` and `durationNano` fields. It included `POST /invocations` at about 1.230 seconds, `invoke_agent Strands Agents` at about 0.695 seconds, `chat moonshotai.kimi-k2.5` at about 0.311 seconds, and Memory `ListEvents` and `CreateEvent` spans. The private proof is `outputs/agentcore-observability/trace-proof.json`, with query ID `0bb4c900-4f74-41f6-9bc8-da94d104e255`.
+
+The API checks verify backend configuration. The trace example verifies a matching emitted span. This record does not verify the direct MCP path end to end.
 
 ## Commands
 

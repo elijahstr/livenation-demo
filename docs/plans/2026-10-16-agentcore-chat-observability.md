@@ -79,7 +79,7 @@ This is **Tier 1** for CloudWatch resource policies, X-Ray trace delivery, share
 - When no event is requested, the evidence tool returns only the approved six-show portfolio. When an event is requested, it returns the exact approved ID only.
 - Preserve `origin: synthetic` and `data_as_of` timestamps in each tool result and prompt instruction.
 - Enable no lifecycle hooks in this change. The hooks remain available for a later audit design. [AWS lifecycle hooks](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-lifecycle-hooks.html)
-- Preserve current Transaction Search indexing. Refuse configuration when the Default rule is absent. Set one-day retention only on newly created groups.
+- Do not call `UpdateIndexingRule`. Refuse configuration when the Default rule is absent. Set one-day retention only after the required groups exist.
 
 ## Governance inventory
 
@@ -162,7 +162,7 @@ The script uses the local AWS CLI with the configured `livenation-demo` profile.
 
 The script then prints a dry-run write scope. It names every policy, log group, retention value, X-Ray setting, and IAM permission which a configure run would change. It records prior values in a task-owned local rollback file. It refuses configure mode when discovery does not prove that a group is task-owned or a current setting can be restored.
 
-Configure mode is idempotent. It uses one fixed task policy name and the documented `aws/spans:*` and `/aws/application-signals/data:*` resource ARNs with `aws:SourceArn` and `aws:SourceAccount` conditions for `xray.amazonaws.com`. It sets the X-Ray destination to `CloudWatchLogs`. It preserves the existing indexing percentage and refuses an absent Default rule. It preserves retention on existing shared groups and reports their other workloads. It sets one-day retention only on a new group explicitly created for this setup. It never deletes groups, policies, or account configuration.
+Configure mode is idempotent. It uses one fixed task policy name and the documented `aws/spans:*` and `/aws/application-signals/data:*` resource ARNs with `aws:SourceArn` and `aws:SourceAccount` conditions for `xray.amazonaws.com`. It sets the X-Ray destination to `CloudWatchLogs`. It does not call `UpdateIndexingRule` and refuses an absent Default rule. It creates a missing nonreserved Application Signals group, waits for AWS to create reserved `aws/spans`, and then sets one-day retention. It never deletes groups, policies, or account configuration.
 
 Account Transaction Search and X-Ray destination are shared account settings. The script records prior X-Ray or CloudWatchLogs destination and prior indexing for rollback. It must report their prior values and a reversible rollback command. Inspect mode prints the exact missing caller IAM statement. The main owner applies it to the known demo identity if permissions permit. Otherwise it supplies the concrete statement for a human. Do not use root escalation, unknown new grants, or an empty-worktree Terraform apply. [AWS observability setup](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/observability-get-started.html)
 
@@ -273,8 +273,22 @@ Sonnet 5.5 collected facts. Opus 5.5 requested changes. The host applied the acc
 
 The host fetched current [AWS inline tool documentation](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/harness-tools.html) before the empty-argument and adjacent-call fixes. The host also checked [Transaction Search API steps](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Enable-TransactionSearch.html). That page documents the ACTIVE check; the necessity of its broader console prerequisites for this API path remains unverified. [CloudWatch Logs service authorization](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatchlogs.html) lists no resource-level scope for DeleteResourcePolicy. Its separate rollback policy therefore uses Resource wildcard and requires explicit operator review.
 
+## Operational addendum: October 16, 2026
+
+This addendum supersedes the plan's unverified observability execution assertions. It does not change the chat, MCP, or harness design.
+
+The first attempt to create the reserved `aws/spans` group failed before any write. The corrected manual setup followed the AWS documents: it installed the scoped resource policy, set the `CloudWatchLogs` destination, let AWS create both shared groups during enablement, and then set one-day retention. The scripted path creates a missing nonreserved Application Signals group and waits for AWS to create reserved `aws/spans`.
+
+AWS can return JSON policy objects with a different key order. The script parses the policy JSON and uses Node `isDeepStrictEqual` on the objects. This check tests policy content, not returned key order.
+
+The active destination, three one-day log groups, and the bounded trace probe now have verified evidence. The Default summary-indexing value is one percent. The setup did not call `UpdateIndexingRule`. The one-percent value indexes a summary sample. It does not restrict full span ingestion.
+
+Sonnet 5.5 collected facts. Opus 5.5 approved the independent review with minor fixes. The host applied the fixes and focused checks found no blocker. `bun test` passed 167 tests with zero failures and 609 assertions across 27 files. The setup script Bun build passed. Fourteen focused tests passed after the operator-note clarification. Earlier plan statements that say AWS login, live trace proof, observability execution, or review remains pending are historical.
+
+A session groups conversation turns. A trace records one invocation. A span records one operation within that invocation.
+
 ## Local validation result
 
 On October 16, 2026, all 124 tests passed after the review fixes. Both the app and verifier compiled with Bun. Browser mock checks covered two turns, literal HTML text, Stop, New chat, a retained message after HTTP 409, and a 390-pixel light layout.
 
-No live AWS chat, selector proof, or trace lookup occurred. The AWS CLI still awaits the user's authorization code. The separate setup validator reports Databricks CLI 1.17.0 instead of the required 1.18.0. No tool upgrade occurred.
+Historical statement, superseded by the operational addendum: no live AWS chat, selector proof, or trace lookup occurred. The AWS CLI still awaited the user's authorization code. The separate setup validator reported Databricks CLI 1.17.0 instead of the required 1.18.0. No tool upgrade occurred.

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { ACCOUNT, REGION, buildTelemetryPlan, callerPermissions, type Snapshot } from "../scripts/inspect-configure-agentcore-observability";
+import { ACCOUNT, REGION, buildTelemetryPlan, callerPermissions, waitForLogGroup, type Snapshot } from "../scripts/inspect-configure-agentcore-observability";
 
 const harnessArn = "arn:aws:bedrock-agentcore:us-east-1:009073575420:harness/livenation_demo-1on72c4veC";
 const runtimeId = "harness_livenation_demo-0XgsrOEUQn";
@@ -61,17 +61,96 @@ describe("AgentCore observability configuration plan", () => {
     expect(stable.indexing.IndexingRules[0].Rule.Probabilistic?.DesiredSamplingPercentage).toBe(15);
   });
 
-  test("creates absent shared groups with one-day retention only for new groups", () => {
+  test("accepts the same policy when AWS returns object keys in a different order", () => {
+    const document = JSON.parse(policyDocument(snapshot()));
+    const reordered = {
+      Statement: document.Statement.map((statement: any) => ({
+        Condition: {
+          StringEquals: statement.Condition.StringEquals,
+          ArnLike: statement.Condition.ArnLike,
+        },
+        Resource: statement.Resource,
+        Action: statement.Action,
+        Principal: statement.Principal,
+        Effect: statement.Effect,
+        Sid: statement.Sid,
+      })),
+      Version: document.Version,
+    };
+    expect(JSON.stringify(reordered)).not.toBe(JSON.stringify(document));
+    const stable = snapshot({
+      policies: [{ policyName: "livenation-demo-transaction-search", policyDocument: JSON.stringify(reordered) }],
+      destination: { Destination: "CloudWatchLogs" },
+    });
+    expect(buildTelemetryPlan(stable)).toEqual([]);
+  });
+
+  test("rejects a reordered policy when an account, resource, or action differs", () => {
+    const document = JSON.parse(policyDocument(snapshot()));
+    const reordered = {
+      Statement: document.Statement.map((statement: any) => ({
+        Condition: { StringEquals: statement.Condition.StringEquals, ArnLike: statement.Condition.ArnLike },
+        Resource: statement.Resource,
+        Action: statement.Action,
+        Principal: statement.Principal,
+        Effect: statement.Effect,
+        Sid: statement.Sid,
+      })),
+      Version: document.Version,
+    };
+    for (const changed of [
+      { ...reordered, Statement: [{ ...reordered.Statement[0], Condition: { ...reordered.Statement[0].Condition, StringEquals: { "aws:SourceAccount": "000000000000" } } }] },
+      { ...reordered, Statement: [{ ...reordered.Statement[0], Resource: [...reordered.Statement[0].Resource, "arn:aws:logs:us-east-1:009073575420:log-group:other:*"] }] },
+      { ...reordered, Statement: [{ ...reordered.Statement[0], Action: "logs:CreateLogGroup" }] },
+    ]) {
+      const stable = snapshot({
+        policies: [{ policyName: "livenation-demo-transaction-search", policyDocument: JSON.stringify(changed) }],
+        destination: { Destination: "CloudWatchLogs" },
+      });
+      expect(() => buildTelemetryPlan(stable)).toThrow("differs");
+    }
+  });
+
+  test("lets the service create absent aws/spans and defers its retention until after the policy and destination", () => {
     const state = snapshot({ groups: [{ logGroupName: runtimeGroup, retentionInDays: 14 }] });
     const changes = buildTelemetryPlan(state);
     expect(changes.filter((change) => change.args.includes("create-log-group")).map((change) => change.args)).toEqual([
-      ["logs", "create-log-group", "--log-group-name", "aws/spans"],
       ["logs", "create-log-group", "--log-group-name", "/aws/application-signals/data"],
     ]);
-    expect(changes.filter((change) => change.args.includes("put-retention-policy")).map((change) => change.args)).toEqual([
-      ["logs", "put-retention-policy", "--log-group-name", "aws/spans", "--retention-in-days", "1"],
-      ["logs", "put-retention-policy", "--log-group-name", "/aws/application-signals/data", "--retention-in-days", "1"],
+    expect(changes.map((change) => change.args.slice(0, 2))).toEqual([
+      ["logs", "create-log-group"],
+      ["logs", "put-retention-policy"],
+      ["logs", "put-resource-policy"],
+      ["xray", "update-trace-segment-destination"],
+      ["logs", "put-retention-policy"],
     ]);
+    const deferredRetention = changes.at(-1);
+    expect(deferredRetention?.args).toEqual(["logs", "put-retention-policy", "--log-group-name", "aws/spans", "--retention-in-days", "1"]);
+    expect(deferredRetention?.waitForLogGroup).toBe("aws/spans");
+  });
+
+  test("waits for the service-created span group before deferred retention", async () => {
+    const reads = [[{ logGroupName: "aws/spans-other" }], [{ logGroupName: "aws/spans" }]];
+    const delay = async () => undefined;
+    await expect(waitForLogGroup("aws/spans", async () => ({ logGroups: reads.shift()! }), delay)).resolves.toEqual({ logGroupName: "aws/spans" });
+  });
+
+  test("waits for a missing span group even when the destination is already CloudWatch Logs", () => {
+    const state = snapshot({
+      groups: snapshot().groups.filter(group => group.logGroupName !== "aws/spans"),
+      destination: { Destination: "CloudWatchLogs", Status: "ACTIVE" },
+      policies: [{ policyName: "livenation-demo-transaction-search", policyDocument: policyDocument(snapshot()) }],
+    });
+    const changes = buildTelemetryPlan(state);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].waitForLogGroup).toBe("aws/spans");
+    expect(changes[0].args[1]).toBe("put-retention-policy");
+  });
+
+  test("stops after the bounded span-group wait and explains the next action", async () => {
+    let delays = 0;
+    await expect(waitForLogGroup("aws/spans", async () => ({ logGroups: [] }), async () => { delays++; }, 3)).rejects.toThrow("aws/spans did not appear");
+    expect(delays).toBe(2);
   });
 
   test("refuses a different task-named policy and preserves the prior X-Ray destination for rollback", () => {

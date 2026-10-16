@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 import { resolveHarnessArn } from "../src/harness-discovery";
 
 export const ACCOUNT = "009073575420";
@@ -17,7 +18,7 @@ export type Snapshot = {
   destination: { Destination: string; Status?: string };
   indexing: { IndexingRules: Array<{ Name: string; Rule: { Probabilistic?: { DesiredSamplingPercentage?: number } } }> };
 };
-type Change = { args: string[]; reason: string; rollback: string[] | null };
+type Change = { args: string[]; reason: string; rollback: string[] | null; waitForLogGroup?: string };
 
 export async function aws(args: string[]): Promise<any> {
   const child = Bun.spawn(["aws", ...args, "--profile", PROFILE, "--region", REGION, "--output", "json", "--no-cli-pager"], { stdout: "pipe", stderr: "pipe" });
@@ -36,14 +37,19 @@ export function buildTelemetryPlan(state: Snapshot): Change[] {
   const resources = [...SHARED_GROUPS, ...owned.map(group => group.logGroupName)].map(name => `arn:aws:logs:${REGION}:${ACCOUNT}:log-group:${name}:*`);
   const document = { Version: "2012-10-17", Statement: [{ Sid: "LivenationDemoTransactionSearch", Effect: "Allow", Principal: { Service: "xray.amazonaws.com" }, Action: "logs:PutLogEvents", Resource: resources, Condition: { ArnLike: { "aws:SourceArn": `arn:aws:xray:${REGION}:${ACCOUNT}:*` }, StringEquals: { "aws:SourceAccount": ACCOUNT } } }] };
   const previousPolicy = state.policies.find(policy => policy.policyName === POLICY_NAME);
-  if (previousPolicy && JSON.stringify(JSON.parse(previousPolicy.policyDocument)) !== JSON.stringify(document)) throw new Error("The named telemetry policy differs. Review it before replacement.");
+  if (previousPolicy && !isDeepStrictEqual(JSON.parse(previousPolicy.policyDocument), document)) throw new Error("The named telemetry policy differs. Review it before replacement.");
   const changes: Change[] = [];
-  for (const name of SHARED_GROUPS) if (!state.groups.some(group => group.logGroupName === name)) {
-    changes.push({ args: ["logs", "create-log-group", "--log-group-name", name], reason: "Create the missing Transaction Search group", rollback: null });
-    changes.push({ args: ["logs", "put-retention-policy", "--log-group-name", name, "--retention-in-days", "1"], reason: "Set one-day retention on the newly created group", rollback: null });
+  const spansGroup = "aws/spans";
+  const applicationSignalsGroup = "/aws/application-signals/data";
+  if (!state.groups.some(group => group.logGroupName === applicationSignalsGroup)) {
+    changes.push({ args: ["logs", "create-log-group", "--log-group-name", applicationSignalsGroup], reason: "Create the missing Application Signals group", rollback: null });
+    changes.push({ args: ["logs", "put-retention-policy", "--log-group-name", applicationSignalsGroup, "--retention-in-days", "1"], reason: "Set one-day retention on the newly created Application Signals group", rollback: null });
   }
   if (!previousPolicy) changes.push({ args: ["logs", "put-resource-policy", "--policy-name", POLICY_NAME, "--policy-document", JSON.stringify(document)], reason: "Allow X-Ray delivery only to named groups in the demo account", rollback: ["logs", "delete-resource-policy", "--policy-name", POLICY_NAME] });
   if (state.destination.Destination !== "CloudWatchLogs") changes.push({ args: ["xray", "update-trace-segment-destination", "--destination", "CloudWatchLogs"], reason: "Enable account-wide Transaction Search ingestion", rollback: ["xray", "update-trace-segment-destination", "--destination", state.destination.Destination] });
+  if (!state.groups.some(group => group.logGroupName === spansGroup)) {
+    changes.push({ args: ["logs", "put-retention-policy", "--log-group-name", spansGroup, "--retention-in-days", "1"], reason: "Set one-day retention after Transaction Search creates its span group", rollback: null, waitForLogGroup: spansGroup });
+  }
   if (!state.indexing.IndexingRules.some(rule => rule.Name === "Default" && typeof rule.Rule.Probabilistic?.DesiredSamplingPercentage === "number")) {
     // A missing rule has no documented deletion API. Do not invent a rollback.
     throw new Error("Default indexing rule is absent. Inspect its supported restore path before configuration.");
@@ -83,6 +89,20 @@ export async function waitForTraceDestination(
   throw new Error("Transaction Search is not active yet. Inspect the destination before any live verification.");
 }
 
+export async function waitForLogGroup(
+  name: string,
+  read: () => Promise<{ logGroups?: Group[] }> = () => aws(["logs", "describe-log-groups", "--log-group-name-prefix", name]),
+  delay: () => Promise<unknown> = () => Bun.sleep(10_000),
+  attempts = 60,
+): Promise<Group> {
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const group = (await read()).logGroups?.find(candidate => candidate.logGroupName === name);
+    if (group) return group;
+    if (attempt + 1 < attempts) await delay();
+  }
+  throw new Error(`${name} did not appear during the bounded wait. Inspect Transaction Search and the log group before retention changes.`);
+}
+
 export async function inspectTelemetry(): Promise<Snapshot & { harness: unknown; executionPolicy: unknown; serviceGraph: unknown }> {
   const identity = await aws(["sts", "get-caller-identity"]);
   if (identity.Account !== ACCOUNT) throw new Error("AWS identity is outside the demo account");
@@ -113,7 +133,7 @@ async function main() {
   if (args.includes("--permissions")) { console.log(JSON.stringify(callerPermissions, null, 2)); return; }
   const before = await inspectTelemetry();
   const changes = buildTelemetryPlan(before);
-  console.log(JSON.stringify({ mode: args.includes("--apply") ? "apply" : "inspect", before, changes, note: "Transaction Search affects the whole account. Existing group retention and indexing stay unchanged. New shared groups use one-day retention. Ingestion and storage incur CloudWatch charges." }, null, 2));
+  console.log(JSON.stringify({ mode: args.includes("--apply") ? "apply" : "inspect", before, changes, note: "Transaction Search affects the whole account. The script preserves existing group retention and does not call UpdateIndexingRule. AWS enablement can set the default summary index. New shared groups use one-day retention. Ingestion and storage incur CloudWatch charges." }, null, 2));
   if (!args.includes("--apply")) return;
   if (!changes.length) { await waitForTraceDestination(); console.log("Transaction Search is ACTIVE. Verify a matching span separately."); return; }
   const dir = resolve("outputs/agentcore-observability");
@@ -122,11 +142,12 @@ async function main() {
   await writeFile(record, JSON.stringify({ before, changes, completed: [] }, null, 2), { mode: 0o600, flag: "wx" });
   const completed: Change[] = [];
   for (const change of changes) {
+    if (change.waitForLogGroup) await waitForLogGroup(change.waitForLogGroup);
     await aws(change.args);
     completed.push(change);
     await writeFile(record, JSON.stringify({ before, changes, completed }, null, 2), { mode: 0o600 });
   }
-  console.log(JSON.stringify({ applied: completed.length, rollbackRecord: record, note: "Reverse completed rollback commands in reverse order. New log groups are retained; inspect them before any deletion." }));
+  console.log(JSON.stringify({ applied: completed.length, rollbackRecord: record, note: "Reverse completed rollback commands in reverse order. New log groups are retained; inspect them before any deletion. If a run is interrupted, inspect its record for pending retention commands before rerunning." }));
   await waitForTraceDestination();
   console.log("Transaction Search is ACTIVE. Verify a matching span separately.");
 }
