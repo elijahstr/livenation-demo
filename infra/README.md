@@ -101,7 +101,7 @@ Use this command only after review of the dry-run scope and caller permissions:
 bun run scripts/inspect-configure-agentcore-observability.ts --apply
 ```
 
-The script uses a fixed scoped resource policy. It does not call `UpdateIndexingRule`. It creates the nonreserved `/aws/application-signals/data` group when needed. It waits for AWS to create the reserved `aws/spans` group. It then sets one-day retention. It records the prior X-Ray destination and indexing for rollback.
+The script uses a fixed scoped resource policy. It does not call `UpdateIndexingRule`. It creates the nonreserved `/aws/application-signals/data` group when needed. It waits for AWS to create the reserved `aws/spans` group. It then sets 30-day retention. It records the prior X-Ray destination and indexing for rollback.
 
 The script rejects an absent Default indexing rule. It does not invent a rollback. Transaction Search indexing is not a promise of free ingestion or storage.
 
@@ -117,6 +117,12 @@ The September deployment record above remains historical. The following verified
 - The scoped `livenation-demo-transaction-search` resource policy permits `xray.amazonaws.com` to use `logs:PutLogEvents` on only these three groups. It also restricts the source account and source ARN.
 - The setup did not change the harness, its execution role, or its IAM permissions.
 - A later inspection reported `ACTIVE` readiness, three one-day log groups, and zero remaining changes.
+
+## Current retention extension
+
+The deployment record above remains historical. On October 16, 2026, the user requested a 30-day retention extension for the demo traces. An operator applied `aws logs put-retention-policy` to the three existing groups. `describe-log-groups` then verified 30-day retention for each group.
+
+The setup script writes 30-day retention only when it creates a missing shared group. It preserves the retention of every existing group. The caller policy does not permit retention updates for the runtime group. After a runtime replacement, an operator must set the new runtime group's retention to 30 days.
 
 Interpretation from the AWS Transaction Search documentation: full span delivery remains available in CloudWatch Logs. The one-percent setting indexes a summary sample for X-Ray search. It does not control full span ingestion. This free index fraction does not make CloudWatch span ingestion or storage free.
 

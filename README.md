@@ -41,7 +41,7 @@ AGENTCORE_CHAT_ENABLED=1 AGENTCORE_CHAT_TOOL_SELECTOR=qualified PORT=3001 bun ru
 
 Use only the selector that passed the recorded verification. Try `qualified` first because the earlier plain-name probe failed. The browser cannot enable chat or select a tool.
 
-Developer details show the conversation ID and its AWS runtime ID. Persistent chat reuses that runtime ID for each turn. AWS observability is active. A bounded live request produced 13 verified spans for the model call and memory operations. CloudWatch retains these logs for one day. See the [trace guide](infra/README.md#read-a-conversation-trace) for AWS access and the verified example.
+Developer details show the conversation ID and its AWS runtime ID. Persistent chat reuses that runtime ID for each turn. AWS observability is active. A bounded live request produced 13 verified spans for the model call and memory operations. CloudWatch retains these logs for 30 days. See the [trace guide](infra/README.md#read-a-conversation-trace) for AWS access and the verified example.
 
 Current behavior: the chat code exists and has local tests. AWS authentication works. The first restricted live test requested six evidence calls; the application rejected the batch at its three-call limit. The complete live chat remains unverified. The existing fixed recovery flow still uses a legacy wildcard tool setting.
 

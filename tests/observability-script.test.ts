@@ -50,14 +50,22 @@ describe("AgentCore observability configuration plan", () => {
   });
 
   test("preserves existing indexing and retention, and is idempotent after the desired state exists", () => {
-    const first = snapshot();
+    const first = snapshot({
+      groups: [
+        { logGroupName: "aws/spans", retentionInDays: 1 },
+        { logGroupName: "/aws/application-signals/data", retentionInDays: 1 },
+        { logGroupName: runtimeGroup, retentionInDays: 14 },
+        { logGroupName: "/aws/bedrock-agentcore/runtimes/other-runtime-logs", retentionInDays: 14 },
+      ],
+    });
     const policy = policyDocument(first);
-    const stable = snapshot({
+    const stable = {
+      ...first,
       policies: [{ policyName: "livenation-demo-transaction-search", policyDocument: policy }],
       destination: { Destination: "CloudWatchLogs" },
-    });
+    };
     expect(buildTelemetryPlan(stable)).toEqual([]);
-    expect(stable.groups.map((group) => group.retentionInDays)).toEqual([30, 30, 14, 14]);
+    expect(stable.groups.map((group) => group.retentionInDays)).toEqual([1, 1, 14, 14]);
     expect(stable.indexing.IndexingRules[0].Rule.Probabilistic?.DesiredSamplingPercentage).toBe(15);
   });
 
@@ -124,8 +132,11 @@ describe("AgentCore observability configuration plan", () => {
       ["xray", "update-trace-segment-destination"],
       ["logs", "put-retention-policy"],
     ]);
+    expect(changes.find((change) => change.args[1] === "put-retention-policy" && change.args.includes("/aws/application-signals/data"))?.args).toEqual([
+      "logs", "put-retention-policy", "--log-group-name", "/aws/application-signals/data", "--retention-in-days", "30",
+    ]);
     const deferredRetention = changes.at(-1);
-    expect(deferredRetention?.args).toEqual(["logs", "put-retention-policy", "--log-group-name", "aws/spans", "--retention-in-days", "1"]);
+    expect(deferredRetention?.args).toEqual(["logs", "put-retention-policy", "--log-group-name", "aws/spans", "--retention-in-days", "30"]);
     expect(deferredRetention?.waitForLogGroup).toBe("aws/spans");
   });
 
