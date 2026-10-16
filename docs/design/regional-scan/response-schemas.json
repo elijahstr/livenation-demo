@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Regional scan draft response schemas",
+  "status": "draft; not deployed",
+  "$defs": {
+    "identifier": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "dataset_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "version"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/identifier" },
+        "version": { "$ref": "#/$defs/identifier" },
+        "definition_hash": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_id", "source_ref", "query_id", "unit", "observed_at"],
+      "properties": {
+        "evidence_id": { "$ref": "#/$defs/identifier" },
+        "source_ref": { "$ref": "#/$defs/identifier" },
+        "query_id": { "type": ["string", "null"], "maxLength": 256 },
+        "unit": { "$ref": "#/$defs/identifier" },
+        "observed_at": { "type": "string", "format": "date-time" },
+        "claim": { "type": "string", "maxLength": 1000 }
+      }
+    },
+    "account_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roster_version", "scope_config_hash", "label"],
+      "properties": {
+        "roster_version": { "$ref": "#/$defs/identifier" },
+        "scope_config_hash": { "$ref": "#/$defs/identifier" },
+        "label": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "required": ["scan_id", "account_scope", "data_as_of", "retrieved_at", "dataset_refs", "evidence", "consistency", "status", "truncated", "error"],
+      "properties": {
+        "scan_id": { "$ref": "#/$defs/identifier" },
+        "account_scope": { "$ref": "#/$defs/account_scope" },
+        "data_as_of": { "type": "string", "format": "date-time", "description": "Semantic business cutoff, not a dataset version." },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "dataset_refs": { "type": "array", "maxItems": 50, "items": { "$ref": "#/$defs/dataset_ref" } },
+        "evidence": { "type": "array", "maxItems": 200, "items": { "$ref": "#/$defs/evidence_item" } },
+        "consistency": { "enum": ["stable", "mixed", "unknown"] },
+        "status": { "enum": ["complete", "partial", "unavailable", "error"] },
+        "truncated": { "type": "boolean" },
+        "error": { "type": ["string", "null"], "maxLength": 1000 }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "rows", "reason"],
+      "properties": {
+        "state": { "enum": ["evidence", "unavailable", "error"] },
+        "rows": { "type": "array", "maxItems": 50, "items": { "type": "object", "additionalProperties": true } },
+        "reason": { "type": ["string", "null"], "maxLength": 500 }
+      }
+    },
+    "account_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account_id", "state", "facts", "inferences", "unknowns", "evidence_ids"],
+      "properties": {
+        "account_id": { "$ref": "#/$defs/identifier" },
+        "state": { "enum": ["act", "ask", "no-action", "deferred", "unavailable"] },
+        "facts": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 1000 } },
+        "inferences": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 1000 } },
+        "unknowns": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 1000 } },
+        "evidence_ids": { "type": "array", "minItems": 0, "maxItems": 50, "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "seller_action": { "type": "string", "maxLength": 1000 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "enum": ["act", "ask", "no-action"] } }, "required": ["state"] },
+          "then": { "required": ["seller_action"], "properties": { "evidence_ids": { "minItems": 1 } } }
+        }
+      ],
+      "description": "Server validation requires each fact to cite a returned evidence ID."
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authorized_count", "assessed_count", "deferred_count", "unavailable_count", "unassessed_count", "processing_finished", "fully_assessed"],
+      "properties": {
+        "authorized_count": { "type": ["integer", "null"], "minimum": 0 },
+        "assessed_count": { "type": "integer", "minimum": 0 },
+        "deferred_count": { "type": "integer", "minimum": 0 },
+        "unavailable_count": { "type": "integer", "minimum": 0 },
+        "unassessed_count": { "type": "integer", "minimum": 0 },
+        "processing_finished": { "type": "boolean" },
+        "fully_assessed": { "type": "boolean" }
+      },
+      "description": "Server-computed. Complete requires a known total, only act/ask/no-action states, stable sources, and no truncation. Otherwise use partial."
+    },
+    "analytics_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_id", "sql", "rows", "source_refs"],
+      "properties": {
+        "query_id": { "$ref": "#/$defs/identifier" },
+        "sql": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "rows": { "type": "array", "maxItems": 50, "items": { "type": "object", "additionalProperties": true } },
+        "source_refs": { "type": "array", "minItems": 1, "maxItems": 20, "items": { "$ref": "#/$defs/identifier" } }
+      }
+    }
+  },
+  "tool_responses": {
+    "get_account_evidence": {
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        { "type": "object", "properties": { "account_id": { "$ref": "#/$defs/identifier" }, "sections": { "type": "object", "additionalProperties": false, "properties": { "activity": { "$ref": "#/$defs/section" }, "contract": { "$ref": "#/$defs/section" }, "purchases": { "$ref": "#/$defs/section" }, "benefits": { "$ref": "#/$defs/section" } } } }, "required": ["account_id", "sections"] }
+      ]
+    },
+    "find_options": {
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        { "type": "object", "properties": { "account_id": { "$ref": "#/$defs/identifier" }, "options": { "type": "array", "maxItems": 50, "items": { "type": "object", "additionalProperties": false, "required": ["event_id", "product_id", "available_quantity", "unit_price", "snapshot_at", "eligibility"], "properties": { "event_id": { "$ref": "#/$defs/identifier" }, "product_id": { "$ref": "#/$defs/identifier" }, "available_quantity": { "type": "integer", "minimum": 0 }, "unit_price": { "type": "number", "minimum": 0 }, "snapshot_at": { "type": "string", "format": "date-time" }, "eligibility": { "const": "unknown" } } } } }, "required": ["account_id", "options"] }
+      ]
+    },
+    "ask_analytics": {
+      "allOf": [
+        { "$ref": "#/$defs/envelope" },
+        {
+          "type": "object",
+          "properties": {
+            "question": { "type": "string", "minLength": 1, "maxLength": 2000 },
+            "query_items": { "type": "array", "minItems": 0, "maxItems": 5, "items": { "$ref": "#/$defs/analytics_item" } }
+          },
+          "required": ["question", "query_items"],
+          "allOf": [
+            {
+              "if": { "properties": { "status": { "const": "complete" } }, "required": ["status"] },
+              "then": { "properties": { "query_items": { "minItems": 1 } } }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "batch_result": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["batch_id", "accounts"],
+    "properties": {
+      "batch_id": { "$ref": "#/$defs/identifier" },
+      "accounts": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/account_result" } }
+    },
+    "description": "Server verifies exact assigned account IDs and evidence before an atomic batch commit."
+  },
+  "scan_result": {
+    "allOf": [
+      { "$ref": "#/$defs/envelope" },
+      { "type": "object", "properties": { "coverage": { "$ref": "#/$defs/coverage" }, "accounts": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/account_result" } } }, "required": ["coverage", "accounts"] }
+    ]
+  }
+}
