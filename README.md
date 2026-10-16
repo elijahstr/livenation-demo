@@ -40,6 +40,18 @@ Open `http://127.0.0.1:4409`.
 
 The [decision record and research brief](docs/design/premium-sales/decisions-and-research.md) records the agreed scenarios, proposed architecture, source summaries, and checks still required.
 
+## Premium Databricks foundation
+
+The [operational guide](docs/data/premium-databricks-foundation.md) records the reviewed synthetic Bronze, Silver, and Gold setup and its two verified complete runs.
+
+Run its default local dry run before any authorized workspace change:
+
+```sh
+timeout --kill-after=2s 5s bun scripts/setup-premium-databricks.ts
+```
+
+The `--apply` mode writes the reviewed Databricks workspace scope: the three `workspace.ln_premium_*` schemas.
+
 ## Interview slide deck
 
 The static deck source is in [`slides/`](slides/).
