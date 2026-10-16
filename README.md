@@ -43,11 +43,11 @@ Use only the selector that passed the recorded verification. Try `qualified` fir
 
 Developer details show the conversation ID and its AWS runtime ID. Persistent chat reuses that runtime ID for each turn. AWS observability is active. A bounded live request produced 13 verified spans for the model call and memory operations. CloudWatch retains these logs for 30 days. See the [trace guide](infra/README.md#read-a-conversation-trace) for AWS access and the verified example.
 
-Current behavior: the chat code exists and has local tests. AWS authentication works. The first restricted live test requested six evidence calls; the application rejected the batch at its three-call limit. The complete live chat remains unverified. The existing fixed recovery flow still uses a legacy wildcard tool setting.
+Current behavior: the West chat code exists and has local tests. The earlier West live test requested six evidence calls and exceeded its three-call limit. West live chat remains unverified. Premium Gold verification is a separate completed path below. The existing fixed recovery flow still uses a legacy wildcard tool setting.
 
 Conversation memory is deployed and retains demo events for seven days, with no long-term facts or preferences. The live test verified recall after the runtime's maximum lifetime and separation between conversations. Memory applies to every invocation of the shared harness. Chat and recovery use separate actor IDs. The current UI has no saved-chat list; a server restart or thirty-minute idle expiry requires a new chat. See the [memory plan](docs/plans/2026-10-16-agentcore-conversation-memory.md).
 
-Direct Databricks MCP is the selected next connection. It needs the approved sales Genie asset and an AWS-side Databricks credential. Neither is configured yet. The local Databricks CLI profile is authenticated.
+Premium uses Genie One MCP through the local CLI bridge. A direct AWS-hosted Databricks credential or MCP connection is not configured. The application does not impersonate users.
 
 Run the bounded live verification only after the cost check permits it:
 
@@ -63,7 +63,7 @@ Use an existing runtime ID for trace lookup. This command makes no new model cal
 bun run scripts/verify-agentcore-chat.ts --trace RUNTIME_SESSION_UUID
 ```
 
-The required Databricks CLI is 1.18.0. The recorded local CLI is 1.17.0. Do not install or upgrade it without approval.
+The required and recorded local Databricks CLI version is 1.18.0. Do not install or upgrade it without approval.
 
 ## Sales workspace mock
 
@@ -89,6 +89,52 @@ timeout --kill-after=2s 5s bun scripts/setup-premium-databricks.ts
 ```
 
 The `--apply` mode writes the reviewed Databricks workspace scope: the three `workspace.ln_premium_*` schemas.
+
+## Premium Gold chat tools
+
+The Premium path is opt-in. West sales evidence remains the default. The Premium path reads synthetic Harbor Works account `A100` from Gold views.
+
+Start Premium chat only after the setup and verification checks succeed:
+
+```sh
+AGENTCORE_CHAT_ENABLED=1 AGENTCORE_CHAT_DATA_SOURCE=premium PORT=3001 bun run dev
+```
+
+The current code provides two fixed Statement Execution API tools: `get_account_brief` and `find_options`. It also provides `ask_analytics`, which uses Genie One MCP for broad Gold questions. It does not use native SQL MCP.
+
+The owned Genie agent is created and verified. No Gold tables or grants changed. Its default mode validates local configuration:
+
+```sh
+timeout --kill-after=2s 10s bun scripts/setup-premium-genie.ts
+```
+
+The apply mode can create one owned Genie agent. It checks the existing parent and title first:
+
+```sh
+timeout --kill-after=5s 60s bun scripts/setup-premium-genie.ts --apply
+```
+
+Run the data-only verifier before any AgentCore verification:
+
+```sh
+timeout --kill-after=5s 180s bun scripts/verify-premium-tools.ts --data-only
+```
+
+The optional AgentCore verifier can make up to three paid turns. It records attempts and requires the existing cost checks:
+
+```sh
+timeout --kill-after=5s 600s bun scripts/verify-premium-tools.ts --agentcore
+```
+
+The data-only verification passed at `outputs/premium-tools/1792183710644-verification.json`. Premium AgentCore verification passed at `outputs/premium-tools/1792183920044-verification.json`. Two qualified turns reused runtime `b8641cfd-7228-4229-9c6a-cd7a11dd4d19`: the first called `get_account_brief` and `find_options`, and the second called `ask_analytics`.
+
+The first plain-selector attempt made zero tool calls. Together with the two successful qualified turns, it used the three-attempt budget. The verifier makes no more paid probes automatically. The qualified allowlist accepts each premium tool name in plain and `@*/` form. It accepts no wildcard or built-in tool.
+
+The verified Genie retrieval returned `300.00`, `40.00`, `3`, and `1` from an existing read-only query result. The Genie room is [Live Nation Premium Gold](https://dbc-da714a97-83a0.cloud.databricks.com/genie/rooms/01f1c9a2b3421c1ca755c65e625104ad?o=7474650774099237). CloudWatch returned 20 matching span records in the first-page limit. This does not prove that exactly 20 records exist or that standalone MCP spans exist.
+
+Browser verification proved only that the app loaded on port 3011 and created a chat session with HTTP 201. The paid checks used `ChatService`, not the browser UI. The current CLI identity can have administrator permissions. This work does not add seller identities, grants, OAuth, or user impersonation. The synthetic foundation remains 28 raw records and 27 accepted records. It does not load 10,000 records.
+
+Read the [Premium Gold tools guide](docs/data/premium-gold-tools.md) before an apply or live verifier run.
 
 ## Interview slide deck
 

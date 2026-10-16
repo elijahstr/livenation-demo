@@ -65,6 +65,10 @@ export type HarnessInvoker = (
   signal?: AbortSignal,
 ) => Promise<{ stream: AsyncIterable<HarnessEvent> }>;
 
+/** Only server-authored input validation messages belong in this recoverable error. */
+export class HarnessToolInputError extends Error {}
+export type HarnessToolHandlers = Readonly<Record<string, (input: unknown) => unknown | Promise<unknown>>>;
+
 export type HarnessProgressEvent =
   | {
       type: "tool";
@@ -102,6 +106,7 @@ async function consumeStream(
   options: {
     signal?: AbortSignal;
     maxToolCallsPerResponse?: number;
+    allowedToolNames?: ReadonlySet<string>;
     onToolStart?: (toolName: string) => void | Promise<void>;
     onText?: (text: string) => void | Promise<void>;
   } = {},
@@ -126,7 +131,7 @@ async function consumeStream(
 
       const start = event.contentBlockStart?.start?.toolUse;
       if (start) {
-        if (start.name !== "get_sales_evidence") {
+        if (!(options.allowedToolNames ?? new Set(["get_sales_evidence"])).has(start.name)) {
           throw new Error(`Unexpected tool ${start.name}`);
         }
         toolUses.set(event.contentBlockStart!.contentBlockIndex, {
@@ -206,10 +211,13 @@ export async function runHarnessToolCycle(options: {
   sessionId: string;
   actorId?: string;
   prompt: string;
-  resolveEvidence: (input: unknown) => unknown | Promise<unknown>;
+  resolveEvidence?: (input: unknown) => unknown | Promise<unknown>;
+  toolHandlers?: HarnessToolHandlers;
   invoke: HarnessInvoker;
   maxIterations?: number;
   maxToolCallsPerResponse?: number;
+  maxTotalToolCalls?: number;
+  maxToolResultBytes?: number;
   streamInitialText?: boolean;
   signal?: AbortSignal;
   onEvent?: (event: HarnessProgressEvent) => void | Promise<void>;
@@ -217,6 +225,9 @@ export async function runHarnessToolCycle(options: {
   if (options.sessionId.length < 33 || options.sessionId.length > 100) {
     throw new Error("sessionId must contain 33 to 100 characters");
   }
+  if (!!options.toolHandlers === !!options.resolveEvidence) throw new Error("Select exactly one tool resolver");
+  const handlers: HarnessToolHandlers = options.toolHandlers ?? { get_sales_evidence: options.resolveEvidence! };
+  const allowedToolNames = new Set(Object.keys(handlers));
 
   const maxIterations = options.maxIterations ?? 3;
   let messages: HarnessMessage[] = [
@@ -235,6 +246,7 @@ export async function runHarnessToolCycle(options: {
     }, options.signal);
     const current = await consumeStream(response.stream, {
       maxToolCallsPerResponse: options.maxToolCallsPerResponse,
+      allowedToolNames,
       signal: options.signal,
       onToolStart: (toolName) => options.onEvent?.({
         type: "tool",
@@ -262,13 +274,25 @@ export async function runHarnessToolCycle(options: {
     }
 
     const content: HarnessMessage["content"] = [];
+    if (toolCalls.length + current.toolUses.length > (options.maxTotalToolCalls ?? Infinity)) {
+      throw new Error("Harness exceeded total tool call limit");
+    }
     for (const tool of current.toolUses) {
       throwIfAborted(options.signal);
-      const result = await options.resolveEvidence(tool.input);
+      let result: unknown;
+      let status: "success" | "error" = "success";
+      try { result = await handlers[tool.name]!(tool.input); }
+      catch (error) {
+        if (!(error instanceof HarnessToolInputError)) throw error;
+        result = { error: error.message.slice(0, 300) };
+        status = "error";
+      }
       throwIfAborted(options.signal);
+      const serialized = JSON.stringify(result);
+      if (serialized === undefined || Buffer.byteLength(serialized) > (options.maxToolResultBytes ?? Infinity)) throw new Error("Harness tool result limit exceeded");
       toolCalls.push({ name: tool.name, input: tool.input, result });
       await options.onEvent?.({ type: "tool", status: "completed", toolName: tool.name });
-      content.push({ toolResult: { toolUseId: tool.toolUseId, status: "success", type: "tool_use", content: [{ text: JSON.stringify(result) }] } });
+      content.push({ toolResult: { toolUseId: tool.toolUseId, status, type: "tool_use", content: [{ text: serialized }] } });
     }
     messages = [{ role: "user", content }];
   }

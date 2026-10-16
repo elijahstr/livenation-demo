@@ -1,0 +1,10 @@
+const node = (title: string, detail: string, tone: string) => `<div class="tool-node ${tone}"><strong>${title}</strong><span>${detail}</span></div>`;
+const arrow = `<span class="tool-arrow" aria-hidden="true">→</span>`;
+
+export const FIGURE_CSS = `
+  :root{color-scheme:light}.premium-figure{margin:24px 0;border:1px solid var(--line);border-radius:18px;background:#fff;padding:20px}.premium-figure figcaption{display:grid;gap:5px;margin-bottom:16px}.figure-kicker{color:var(--accent);font:800 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase}.figure-title{font:760 20px/1.2 var(--display)}.tool-scroll{overflow-x:auto;padding:2px 2px 8px}.tool-flow{display:flex;align-items:stretch;min-width:max-content}.tool-node{display:grid;gap:7px;width:174px;min-height:84px;border:1px solid var(--line);border-radius:12px;padding:13px;text-align:center;font:650 13px/1.3 var(--sans)}.tool-node strong{font:800 14px/1.1 var(--sans)}.tool-node span{color:var(--muted)}.tool-node.user{background:#f3f4f1}.tool-node.server{border-color:#9bc8b7;background:#edf8f2}.tool-node.data{border-color:#d9ad76;background:#fff2e3}.tool-node.agent{border-color:#9aafd5;background:#eef3ff}.tool-arrow{display:flex;align-items:center;padding:0 9px;color:var(--muted);font-size:23px}@media(max-width:680px){.premium-figure{padding:16px}.tool-node{width:150px}.tool-arrow{padding:0 6px}}
+`;
+
+export const FIGURES: Record<string, string> = {
+  "premium-tools-flow": `<figure class="premium-figure" aria-labelledby="premium-tools-title"><figcaption><span class="figure-kicker">Tool boundary</span><span class="figure-title" id="premium-tools-title">The server owns every Gold request</span></figcaption><div class="tool-scroll"><div class="tool-flow">${node("Seller chat", "A bounded request", "user")}${arrow}${node("Premium tool gate", "Schema, allowlist, cap", "server")}${arrow}${node("Fixed Gold SQL", "Brief and options", "data")}${arrow}${node("Curated Genie", "Analytics only", "agent")}</div></div></figure>`,
+};

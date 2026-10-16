@@ -9,6 +9,8 @@ import { createServer } from "./server";
 import { ChatService } from "./chat-service";
 import { resolveHarnessArn } from "./harness-discovery";
 import { verifyConversationMemory } from "./conversation-memory";
+import { createPremiumTools } from "./premium-tools";
+import { GenieMcpClient } from "./genie-mcp-client";
 
 const config = {
   port: Number(process.env.PORT ?? runtime.port),
@@ -27,6 +29,8 @@ const service = new DemoService({ sales, harness: { diagnose: async ({ prompt, e
 } } });
 const selector = process.env.AGENTCORE_CHAT_TOOL_SELECTOR ?? "plain";
 if (selector !== "plain" && selector !== "qualified") throw new Error("Invalid chat tool selector");
+const chatDataSource = process.env.AGENTCORE_CHAT_DATA_SOURCE ?? "west";
+if (chatDataSource !== "west" && chatDataSource !== "premium") throw new Error("Invalid chat data source");
 let chatEnabled = process.env.AGENTCORE_CHAT_ENABLED === "1";
 const checkMemory = () => verifyConversationMemory(config.harnessArn).then(() => undefined);
 if (chatEnabled) {
@@ -41,8 +45,13 @@ const chat = new ChatService({
   enabled: chatEnabled,
   memoryMode: "agentcore",
   beforeTurn: checkMemory,
-  invoke: await harness.createChatInvoker(selector),
+  invoke: await (chatDataSource === "premium" ? harness.createPremiumChatInvoker() : harness.createChatInvoker(selector)),
   readEvidence: (now, signal) => sales.read(now, signal),
+  ...(chatDataSource === "premium" ? { premiumTools: (context: { signal: AbortSignal; deadlineAt: number }) => {
+    const options = { profile: config.profile, warehouseId: config.warehouseId, ...context };
+    const genie = new GenieMcpClient(options);
+    return createPremiumTools({ ...options, askAnalytics: question => genie.ask(question) });
+  } } : {}),
 });
 const actions = new ActionStore(`${import.meta.dir}/../outputs/demo-actions.json`);
 const server = createServer({
