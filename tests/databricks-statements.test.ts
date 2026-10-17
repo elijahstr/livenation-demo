@@ -33,7 +33,7 @@ describe("DatabricksStatements", () => {
 
   test("cancels a timed out statement and polls the terminal state", async () => {
     let now = 0; const calls: string[][] = [];
-    const client = new DatabricksStatements({ profile: "p", warehouseId: "w", clock: () => now, sleep: async () => { now = 2; }, executionDeadlineMs: 1, reconciliationDeadlineMs: 20, transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, { statement_id: "s", status: { state: "RUNNING" } }, {}, { statement_id: "s", status: { state: "CANCELED" } }], calls) });
+    const client = new DatabricksStatements({ profile: "p", warehouseId: "w", clock: () => now, sleep: async () => { now = 2; }, executionDeadlineMs: 1, reconciliationDeadlineMs: 20, transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, {}, { statement_id: "s", status: { state: "CANCELED" } }], calls) });
     await expect(client.execute("SELECT 1")).rejects.toThrow("timed out");
     expect(calls.map((call) => call.join(" ")).join("\n")).toContain("/s/cancel");
   });
@@ -70,9 +70,110 @@ describe("DatabricksStatements", () => {
     expect(calls.map((call) => call.join(" ")).join("\n")).toContain("/s/cancel");
   });
 
+  test("retries one failed status GET without cancellation or resubmission", async () => {
+    let now = 0; const calls: string[][] = []; const events: any[] = [];
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w", pollIntervalMs: 1, clock: () => now, sleep: async () => { now += 1; },
+      transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, new Error("temporary transport failure"), ok("s")], calls),
+      onEvent: async (event) => { events.push(event); },
+    });
+
+    await expect(client.execute("SELECT 1")).resolves.toEqual({ statementId: "s", columns: ["value"], rows: [["1"]] });
+    expect(calls.filter((call) => call[1] === "post" && call.includes("/api/2.0/sql/statements")).length).toBe(1);
+    expect(calls.filter((call) => call[1] === "get" && call.includes("/api/2.0/sql/statements/s")).length).toBe(2);
+    expect(calls.map((call) => call.join(" ")).join("\n")).not.toContain("/s/cancel");
+    expect(events.filter((event) => event.kind === "poll_retry")).toEqual([{ kind: "poll_retry", statementId: "s", failure_class: "poll_transport" }]);
+    expect(events.filter((event) => event.kind === "state")).toEqual([
+      { kind: "state", statementId: "s", state: "RUNNING" },
+      { kind: "state", statementId: "s", state: "SUCCEEDED" },
+    ]);
+  });
+
+  test("cancels and reconciles after repeated failed status GETs reach the deadline", async () => {
+    let now = 0; const calls: string[][] = []; const events: any[] = [];
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w", executionDeadlineMs: 3, reconciliationDeadlineMs: 20, pollIntervalMs: 1,
+      clock: () => now, sleep: async () => { now += 1; },
+      transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, new Error("first transport failure"), new Error("second transport failure"), {}, { statement_id: "s", status: { state: "CANCELED" } }], calls),
+      onEvent: async (event) => { events.push(event); },
+    });
+
+    await expect(client.execute("SELECT 1")).rejects.toThrow("timed out after cancellation; terminal state is CANCELED");
+    const cancelIndex = calls.findIndex((call) => call.includes("/s/cancel"));
+    expect(calls.slice(0, cancelIndex).filter((call) => call[1] === "get").length).toBe(2);
+    expect(calls.map((call) => call.join(" ")).join("\n")).toContain("/s/cancel");
+    expect(events.filter((event) => event.kind === "poll_retry")).toEqual([
+      { kind: "poll_retry", statementId: "s", failure_class: "poll_transport" },
+    ]);
+  });
+
+  test("cancels as interrupted when an abort occurs during a status GET", async () => {
+    const controller = new AbortController(); const calls: string[][] = []; let statusGets = 0;
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w", signal: controller.signal, pollIntervalMs: 1, sleep: async () => {},
+      transport: async (args) => {
+        calls.push(args);
+        if (args[1] === "post" && args.includes("/api/2.0/sql/statements")) return { statement_id: "s", status: { state: "RUNNING" } };
+        if (args[1] === "get" && args.includes("/api/2.0/sql/statements/s")) {
+          statusGets += 1;
+          if (statusGets === 1) {
+            controller.abort(new DOMException("cancelled", "AbortError"));
+            throw controller.signal.reason;
+          }
+          return { statement_id: "s", status: { state: "CANCELED" } };
+        }
+        if (args[1] === "post") return {};
+        throw new Error("unexpected transport call");
+      },
+    });
+
+    await expect(client.execute("SELECT 1")).rejects.toThrow("interrupted after cancellation; terminal state is CANCELED");
+    const cancelIndex = calls.findIndex((call) => call.includes("/s/cancel"));
+    expect(calls.slice(0, cancelIndex).filter((call) => call[1] === "get").length).toBe(1);
+  });
+
+  test("does not retry when an event fails after the statement ID", async () => {
+    const calls: string[][] = []; let eventCount = 0;
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w",
+      onEvent: async () => { eventCount += 1; if (eventCount === 3) throw new Error("journal unavailable"); },
+      transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, {}, { statement_id: "s", status: { state: "CANCELED" } }], calls),
+    });
+
+    await expect(client.execute("SELECT 1")).rejects.toThrow("timed out after cancellation; terminal state is CANCELED");
+    const cancelIndex = calls.findIndex((call) => call.includes("/s/cancel"));
+    expect(calls.slice(0, cancelIndex).filter((call) => call[1] === "get").length).toBe(0);
+    expect(calls.map((call) => call.join(" ")).join("\n")).toContain("/s/cancel");
+  });
+
+  test("does not retry when the poll retry event fails", async () => {
+    const calls: string[][] = [];
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w", pollIntervalMs: 1, sleep: async () => {},
+      onEvent: async (event) => { if (event.kind === "poll_retry") throw new Error("journal unavailable"); },
+      transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, new Error("temporary transport failure"), {}, { statement_id: "s", status: { state: "CANCELED" } }], calls),
+    });
+
+    await expect(client.execute("SELECT 1")).rejects.toThrow("timed out after cancellation; terminal state is CANCELED");
+    const cancelIndex = calls.findIndex((call) => call.includes("/s/cancel"));
+    expect(calls.slice(0, cancelIndex).filter((call) => call[1] === "get").length).toBe(1);
+  });
+
+  test("does not retry a configured output limit status GET error", async () => {
+    const calls: string[][] = []; const events: any[] = [];
+    const client = new DatabricksStatements({
+      profile: "p", warehouseId: "w", pollIntervalMs: 1, sleep: async () => {}, onEvent: async (event) => { events.push(event); },
+      transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, new Error("Databricks command output exceeded the configured limit"), {}, { statement_id: "s", status: { state: "CANCELED" } }], calls),
+    });
+
+    await expect(client.execute("SELECT 1")).rejects.toThrow("timed out after cancellation; terminal state is CANCELED");
+    expect(calls.filter((call) => call[1] === "get" && call.includes("/api/2.0/sql/statements/s")).length).toBe(2);
+    expect(events.filter((event) => event.kind === "poll_retry")).toEqual([]);
+  });
+
   test("reports timeout even when cancellation observes success", async () => {
     let now = 0;
-    const client = new DatabricksStatements({ profile: "p", warehouseId: "w", clock: () => now, sleep: async () => { now = 2; }, executionDeadlineMs: 1, transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, { statement_id: "s", status: { state: "RUNNING" } }, {}, ok("s")], []) });
+    const client = new DatabricksStatements({ profile: "p", warehouseId: "w", clock: () => now, sleep: async () => { now = 2; }, executionDeadlineMs: 1, transport: transport([{ statement_id: "s", status: { state: "RUNNING" } }, {}, ok("s")], []) });
     await expect(client.execute("SELECT 1")).rejects.toThrow(/timed out.*SUCCEEDED/);
   });
 

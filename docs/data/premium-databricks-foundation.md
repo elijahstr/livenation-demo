@@ -2,7 +2,7 @@
 
 ## Current workspace
 
-**Foundation verification completed.** The foundation contributes 28 Bronze envelopes and 27 accepted Silver rows. The first scale apply, `premium-scale-v1-0001`, completed. It added 36 records. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows. One of 277 scale bundles is complete. No later bundle was applied.
+**Foundation verification completed.** The foundation contributes 28 Bronze envelopes and 27 accepted Silver rows. This is historical evidence. The completed scale load now brings the current workspace to 10,000 Bronze envelopes and 9,999 accepted Silver rows across all 277 scale bundles.
 
 ## Purpose and scope
 
@@ -28,7 +28,7 @@ The foundation is compatible with the Premium 10k scale loader. A foundation rer
 
 Do not capture unbounded global Gold rows during a foundation rerun. The foundation manifest remains historical evidence. The scale loader owns cumulative metrics and post-batch proof.
 
-The scale loader preserves the 28 Bronze envelopes, 27 accepted Silver rows, and one `AC-E-BAD` rejection. The completed first scale batch added 36 records. The current workspace has 64 Bronze envelopes and 63 accepted Silver rows. See the [Premium 10k scale guide](premium-10k-scale.md).
+The scale loader preserves the 28 Bronze envelopes, 27 accepted Silver rows, and one `AC-E-BAD` rejection. The foundation counts remain historical. The current cumulative workspace counts are 10,000 Bronze envelopes and 9,999 accepted Silver rows. See the [Premium 10k scale guide](premium-10k-scale.md).
 
 ## Run the safe local check
 
@@ -85,13 +85,13 @@ SELECT
 FROM workspace.ln_premium_gold.sales_metrics;
 ```
 
-Both foundation queries returned `300.00`, `40.00`, `3`, and `1` in that order. The fixture uses frozen `as_of` time `2026-10-16T12:00:00Z`. The first scale batch later verified current Gold metrics of $490 admission revenue, $75 parking revenue, 11 valid admission tickets, and two admission buyers.
+Both foundation queries returned `300.00`, `40.00`, `3`, and `1` in that order. These are foundation-only historical values. The final independent scale proof reports current Gold metrics of $45,180.00 admission revenue, $9,360.00 parking revenue, 1,899 valid admission tickets, and 273 admission buyers.
 
-The A100 premier option remains `E200` / `premier-parking` / quantity 12 / price $40. Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran.
+The A100 premier option remains `E200` / `premier-parking` / `box_office` / quantity 12 / $40.00. Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran.
 
 ## Test status
 
-The complete local suite has 231 passing tests, zero failures, 813 assertions, and 35 files.
+The final full local test run has 237 passing tests, zero failures, 833 assertions, and 35 files.
 
 ## Live result record
 
@@ -103,11 +103,11 @@ The complete local suite has 231 passing tests, zero failures, 813 assertions, a
 | Gold dependencies and view definitions | Six Gold objects: five views and one `METRIC_VIEW`; all grain checks passed; no Finance source reference |
 | Metric view result and explicit oracle result | Both returned `300.00`, `40.00`, `3`, `1` |
 | Full rerun writes, DDL, and content hashes | Second run `2026-10-16T19-56-14.670Z` published `true`, wrote zero rows, and matched the first full stable object and stable hash exactly. Bronze remained 28, Silver remained 27, and all four metric values remained unchanged. |
-| First scale batch | `premium-scale-v1-0001` completed. It added 36 records. The proof reported 64 Bronze envelopes, 63 accepted Silver rows, and Gold metrics of $490, $75, 11, and 2. |
-| Next scale action | The next default dry run selects `premium-scale-v1-0002` through `premium-scale-v1-0008`, or 252 records. No later bundle was applied. |
+| First scale batch | Historical: `premium-scale-v1-0001` added 36 records. Its proof reported 64 Bronze envelopes, 63 accepted Silver rows, and Gold metrics of $490, $75, 11, and 2. |
+| Completed scale load | Current: all 277 scale bundles are ready. The final proof reports 10,000 Bronze, 9,999 Silver, 278 total batch IDs, 277 scale batch IDs, and Gold metrics of $45,180.00, $9,360.00, 1,899, and 273. |
 | Managed maintenance | Predictive Optimization is inherited. No manual `OPTIMIZE` or `ANALYZE` command ran. |
 | Warehouse auto-stop state | The warehouse is running with zero active sessions and a ten-minute auto-stop. Idle stop is not yet observed. |
-| Remaining limitation | Seller permissions, OAuth, Genie, MCP, and application connection to this data are not configured. Finance rows are illustrative. This milestone did not load 10,000 records. |
+| Remaining limitation | Seller permissions, OAuth, Genie, MCP, and application connection to this data are not configured. Finance rows are illustrative. |
 
 All 22 Delta tables show version `1`: one creation and one insert. This is first-run evidence, not proof of the pending rerun comparison.
 

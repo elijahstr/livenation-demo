@@ -179,6 +179,8 @@ export class DatabricksStatements {
     let response: StatementResponse | undefined;
     let timedOut = false;
     let interrupted = false;
+    let recordedPollRetry = false;
+    let skipStateEvent = false;
     const remaining = (deadline: number) => Math.max(1, deadline - this.clock());
     const requestTimeout = (deadline: number) => Math.min(15_000, remaining(deadline));
     const abortReason = () => this.options.signal?.reason ?? new DOMException("The operation was aborted.", "AbortError");
@@ -203,10 +205,24 @@ export class DatabricksStatements {
       while (!TERMINAL_STATES.has(response.status?.state ?? "")) {
         if (this.options.signal?.aborted) { interrupted = true; break; }
         if (this.clock() >= executionDeadline) { timedOut = true; break; }
-        await event({ kind: "state", statementId, state: response.status?.state ?? "UNKNOWN" });
+        if (!skipStateEvent) await event({ kind: "state", statementId, state: response.status?.state ?? "UNKNOWN" });
+        skipStateEvent = false;
         await this.sleep(Math.min(this.options.pollIntervalMs ?? 1_000, remaining(executionDeadline)));
         if (this.options.signal?.aborted) { interrupted = true; break; }
-        response = await this.transport(apiArgs("get", `/api/2.0/sql/statements/${statementId}`, this.options.profile), undefined, requestTimeout(executionDeadline));
+        if (this.clock() >= executionDeadline) { timedOut = true; break; }
+        try {
+          response = await this.transport(apiArgs("get", `/api/2.0/sql/statements/${statementId}`, this.options.profile), undefined, requestTimeout(executionDeadline));
+          skipStateEvent = false;
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("configured limit")) throw error;
+          if (this.options.signal?.aborted) { interrupted = true; break; }
+          if (this.clock() >= executionDeadline) { timedOut = true; break; }
+          skipStateEvent = true;
+          if (!recordedPollRetry) {
+            recordedPollRetry = true;
+            await event({ kind: "poll_retry", statementId, failure_class: "poll_transport" });
+          }
+        }
       }
     } catch (error) {
       if (this.options.signal?.aborted && !statementId) throw abortReason();

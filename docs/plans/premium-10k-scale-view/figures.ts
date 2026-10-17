@@ -6,5 +6,5 @@ export const FIGURE_CSS = `
 `;
 
 export const FIGURES: Record<string, string> = {
-  "scale-flow": `<figure class="scale-figure" aria-labelledby="scale-figure-title"><figcaption><span class="scale-kicker">Bounded data path</span><span class="scale-title" id="scale-figure-title">One verified scale batch at a time</span></figcaption><div class="scale-scroll"><div class="scale-flow">${node("Foundation: 28 Bronze / 27 Silver", "foundation")}${arrow}${node("Bundle 0001 applied: 36 records", "generate")}${arrow}${node("Current: 64 Bronze / 63 Silver", "verify")}${arrow}${node("Gold proof: $490 / $75 / 11 / 2", "gold")}</div></div></figure>`,
+  "scale-flow": `<figure class="scale-figure" aria-labelledby="scale-figure-title"><figcaption><span class="scale-kicker">Completed data path</span><span class="scale-title" id="scale-figure-title">277 verified scale bundles complete</span></figcaption><div class="scale-scroll"><div class="scale-flow">${node("Foundation: 28 Bronze / 27 Silver", "foundation")}${arrow}${node("277 scale bundles: seven-bundle children, then three", "generate")}${arrow}${node("Final proof: empty state and complete dry run", "verify")}${arrow}${node("10,000 Bronze / 9,999 Silver", "gold")}</div></div></figure>`,
 };
