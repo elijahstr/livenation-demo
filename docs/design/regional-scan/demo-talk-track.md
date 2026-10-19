@@ -115,11 +115,11 @@ Use this disclosure if a technical reviewer asks what works now.
 
 "The proposed design reuses the dedicated Genie Agent after a runtime verification."
 
-"The workspace data count from October 16 was two accounts, eleven tickets, and three activities."
+"The October 19 Silver check found 278 accounts, 555 activities, and 9,999 rows across 17 tables."
 
 "We will recheck that observation before the demo."
 
-"The October 16 proof had not reached the 10,000-record target."
+"Repository proof records 10,000 Bronze rows. That does not mean 10,000 accounts or 10,000 tickets. The generated accounts remain repetitive, so varied scenario fixtures still matter."
 
 "We will recheck the loader state before the demo."
 

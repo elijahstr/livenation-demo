@@ -16,6 +16,8 @@ The scan reads evidence for every authorized account. The model decides which ev
 - A live multiquery scan is not a transaction. The server marks mixed or stale evidence.
 - A missing section returns `unavailable`. It never returns an empty fact as proof.
 - Pagination returns a cursor and a total only when the source knows a total.
+- UTF-8 caps validate complete JSON. The server never slices raw bytes.
+- Omitted facts or rows retain provenance and set `partial` or `truncated`.
 - The tools never create a hold, draft, message, purchase, or contact direction.
 
 ## Evidence envelope
@@ -44,6 +46,8 @@ The server stores roster pagination in its ledger. It reports `processing_finish
 ### `get_account_evidence`
 
 Input: `account_id` and one to four sections from `activity`, `contract`, `purchases`, and `benefits`. The server rejects a non-roster account.
+
+An older-history cursor is a proposed unimplemented extension. It needs a schema update. It must bind to account, section, scope hash, and source fingerprint.
 
 The response has one explicit value for every requested section: evidence, `unavailable`, or `error`. Purchase history separates paid active ticket facts from historical accepted uses. Benefits use `included_quantity` and `purchased_line_count` with their own units.
 

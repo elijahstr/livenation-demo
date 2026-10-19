@@ -16,9 +16,9 @@ Use this skill for a regional scan. The scan creates seller-ready assessments. I
 
 ## Assess
 
-1. Form a useful hypothesis from the roster and prior verified evidence.
+1. Form a useful hypothesis from the assigned summary and prior verified evidence.
 2. Request only evidence that can test the hypothesis.
-3. Use `get_account_evidence` for activity, contract, purchases, or benefits.
+3. Use `get_account_evidence` only when summary evidence cannot resolve a material question.
 4. Use `find_options` only when an option could change the seller action.
 5. Use `ask_analytics` for a regional comparison or aggregate question.
 6. Separate facts, inferences, and unknowns in each assessment.

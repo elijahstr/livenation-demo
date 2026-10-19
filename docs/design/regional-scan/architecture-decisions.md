@@ -99,16 +99,15 @@ The current demo identity can still have broad administrator rights.
 The Genie space improves semantic context. It does not enforce access control.
 See [Premium tool guide](../../data/premium-gold-tools.md#permissions-and-teardown).
 
-**Verified current implementation.** The workspace previously showed two accounts, eleven tickets, and three activities.
-This was a historical observation on 2026-10-16.
-Recheck it before the demo.
+**Verified observation on 2026-10-19.** Silver had 278 accounts, 555 activities, and 9,999 rows across 17 tables. This does not prove an approved Northern California roster or end-to-end scan performance.
 
 **Verified current implementation.** Trace setup has proof for an AgentCore call.
 It does not prove that the proposed regional scan works end to end.
 See [trace guide](../../../infra/README.md#read-a-conversation-trace).
 
-**Historical observation on 2026-10-16.** The recorded proof covered the foundation and first scale bundle.
-It did not show the 10,000-record target.
+**Historical observation on 2026-10-16.** The recorded proof covered the foundation and first scale bundle. It showed two accounts, eleven tickets, and three activities.
+
+**Repository proof at `f91ff9d`.** The loader recorded 10,000 Bronze rows. This is not a live Bronze count from 2026-10-19.
 Recheck the loader state before the demo.
 See [scale guide](../../data/premium-10k-scale.md#current-status).
 

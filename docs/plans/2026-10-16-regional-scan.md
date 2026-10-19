@@ -15,18 +15,18 @@ The model forms hypotheses and requests evidence. SQL returns stable facts. The 
 - The current fixed account tools support A100 only and allow three calls per turn. `ask_analytics` has a different input boundary.
 - The current Genie client calls workspace-wide Genie One. It has no dedicated agent ID.
 - The snapshot date is `2026-10-16T12:00:00Z`.
-- The last observed snapshot had two Silver accounts, eleven ticket rows, three activities, and two attention rows.
+- The 2026-10-19 Silver check had 278 accounts, 555 activities, 2,219 tickets, and 9,999 rows across 17 tables. See [scale evidence](../design/regional-scan/scale-evidence-2026-10-19.json).
 - Silver contract evidence shows A100 Harbor Works has an active contract through 2026-12-31.
 - A100 has a 2026-09-30 email without body or direction.
 - A100 has three accepted uses at one Meridian Lights event.
 - A100 includes General Parking for E200. It does not own Premier Parking.
 - The observed Premier Parking snapshot has twelve units at $40.
 
-The future admission state and any seller-driving evidence need verification. The scale generator can create more data. This plan does not claim that it is loaded.
+Repository proof at `f91ff9d` records 10,000 Bronze rows. This check did not read a live Bronze count. The future admission state and seller-driving evidence need verification.
 
 ## Settled decisions
 
-- The seller scope is CA, OR, WA. Northern CA needs an explicit boundary. State alone cannot define it.
+- The seller territory is Northern California, Oregon, and Washington. An explicit Northern California allowlist remains open. State alone cannot define it.
 - A schedule and a manual scan use one service. The schedule cadence stays open.
 - The scan is read-only. It has no hold, draft, send, or purchase tool.
 - The initial list paginates the complete authorized roster.
@@ -49,7 +49,11 @@ The draft has three model tools: `get_account_evidence`, `find_options`, and `as
 
 The server retains the full roster. It gives the model bounded batches and summaries. The model does not hold the full region in context.
 
-The proposed budgets are ten accounts, twelve business calls, and 180 seconds per batch. The scan caps are 600 seconds and 120 business calls. Each response caps at 64 KiB.
+## Scale and retrieval
+
+The server should run one scoped summary query, consume completed result chunks once, persist a ledger, page that ledger by 50, and send at most ten accounts per model batch. Byte caps can shrink a batch.
+
+The CA, OR, and WA single-query baseline took 17,809 ms. The six-page keyset experiment took 43,791 ms. Both include CLI work and have unknown cache state. Neither measures runtime scan performance. See [scale and retrieval review](../design/regional-scan/scale-and-retrieval.md).
 
 The proposed Genie route uses the supported conversation API through the existing CLI and HTTP boundary. It sends natural language and receives generated SQL attachments. The seller agent has no raw SQL execution tool. [Databricks Conversation API](https://docs.databricks.com/aws/en/genie-agents/conversation-api)
 
@@ -68,7 +72,7 @@ The query identity needs only `USE CATALOG`, `USE SCHEMA`, and `SELECT` on curat
 1. Keep the review documents as the approved source before runtime work.
 2. Add reviewed Gold projections and access checks. This prevents wrong units and unauthorized data use.
 3. Add `src/regional-scan-service.ts` and `src/scan-tools.ts`. They own scan state, roster pages, envelopes, and result validation.
-4. Add `src/genie-agent-client.ts`. It owns curated conversation submission and attachment validation.
+4. Add `src/genie-agent-client.ts` and a bounded Statements chunk adapter. The adapter extends this scan path only. It does not raise existing 1,000-row or 1 MiB tool limits.
 5. Update the existing server entry, harness client, and tool cycle. They load only the approved skills and tools.
 6. Add resumable persistence. A demo-only local JSON option needs atomic writes and serialized ownership.
 7. Add the mock UI scan cards and coverage state. A partial scan cannot appear complete.
@@ -111,7 +115,7 @@ The proposed defaults are ten accounts, twelve business calls, and 180 seconds p
 
 ## Review record
 
-The original external review verdict was needs material revision. Sonnet 5.5 provided factual context and Opus 5.5 provided judgment. Main-agent assessment accepted or partly accepted the findings. The draft incorporates those revisions. No second review ran. This draft is ready for user review. It is not implementation approval.
+The October 16 review verdict was needs material revision. The October 19 scale review used Sonnet 5.5 context and Opus 5.5 judgment. Its verdict was ship with minor revisions. Main-agent assessment accepted the correctness and measurement clarifications. No second review loop ran. This draft is ready for user review. It is not implementation approval.
 
 ## Readiness
 

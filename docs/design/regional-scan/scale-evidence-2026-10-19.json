@@ -1,0 +1,99 @@
+{
+  "checked_at": "2026-10-19T17:25:00.144Z",
+  "scope": "workspace.ln_premium_silver",
+  "statement_id": "01f1cbe1-f0c2-1ad3-b8d8-acce07978efe",
+  "elapsed_ms": 31424,
+  "counts": {
+    "accounts": 278,
+    "contacts": 278,
+    "identity_links": 278,
+    "contracts": 278,
+    "activities": 555,
+    "entitlements": 556,
+    "orders": 555,
+    "order_items": 1110,
+    "tickets": 2219,
+    "scans": 1667,
+    "venues": 278,
+    "events": 556,
+    "artists": 556,
+    "artist_relations": 278,
+    "inventory_snapshots": 555,
+    "event_financials": 1,
+    "artist_deal_terms": 1
+  },
+  "total_rows": 9999,
+  "summary_probe": {
+    "checked_at": "2026-10-19T17:25:48.088Z",
+    "statement_id": "01f1cbe2-155b-1cda-ab7a-cc5a32f61198",
+    "elapsed_ms": 17809,
+    "scope": "Full synthetic CA/OR/WA benchmark only; not an approved seller roster",
+    "sql": "WITH activity AS (\n SELECT account_id, count(*) AS activity_count\n FROM workspace.ln_premium_silver.activities GROUP BY account_id\n), paid AS (\n SELECT admission_account_id AS account_id, sum(valid_admission_quantity) AS valid_admission_tickets\n FROM workspace.ln_premium_gold.regional_sales WHERE admission_account_id IS NOT NULL GROUP BY admission_account_id\n)\nSELECT a.account_id, a.account_name, v.state AS venue_state, t.contract_end,\n t.latest_activity_at, coalesce(x.activity_count,0) AS activity_count,\n coalesce(p.valid_admission_tickets,0) AS valid_admission_tickets\nFROM workspace.ln_premium_gold.account_attention t\nJOIN workspace.ln_premium_silver.accounts a ON a.account_id=t.account_id\nJOIN workspace.ln_premium_silver.venues v ON v.venue_id=a.primary_venue_id\nLEFT JOIN activity x ON x.account_id=a.account_id\nLEFT JOIN paid p ON p.account_id=a.account_id\nORDER BY a.account_id",
+    "account_rows": 278,
+    "unique_accounts": 278,
+    "states": {
+      "CA": 94,
+      "OR": 92,
+      "WA": 92
+    },
+    "serialized_rows_bytes": 57815,
+    "batch_accounts": 10,
+    "batch_count": 28,
+    "max_batch_bytes": 2081,
+    "cache_state": "not measured",
+    "notes": [
+      "CLI elapsed includes submission, polling and retrieval; not SQL engine duration.",
+      "This is a SQL and payload measurement; no model/harness scan ran.",
+      "Paid ticket quantity uses existing regional_sales semantics; this query makes no recommendation."
+    ]
+  },
+  "pagination_probe": {
+    "checked_at": "2026-10-19T17:28:17.908Z",
+    "scope": "Full synthetic CA/OR/WA, benchmark only; no seller authorization claim",
+    "sql": "WITH page AS (\n SELECT a.account_id,a.account_name,v.state AS venue_state,t.contract_end,t.latest_activity_at\n FROM workspace.ln_premium_gold.account_attention t\n JOIN workspace.ln_premium_silver.accounts a ON a.account_id=t.account_id\n JOIN workspace.ln_premium_silver.venues v ON v.venue_id=a.primary_venue_id\n WHERE a.account_id > :after_account_id\n ORDER BY a.account_id LIMIT 50\n), activity AS (\n SELECT x.account_id,count(*) AS activity_count\n FROM workspace.ln_premium_silver.activities x JOIN page p ON p.account_id=x.account_id\n GROUP BY x.account_id\n), paid AS (\n SELECT r.admission_account_id AS account_id,sum(r.valid_admission_quantity) AS valid_admission_tickets\n FROM workspace.ln_premium_gold.regional_sales r JOIN page p ON p.account_id=r.admission_account_id\n GROUP BY r.admission_account_id\n)\nSELECT p.account_id,p.account_name,p.venue_state,p.contract_end,p.latest_activity_at,\n coalesce(a.activity_count,0) AS activity_count,coalesce(v.valid_admission_tickets,0) AS valid_admission_tickets\nFROM page p LEFT JOIN activity a ON a.account_id=p.account_id LEFT JOIN paid v ON v.account_id=p.account_id\nORDER BY p.account_id",
+    "pages": [
+      {
+        "statement_id": "01f1cbe2-5f39-192d-8603-5f6e122cb422",
+        "rows": 50,
+        "bytes": 10391,
+        "elapsed_ms": 8603
+      },
+      {
+        "statement_id": "01f1cbe2-644b-18d4-9afd-e40b125058b9",
+        "rows": 50,
+        "bytes": 10401,
+        "elapsed_ms": 8643
+      },
+      {
+        "statement_id": "01f1cbe2-6970-1672-9518-e8adf1a664d3",
+        "rows": 50,
+        "bytes": 10401,
+        "elapsed_ms": 6638
+      },
+      {
+        "statement_id": "01f1cbe2-6d6b-19c7-9cca-e9db638cedcb",
+        "rows": 50,
+        "bytes": 10401,
+        "elapsed_ms": 6377
+      },
+      {
+        "statement_id": "01f1cbe2-712b-1274-8447-5684f1610a55",
+        "rows": 50,
+        "bytes": 10401,
+        "elapsed_ms": 6521
+      },
+      {
+        "statement_id": "01f1cbe2-751a-1123-a47f-61d215161004",
+        "rows": 28,
+        "bytes": 5825,
+        "elapsed_ms": 7008
+      }
+    ],
+    "total_rows": 278,
+    "unique_accounts": 278,
+    "matches_single_query_baseline": true,
+    "elapsed_ms": 43791,
+    "cache_state": "not measured",
+    "note": "Keyset correctness and result bytes, not a speedup or SQL bytes-scanned guarantee."
+  }
+}
