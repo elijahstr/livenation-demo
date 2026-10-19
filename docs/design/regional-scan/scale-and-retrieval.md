@@ -70,6 +70,12 @@ The server does not stop at a top N list. It retains the complete authorized ros
 
 The proposed 600-second scan budget and 120 business-call budget are ceilings. They are safety limits, not performance promises. A scan can finish with full roster coverage but partial assessment when some accounts are deferred or unavailable.
 
+## A short guide to safe reuse
+
+A **cache** is a saved copy that can make a repeated read faster. It does not prove access or freshness. The server checks access before it uses saved evidence. It keeps the source time and the time it served the copy.
+
+The scan has application and Databricks reuse layers. Model prompt caching is a separate conditional layer. It remains unverified on this route. None saves a seller decision as fresh evidence. The scan refreshes live inventory before a later seller action. Read [the reliability practices](best-practices.md) before the technical notes.
+
 ## Technical notes
 
 <!-- details:start:Exact measurements and controls -->

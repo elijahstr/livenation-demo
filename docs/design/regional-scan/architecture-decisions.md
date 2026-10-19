@@ -34,6 +34,9 @@ Account chat follows the selected result.
 | Show citations, unknowns, query proof, and traces. | The demo must distinguish evidence from inference. | Show polished copy only. That hides uncertainty. | Settled design | [measurement record](../premium-sales/decisions-and-research.md#measurement-record) |
 | Use skills as domain playbooks. | Skills guide investigation and recommendation form. | Treat skills as access control. They cannot enforce permissions. | Settled design | [premium-sales research](../premium-sales/decisions-and-research.md#reference-document-summary) |
 | Let the server own roster and coverage state. | A scan needs verified coverage after a restart or budget stop. | Let the model report coverage. That makes coverage a model claim. | Proposed detail (review correction) | Review ruling, accepted |
+| Reuse validated evidence only inside one scan. | It avoids duplicate reads without turning old data into a current fact. | Reuse across scans. It can show stale inventory or bypass changed authorization. | Proposed detail | [Reliability practices](best-practices.md) |
+| Keep provider caches outside the evidence contract. | Provider caches improve speed, but they do not prove scope or freshness. | Treat a provider hit as current evidence. It can hide a changed source. | Proposed detail | [Reliability practices](best-practices.md) |
+| Keep Kimi until evaluation selects another route. | A route change needs quality, coverage, latency, and cost evidence. | Select a lower unit-price route first. It can fail a seller case. | Proposed detail | [Reliability practices](best-practices.md) |
 
 ## Proposed pipeline
 

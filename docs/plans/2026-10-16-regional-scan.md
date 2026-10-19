@@ -55,6 +55,8 @@ The server should run one scoped summary query, consume completed result chunks 
 
 The CA, OR, and WA single-query baseline took 17,809 ms. The six-page keyset experiment took 43,791 ms. Both include CLI work and have unknown cache state. Neither measures runtime scan performance. See [scale and retrieval review](../design/regional-scan/scale-and-retrieval.md).
 
+The scan separates application evidence reuse, Databricks result or file caches, and model prompt-prefix caching. The proposed application cache reuses only complete validated evidence inside one scan. It authorizes each protected hit. A provider cache is not an identity or freshness control. See [reliability practices](../design/regional-scan/best-practices.md).
+
 The proposed Genie route uses the supported conversation API through the existing CLI and HTTP boundary. It sends natural language and receives generated SQL attachments. The seller agent has no raw SQL execution tool. [Databricks Conversation API](https://docs.databricks.com/aws/en/genie-agents/conversation-api)
 
 ## Data and security assumptions
@@ -113,9 +115,15 @@ The proposed defaults are ten accounts, twelve business calls, and 180 seconds p
 
 `data_as_of` is a semantic cutoff. It is not a dataset version. Before scan start, each batch publish, resume, and scan end, the server records a source fingerprint. The fingerprint includes relevant Delta source-table IDs and latest versions, Gold view definitions, skill hashes, and scope-config hash. A fingerprint change marks the scan mixed, invalidates current comparisons, stops publication, and requires a fresh scan. Earlier historical evidence remains recorded. The local loader lock coordinates local work only. It does not prove no remote writer. Use read-only `DESCRIBE HISTORY ... LIMIT 1` for Delta version checks. [Delta history](https://docs.databricks.com/aws/en/delta/history)
 
+The proposed cache key binds trusted workspace, principal and authorization version, seller-roster scope hash, tool or query and schema version, normalized arguments, cutoff, and source fingerprint. It retains `data_as_of`, source `observed_at`, original `retrieved_at`, and cache `served_at`. No live-inventory cache crosses scans. A later seller action refreshes inventory.
+
+The default cache applies only to fixed-tool evidence. `ask_analytics` does not reuse an answer by natural-language question text. A follow-up can depend on conversation context. The scan consumes chunks from a completed statement. A future analytics cache needs exact SQL, parameters, semantic context, scope, and source keys, plus separate verification.
+
+The repository configuration selects Kimi on `converse_stream`. It does not prove a live regional-scan runtime. No model route changes automatically. Candidate routes need held-out seller cases with equal scope, prompt, tools, timeout, and data. The gate checks critical facts, scope, coverage, unknown handling, latency, and measured cost. Independent batch contexts stay bounded. A ledger resume does not append earlier account batches into one conversation. See [reliability practices](../design/regional-scan/best-practices.md).
+
 ## Review record
 
-The October 16 review verdict was needs material revision. The October 19 scale review used Sonnet 5.5 context and Opus 5.5 judgment. Its verdict was ship with minor revisions. Main-agent assessment accepted the correctness and measurement clarifications. No second review loop ran. This draft is ready for user review. It is not implementation approval.
+The October 16 review verdict was needs material revision. The October 19 scale review used Sonnet 5.5 context and Opus 5.5 judgment. Its verdict was ship with minor revisions. The practices review used Sonnet 5.5 context and Opus 5.5 judgment. Its verdict was ship with minor revisions. The accepted rulings are applied in this draft. No second review loop ran. This draft is ready for user review. It is not implementation approval.
 
 ## Readiness
 

@@ -20,6 +20,14 @@ The scan reads evidence for every authorized account. The model decides which ev
 - Omitted facts or rows retain provenance and set `partial` or `truncated`.
 - The tools never create a hold, draft, message, purchase, or contact direction.
 
+## Evidence reuse and freshness
+
+The application can reuse only complete, validated evidence within one scan. Its proposed key binds trusted workspace, principal and authorization version, seller-roster scope hash, tool or query and schema version, normalized arguments, cutoff, and source fingerprint. The server authorizes every protected cache read.
+
+Each envelope retains `data_as_of`, source `observed_at`, and original `retrieved_at`. The proposed cache ledger adds `served_at`. The entry ends at the scan deadline or policy maximum age. The server rejects reuse when its current source or authorization check detects a change. A changed fingerprint stops publication. A failed, stale, mixed, or truncated response cannot become an empty fact. A later seller action refreshes inventory.
+
+The default cache applies only to fixed-tool evidence. The design does not cache `ask_analytics` by natural-language question text. Follow-up meaning can depend on conversation context. The scan consumes chunks from an already completed statement. A future analytics cache needs exact SQL, parameters, semantic context, scope, and source keys, plus separate verification.
+
 ## Evidence envelope
 
 Every response has scan identity, typed dataset references, source fingerprint, evidence IDs, source references, units, cutoff and retrieval times, status, truncation, and error fields. The canonical schema is [response-schemas.json](response-schemas.json). The canonical illustrative input and output is [contract-examples.json](contract-examples.json). `truncated` prevents a coverage claim.
