@@ -1,71 +1,98 @@
-# Scale and retrieval review
+# How the regional scan works
 
-Status: review draft. No runtime work occurred.
+Status: teaching review. This page describes a proposed read-only design. No runtime work occurred.
 
-## Verified evidence on 2026-10-19
+The database gathers reliable facts. The agent investigates and judges. The server makes sure no account is lost.
 
-The live Silver scope contains 278 accounts, 555 activities, 2,219 tickets, and 9,999 rows across 17 tables. The full evidence is [scale-evidence-2026-10-19.json](scale-evidence-2026-10-19.json).
+Think of an analyst with one folder for each account. The database puts dated records into each folder. The agent reads a small set of folders and asks for more records only when they can change the next step. The server keeps the folder list and checks that every folder has an honest result.
 
-Repository proof at `f91ff9d` records 10,000 Bronze rows. This is repository proof, not a live Bronze count from this check.
+A **model** reads and writes language. An **agent** is a model with task rules and controlled tools. The **server** is the program that enforces account scope and saves the results.
 
-The single-query baseline took 17,809 ms. It returned 57,815 serialized bytes. Ten-account batches reached 2,081 bytes. The six-page keyset probe took 43,791 ms. It returned 278 unique accounts and exactly matched the baseline rows. Its page bytes total 57,820. Both values include CLI work. Cache state was unknown. They support no causal speed comparison. The probe covered CA, OR, and WA. It does not define the approved Northern California seller roster.
+<!-- fig:rolesflow -->
 
-The probe had no model, harness, or end-to-end scan. It measured a payload projection, not a complete summary schema, evidence envelope, or judgment quality. Cache state was not measured. These results do not prove production performance or enterprise scale.
+## Start with the problem
 
-The probe read Silver directly under the demo identity. A curated Gold route with a restricted principal needs separate runtime measurement. Source-version metadata permissions also need verification.
+A regional seller can have many accounts. Reading every raw event, ticket, activity, and inventory record would take too much space and hide useful facts. A model can help investigate, but it must not invent numbers or decide which accounts exist.
 
-## Proposed retrieval flow
+An **account** is a customer relationship. A **row** is one table record. An **activity** is a contact event, such as an email or call. A ticket use is a separate scan record. One account can have many rows. The scan must cover accounts, not merely count activities.
 
-The database creates one narrow summary row per approved account. It preaggregates activities and valid paid tickets before account joins. It keeps money separate from tickets and scans.
+The database stores the source records. **SQL** is a query language that asks the database for selected facts. Bronze, Silver, and Gold are data layers: **Bronze** keeps source-shaped records, **Silver** cleans and links them, and **Gold** gives reviewed business summaries. The proposed scan reads narrow Gold summaries. It does not send all Silver rows to the model.
 
-The recommended path runs one seller-scoped set summary query per scan. It drains one completed statement result into bounded chunks and persists a local ledger. The server pages that ledger by 50 and sends model batches of ten.
+## What the system knows first
 
-The keyset probe is a historical correctness measurement. It is not the recommended default. It did not prove filter pushdown.
+The **roster** is the approved account list. One SQL **query**, a request for facts, creates one compact summary for each authorized account. The server saves the result in a **ledger**, a durable list of account results and their evidence. This means the scan can resume after an interruption.
 
-The current Statements adapter rejects multi-chunk results. A proposed adapter extension must verify chunk indexes, offsets, completeness, deadline, and bounded disk spooling. It must not follow arbitrary next URLs. A missing chunk returns partial coverage. [Statement result chunks](https://docs.databricks.com/api/workspace/statementexecution/getstatementresultchunkn)
+The observed October 19 measurement covered 278 accounts, 555 activities, and 9,999 Silver rows across 17 tables. It was a CA, OR, and WA benchmark. It was not an approved seller roster or a production performance test. The full measurement is in [the evidence file](scale-evidence-2026-10-19.json).
 
-The server persists summaries and evidence once per scan. Every summary retains evidence IDs, source references, units, cutoff, retrieval time, status, and source fingerprint. The model can cite those facts without a detail call. It passes at most ten summaries and 16 KiB of summary input to one model call. The existing 64 KiB tool-response cap remains. The implementation must measure the full envelope.
+<!-- fig:summaryvsdetail -->
 
-The model can assess a supported summary directly. It can request bounded recent history or cursor-based older history when needed. It does not repeat evidence already present in the summary.
+The server gives up to ten summaries to one model call. This small group is a **batch**. It sends no more than 16 KiB of summary text. A KiB is 1,024 bytes, so 16 KiB is a small text parcel. The existing tool response cap is 64 KiB, a larger parcel for a tool result. These caps keep one request readable and bounded. They do not promise speed.
 
-The server caches evidence, not recommendations, by scope hash, source fingerprint, tool arguments, and cutoff. It invalidates the cache on a source change. It coalesces safe repeated detail requests within one batch.
+With 278 accounts, ten accounts per model batch requires at least 28 batches. The ledger pages by 50 accounts for the application. An API is a way for programs to exchange a request and result. A result chunk is one piece of a large API result. Ledger pages are separate from model batches and result chunks. A detail query happens only when a summary cannot answer a material question.
 
-Fixed retrieval and Genie both use approved seller-scoped views. Genie can support adaptive hypotheses. Natural language does not enforce scope.
+## A concrete A100 example
 
-## Batch arithmetic
+These are observed facts for A100 Harbor Works:
 
-278 accounts produce six server pages of 50 and 28 model batches of ten. This avoids 278 mandatory SQL or Genie calls.
+- The contract is active through 2026-12-31.
+- An email activity has the timestamp 2026-09-30. It has no body or direction.
+- Three ticket uses exist for one Meridian Lights event.
+- General Parking is included for E200.
+- Premier Parking is not owned.
+- A 2026-10-16 inventory snapshot records 12 Premier Parking units at $40.
 
-The 600-second cap includes enumeration, fingerprints, retrieval, and model work. Twenty-eight serial batches give a 21.4-second bound before overhead. Two workers give a 42.9-second bound before overhead. After the historical 43.791-second probe, the illustrative bounds are 19.9 seconds serial and 39.7 seconds with two workers. These are not runtime cost estimates, measurements, or an SLA.
+These facts do not prove renewal risk, a preference for a future event, attendance plans, an email meaning, or that an item remains available. The 12 units at $40 are a dated snapshot, not an availability promise.
 
-The 120 business-call cap counts model-requested calls. Each batch receives `min(12, floor(remaining_calls / remaining_batches))` calls under an atomic global reservation. Zero allowance permits a summary assessment or explicit deferral. The server tracks SQL and version checks separately under the whole deadline and bounded counts.
+A possible future agent step is to recommend that the seller ask whether future attendance or travel would make parking useful. The read-only scan does not contact the customer. This is not a fact from the three ticket uses. Missing evidence can support `ask` or `deferred`. `no-action` needs evidence that no useful step exists now.
 
-Two workers are proposed only after isolated sessions, atomic global call reservations, and no concurrent result-store writes. A model may group similar summaries in one prompt. It must not copy a result across accounts.
+## How the agent judges a useful next step
 
-No top-N early stop exists. A deadline marks every unprocessed account `deferred` and returns partial coverage.
+| Part | Purpose and example |
+| --- | --- |
+| Skill | A written work rule. The judgment skill tells the agent to separate facts, inferences, and unknowns. |
+| Tool | A controlled function that returns data. A fixed SQL tool can return contract dates. |
+| MCP | A standard that connects an agent to tools. |
+| Genie | Analytics that can answer a bounded natural-language question with generated SQL. |
 
-## Growth controls
+An AgentCore **harness** runs agent and tool steps. A **trace** records the request path for inspection. A trace does not prove that the judgment was correct.
 
-Do not send raw Silver rows to the model. Do not use per-account full-table aggregations. Do not use a global `LIMIT` that hides accounts.
+The agent first checks evidence strength and customer value. It then considers urgency, effort, and revenue only when the scan objective permits them. It compares a leading explanation with another reasonable explanation. It asks for a missing fact only when that fact could change the recommendation. This prevents a fixed SQL threshold from becoming a universal sales script.
 
-Do not run manual `OPTIMIZE` or `ANALYZE`. Consider a materialized projection or physical clustering only after profiling identifies a bottleneck and a separate managed-service write approval exists.
+The agent chooses what to investigate. It can choose a different path or wording even for the same facts. This nondeterministic behavior does not permit invented facts. SQL facts, server permissions, roster checks, and saved evidence remain reliable controls.
 
-Measure query profile, read bytes, shuffle, spill, cache state, model tokens, call count, payload bytes, and wall time. Query caching is not guaranteed. A row limit does not bound SQL bytes scanned.
+The current route sends questions to workspace-wide Genie One. The proposed route uses a curated Genie connection with its own approved context. The agent cannot submit arbitrary SQL. It calls a named tool. Fixed tools run reviewed queries. Genie generates a query for an allowed analytic question.
 
-## Acceptance gates
+## How the scan finishes honestly
 
-- Every approved account appears in the persisted roster.
-- No account receives a forced `no-action` because of a budget.
-- Initial metadata uses set queries and pages, not N+1 account queries.
-- The initial path does not require 278 SQL or Genie calls.
-- Local fixtures test one times and ten times summary volume.
-- UTF-8 caps validate complete JSON. The server bounds whole facts and rows with provenance.
-- A 16 KiB overflow splits a batch. One oversized summary becomes unavailable or deferred.
-- Results report payload, call, time, and coverage limits.
-- A source change starts a fresh scan.
+The server does not stop at a top N list. It retains the complete authorized roster. It checks every returned account ID, saves each valid batch, and records whether each account is assessed, deferred, or unavailable. A timeout marks remaining work as deferred. It never makes that result look complete.
+
+<!-- fig:coverageoutcomes -->
+
+The proposed 600-second scan budget and 120 business-call budget are ceilings. They are safety limits, not performance promises. A scan can finish with full roster coverage but partial assessment when some accounts are deferred or unavailable.
+
+## Technical notes
+
+<!-- details:start:Exact measurements and controls -->
+
+The single-query benchmark took 17,809 ms and returned 57,815 serialized bytes. The six-page keyset probe took 43,791 ms and returned 278 unique accounts. It matched the baseline rows. Both timings include CLI submission, polling, and retrieval. Cache state was not measured. Neither timing proves runtime scan performance or an SLA.
+
+The measurement read Silver directly under the demo identity. The proposed Gold route with a restricted principal has no runtime measurement. The current fixed tools support A100 only and use the broad synthetic demo identity. Proposed seller-scoped permissions need separate verification.
+
+The current Statements adapter rejects multi-chunk results. The proposed extension is not live. It verifies chunk index, offset, completeness, deadline, and bounded disk spooling. It follows no arbitrary next URL. A missing chunk produces partial coverage. Repeated SQL page queries can repeat database work. The proposed path reads one completed query result into the ledger. The server stores source references, units, cutoff, retrieval time, status, and source fingerprint with saved evidence.
+
+A fingerprint includes relevant Delta table IDs and latest versions, Gold view definitions, skill hashes, and the scope configuration hash. A fingerprint change marks the scan mixed and requires a fresh comparison. UTF-8 size checks keep complete text and evidence together when the server splits a batch.
+
+The proposed fairness formula reserves business calls across remaining batches: `min(12, floor(remaining_calls / remaining_batches))`. A zero allowance permits a summary assessment or an explicit deferral. It does not force a no-action result.
+
+<!-- details:end -->
+
+## Limits and open decisions
+
+This page is a teaching explanation, not proof that the design runs end to end. The original plan keeps six open decisions: the curated Genie connector, scan objective, partial-card behavior, schedule cadence, versioned regional allowlist, and restricted query identity. Read [the full plan](/full) for the canonical technical design and [the source evidence](/source/scale-evidence) for exact observed data.
 
 ## Sources
 
+- [Databricks statement result chunks](https://docs.databricks.com/api/workspace/statementexecution/getstatementresultchunkn)
 - [Databricks query profile](https://docs.databricks.com/aws/en/sql/user/queries/query-profile)
 - [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
-- [Databricks optimizations](https://docs.databricks.com/aws/en/optimizations/)
+- [Databricks Genie best practices](https://docs.databricks.com/aws/en/genie-agents/best-practices)

@@ -1,4 +1,4 @@
-import { digest, document, full } from "./render.ts";
+import { digest, document, full, teachingDocument } from "./render.ts";
 const root = new URL(".", import.meta.url);
 const read = (path: string) => Bun.file(new URL(path, root)).text();
 const plan = () => read("../../plans/2026-10-16-regional-scan.md");
@@ -8,6 +8,6 @@ routes["/scale"] = "scale-and-retrieval.md";
 routes["/design/regional-scan/scale-and-retrieval.md"] = "scale-and-retrieval.md";
 sources["/source/scale-evidence"] = "scale-evidence-2026-10-19.json";
 const port = Number(process.env.PORT ?? "4198");
-const server = Bun.serve({hostname:"127.0.0.1",port,async fetch(request){const path=new URL(request.url).pathname;const headers={"cache-control":"no-store"};if(path==="/")return new Response(digest(await plan(),await read("architecture-decisions.md")),{headers:{...headers,"content-type":"text/html"}});if(path==="/full")return new Response(full(await plan()),{headers:{...headers,"content-type":"text/html"}});if(path==="/raw")return new Response(await plan(),{headers:{...headers,"content-type":"text/markdown"}});if(path in sources)return new Response(await read(sources[path]!),{headers:{...headers,"content-type":sources[path]!.endsWith(".json")?"application/json":"text/markdown"}});if(path==="/skills")return new Response(document("Draft skills",`- [Regional sales review](/skills/regional-sales-review)
+const server = Bun.serve({hostname:"127.0.0.1",port,async fetch(request){const path=new URL(request.url).pathname;const headers={"cache-control":"no-store"};if(path==="/")return new Response(digest(await plan(),await read("architecture-decisions.md")),{headers:{...headers,"content-type":"text/html"}});if(path==="/full")return new Response(full(await plan()),{headers:{...headers,"content-type":"text/html"}});if(path==="/raw")return new Response(await plan(),{headers:{...headers,"content-type":"text/markdown"}});if(path==="/scale"||path==="/design/regional-scan/scale-and-retrieval.md")return new Response(teachingDocument(await read("scale-and-retrieval.md")),{headers:{...headers,"content-type":"text/html"}});if(path in sources)return new Response(await read(sources[path]!),{headers:{...headers,"content-type":sources[path]!.endsWith(".json")?"application/json":"text/markdown"}});if(path==="/skills")return new Response(document("Draft skills",`- [Regional sales review](/skills/regional-sales-review)
 - [Sales evidence judgment](/skills/sales-evidence-judgment)`),{headers:{...headers,"content-type":"text/html"}});if(path in routes)return new Response(document(path.slice(1),await read(routes[path]!)),{headers:{...headers,"content-type":"text/html"}});return new Response("Not found",{status:404,headers});}});
 console.log(`http://127.0.0.1:${server.port}`);
