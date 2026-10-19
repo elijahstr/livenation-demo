@@ -53,9 +53,9 @@ The server retains the full roster. It gives the model bounded batches and summa
 
 The server should run one scoped summary query, consume completed result chunks once, persist a ledger, page that ledger by 50, and send at most ten accounts per model batch. Byte caps can shrink a batch.
 
-The CA, OR, and WA single-query baseline took 17,809 ms. The six-page keyset experiment took 43,791 ms. Both include CLI work and have unknown cache state. Neither measures runtime scan performance. See [scale and retrieval review](../design/regional-scan/scale-and-retrieval.md).
+The CA, OR, and WA single-query baseline took 17,809 ms. The six-page keyset experiment took 43,791 ms. Both include CLI work and have unknown cache state. Neither measures runtime scan performance. See the [regional scan guide](../design/regional-scan/guide.md#exact-measurements-and-scan-controls).
 
-The scan separates application evidence reuse, Databricks result or file caches, and model prompt-prefix caching. The proposed application cache reuses only complete validated evidence inside one scan. It authorizes each protected hit. A provider cache is not an identity or freshness control. See [reliability practices](../design/regional-scan/best-practices.md).
+The scan separates application evidence reuse, Databricks result or file caches, and model prompt-prefix caching. The proposed application cache reuses only complete validated evidence inside one scan. It authorizes each protected hit. A provider cache is not an identity or freshness control. See the [regional scan guide](../design/regional-scan/guide.md#reliability).
 
 The proposed Genie route uses the supported conversation API through the existing CLI and HTTP boundary. It sends natural language and receives generated SQL attachments. The seller agent has no raw SQL execution tool. [Databricks Conversation API](https://docs.databricks.com/aws/en/genie-agents/conversation-api)
 
@@ -119,7 +119,7 @@ The proposed cache key binds trusted workspace, principal and authorization vers
 
 The default cache applies only to fixed-tool evidence. `ask_analytics` does not reuse an answer by natural-language question text. A follow-up can depend on conversation context. The scan consumes chunks from a completed statement. A future analytics cache needs exact SQL, parameters, semantic context, scope, and source keys, plus separate verification.
 
-The repository configuration selects Kimi on `converse_stream`. It does not prove a live regional-scan runtime. No model route changes automatically. Candidate routes need held-out seller cases with equal scope, prompt, tools, timeout, and data. The gate checks critical facts, scope, coverage, unknown handling, latency, and measured cost. Independent batch contexts stay bounded. A ledger resume does not append earlier account batches into one conversation. See [reliability practices](../design/regional-scan/best-practices.md).
+The repository configuration selects Kimi on `converse_stream`. It does not prove a live regional-scan runtime. No model route changes automatically. Candidate routes need held-out seller cases with equal scope, prompt, tools, timeout, and data. The gate checks critical facts, scope, coverage, unknown handling, latency, and measured cost. Independent batch contexts stay bounded. A ledger resume does not append earlier account batches into one conversation. See the [regional scan guide](../design/regional-scan/guide.md#reliability).
 
 ## Review record
 

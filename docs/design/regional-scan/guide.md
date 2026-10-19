@@ -1,4 +1,70 @@
-# Regional scan reliability practices
+# Regional scan guide
+
+## Start here
+
+The regional scan is a **proposed**, read-only way to help a seller review an approved account list. It is not a deployed workflow. Think of it as a careful clerk with a folder for each account: the database places dated facts in each folder, an agent reads a small group of folders, and the server checks that every folder has an honest recorded outcome.
+
+An **account** is a customer relationship. An **activity** is a contact event, such as an email or call. A **row** is one database record. The **roster** is the approved list of accounts to assess. A **model** writes and reads language. An **agent** is a model with written rules and controlled tools. The **server** is the program that keeps the roster, access checks, and saved results.
+
+The October 19 benchmark observed **278 accounts, 555 activities, and 9,999 Silver rows across 17 tables**. **Silver** is the cleaned and linked data layer. **Gold** is the reviewed business-summary layer. The benchmark covered California, Oregon, and Washington. It is a measurement, not an approved Northern California roster and not a production performance result. The data is synthetic. The proposed demo roster still needs its versioned allowlist.
+
+**Current status:** Premium chat has fixed A100 evidence tools and one workspace-wide Genie analytics tool through a local bridge. The scan, its roster control, its ledger, and its UI integration remain proposed. The scan makes no business write. It cannot hold inventory, send a message, release an offer, or spend money.
+
+<!-- fig:rolesflow -->
+
+## How it works
+
+The database supplies facts. SQL, a language for database questions, creates one compact summary for every authorized account. The server saves the summaries and their evidence identifiers in a **ledger**, a durable result list. It then gives no more than ten summaries to one model call. A detail request happens only when it can change the next seller step.
+
+This separates evidence from judgment. The database can state a date, quantity, or benefit. The agent can assess whether the evidence supports `act`, `ask`, or `no-action`. It checks evidence strength, customer value, urgency, and effort, then considers revenue only when the scan objective permits it. It compares reasonable explanations and records unknowns. It cannot convert a missing fact into a negative fact. The server validates every returned account identifier and calculates coverage itself.
+
+A **skill** is a written work rule. A **tool** is a controlled data function. **MCP** is a standard that connects an agent to tools. An AgentCore **harness** runs agent and tool steps. Fixed tools return reviewed facts. The agent uses adaptive investigation only for questions that can change the seller step.
+
+<!-- fig:summaryvsdetail -->
+
+Harbor Works, account `A100`, shows the boundary. Its active contract ends on 2026-12-31. One email has a timestamp but no body or direction. Three ticket uses exist for one Meridian Lights event. General Parking is included for E200. Premier Parking is absent. A dated October 16 snapshot records 12 Premier Parking units at $40.
+
+Those facts do not prove customer intent, future attendance, travel plans, email meaning, renewal risk, or present inventory availability. A useful seller step can be: ask whether future attendance or travel makes parking useful. It cannot promise a hold. The later seller action refreshes inventory first.
+
+## Reliability
+
+The server owns the coverage promise. It retains the full authorized roster and records every account as assessed, deferred, or unavailable. A timeout leaves remaining accounts deferred. A scan can finish processing yet remain **partial**. The page must never present that result as complete.
+
+<!-- fig:coverageoutcomes -->
+
+A **cache** is a saved copy. It may avoid duplicate work, but it does not prove access or freshness. The proposed application cache reuses only complete validated fixed-tool evidence inside one scan. It checks authorization before each protected use. It saves the business cutoff, source observation time, original retrieval time, and cache service time. It never reuses live inventory across scans or treats an error as a fact.
+
+Databricks can reuse query results and files, but that does not replace seller authorization or freshness checks. The proposed retrieval uses one parameterized, scoped summary statement and its completed result chunks. It does not use offset pages as a claim of bounded database work. The existing Gold objects are ordinary views. This design adds no manual optimization or warehouse change.
+
+The repository selects Kimi on `converse_stream`, but that does not prove a live scan runtime. Keep the route until identical held-out cases pass fact, scope, coverage, unknown-handling, latency, and measured-cost checks. Prompt caching remains conditional until the exact route supports it and an observed cache read confirms it. Model input caching never becomes current seller evidence.
+
+## Decisions
+
+The design has six open decisions. Each card gives the recommendation and its cost. These selections only create a readable note for review. They do not change the design or submit anything.
+
+<!-- decisions -->
+
+## Reference
+
+The closed sections below keep the technical record on this page. They include the full implementation plan, contracts, skills, prompt, Genie context, evaluation material, and source proof. The embedded JSON sections are readable here. The server also preserves raw developer downloads at `/source/*`.
+
+<!-- details:start:Exact measurements and scan controls -->
+
+The single-query benchmark took 17,809 ms and returned 57,815 serialized bytes. The six-page keyset probe took 43,791 ms and returned 278 unique accounts. It matched the baseline rows. Both timings include CLI submission, polling, and retrieval. Cache state was not measured. Neither timing proves runtime scan performance or an SLA.
+
+The measurement read Silver directly under the demo identity. The proposed Gold route with a restricted principal has no runtime measurement. The current fixed tools support A100 only and use the broad synthetic demo identity. Proposed seller-scoped permissions need separate verification.
+
+The current Statements adapter rejects multi-chunk results. The proposed extension verifies chunk index, offset, completeness, deadline, and bounded disk spooling. It follows no arbitrary next URL. A missing chunk produces partial coverage. The proposed path reads one completed query result into the ledger. The server stores source references, units, cutoff, retrieval time, status, and source fingerprint with saved evidence.
+
+A fingerprint includes relevant Delta table IDs and latest versions, Gold view definitions, skill hashes, and the scope configuration hash. A fingerprint change marks the scan mixed and requires a fresh comparison. UTF-8 size checks keep complete text and evidence together when the server splits a batch.
+
+The proposed fairness formula reserves business calls across remaining batches: `min(12, floor(remaining_calls / remaining_batches))`. A zero allowance permits a summary assessment or explicit deferral. It does not force a no-action result.
+
+<!-- details:end -->
+
+<!-- details:start:Reliability practices and source proof -->
+
+### Regional scan reliability practices
 
 Date checked: 2026-10-19. Status: design guidance. The scan is read-only and unbuilt.
 
@@ -82,3 +148,13 @@ The scan records each cache layer as hit, miss, or unknown. It records SQL state
 - [OWASP multi-tenant security guidance](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)
 - [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
 - [AWS prompt caching](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
+
+<!-- details:end -->
+
+## Sources
+
+- [Scale evidence](scale-evidence-2026-10-19.json)
+- [Databricks statement result chunks](https://docs.databricks.com/api/workspace/statementexecution/getstatementresultchunkn)
+- [Databricks query profile](https://docs.databricks.com/aws/en/sql/user/queries/query-profile)
+- [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
+- [Databricks Genie best practices](https://docs.databricks.com/aws/en/genie-agents/best-practices)
