@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/premium.css">
+  <title>Regional scan · Premium Sales</title>
+  <script type="module" src="/premium.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-lockup"><div class="brand">LIVE NATION<span class="brand-mark">★</span></div><div class="brand-unit">PREMIUM SALES</div></div>
+    <span class="header-label">Your sales workspace</span>
+    <div class="account">WEST REGION<small>Independent demo · Synthetic data</small></div>
+  </header>
+  <main>
+    <section class="scan-strip" aria-label="Regional scan">
+      <div class="scan-title"><span class="scan-mark" aria-hidden="true">✦</span><div><h1>Your regional scan</h1><p id="territory">Northern California, Oregon, and Washington</p></div></div>
+      <div class="scan-controls"><small id="scan-status">Ready to scan</small><button class="button" id="scan-now">Scan now</button></div>
+    </section>
+    <p id="notice" class="notice" role="status" hidden></p>
+    <section id="results" aria-label="Account roster" hidden>
+      <div class="attention-heading"><h2>Your accounts <span class="count" id="roster-count"></span></h2><span id="coverage"></span></div>
+      <div class="roster-controls">
+        <label class="search-label">Find an account<input type="search" id="search" placeholder="Account name or ID"></label>
+        <label>Status<select id="status-filter"><option value="all">All accounts</option><option value="assessed">Assessed</option><option value="deferred">Deferred</option><option value="unavailable">Unavailable</option><option value="pending">Not yet assessed</option></select></label>
+        <div class="pagination"><button class="clear" id="previous">Previous</button><span id="page-status"></span><button class="clear" id="next">Next</button></div>
+      </div>
+      <div id="account-list" class="attention-list"></div>
+    </section>
+    <section class="conversation" aria-label="Account detail and conversation">
+      <div class="chat-heading"><div class="chat-title"><span class="agent-icon" aria-hidden="true">✦</span><div><h2 id="account-title" tabindex="-1">Your sales agent</h2><p id="account-subtitle">Your region. Your accounts. One conversation.</p></div></div><button id="new-chat" class="clear" hidden>New conversation</button></div>
+      <div id="account-navigation" class="account-navigation" hidden><button id="back" class="clear">← Back to scan</button></div>
+      <div class="chat-scroll" id="chat-scroll">
+        <div class="empty-state" id="empty"><span class="empty-icon" aria-hidden="true">✦</span><h3>Find your next conversation.</h3><p id="empty-copy">Scan your region to assess the approved account list with dated evidence.</p></div>
+        <div id="account-detail" class="thread" hidden></div>
+        <div id="messages" class="thread" hidden aria-live="polite"></div>
+      </div>
+      <div class="chat-bottom">
+        <p class="chat-progress" id="chat-progress" role="status"></p>
+        <form id="composer" class="input-shell"><input id="message" maxlength="4000" aria-label="Message to the account agent" placeholder="Select an account to start a conversation…" disabled><button class="send" aria-label="Send message" disabled>↑</button></form>
+        <small class="composer-note">Read-only evidence. No customer message, inventory hold, or purchase.</small>
+      </div>
+    </section>
+    <footer class="footer"><span>Independent demo · Synthetic business data</span><a href="/">Recovery Case File</a><span>Source snapshot: October 16, 2026</span></footer>
+    <details class="scan-proof" id="scan-proof" hidden><summary>Scan evidence and measurements</summary><pre id="metrics"></pre></details>
+  </main>
+</body>
+</html>

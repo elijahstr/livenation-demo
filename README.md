@@ -29,6 +29,24 @@ Startup needs a valid AWS session unless you set `HARNESS_ARN` explicitly. An ex
 The Recovery Case File flow identifies a verified sales risk, shows recovery recommendations, and prepares a local draft for owner approval.
 The email, campaign, and dismissal actions are simulated; the demo does not send email or create campaigns.
 
+## Regional scan and account chat
+
+Open `http://127.0.0.1:3001/premium` on the same server.
+The Premium workspace connects the regional scan, account details, and separate account conversations.
+It uses the approved list of 278 synthetic accounts across Northern California, Oregon, and Washington.
+The user explicitly assigned every California account to Northern California.
+
+The account list retains deferred and unavailable accounts.
+Partial scans remain marked partial.
+Account conversations use the real agent and server-controlled, read-only evidence tools.
+This flow does not use Genie or permit customer messages, holds, or purchases.
+
+Verified on October 20: the live scan assessed 12 accounts and deferred 266 in 449 seconds.
+All 278 accounts remained available. Desktop and mobile checks passed.
+Two accounts completed live evidence retrieval and follow-up analytics through separate conversations.
+The suite passed 268 tests. Sonnet and Opus completed both review stages; the material findings are resolved.
+See the [regional scan guide](docs/design/regional-scan/guide.md) for the workflow, limits, evidence, and verification record.
+
 ## AgentCore chat and traces
 
 The sales UI includes chat code in the Recovery Agent area. The default server keeps live chat disabled.
@@ -47,7 +65,7 @@ Current behavior: the West chat code exists and has local tests. The earlier Wes
 
 Conversation memory is deployed and retains demo events for seven days, with no long-term facts or preferences. The live test verified recall after the runtime's maximum lifetime and separation between conversations. Memory applies to every invocation of the shared harness. Chat and recovery use separate actor IDs. The current UI has no saved-chat list; a server restart or thirty-minute idle expiry requires a new chat. See the [memory plan](docs/plans/2026-10-16-agentcore-conversation-memory.md).
 
-Premium uses Genie One MCP through the local CLI bridge. A direct AWS-hosted Databricks credential or MCP connection is not configured. The application does not impersonate users.
+The separate legacy Premium Gold chat uses Genie One MCP through the local CLI bridge. A direct AWS-hosted Databricks credential or MCP connection is not configured. The application does not impersonate users.
 
 Run the bounded live verification only after the cost check permits it:
 

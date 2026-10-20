@@ -1,0 +1,291 @@
+{
+  "verified_at": "2026-10-20T14:27:41.120Z",
+  "application_path": "/premium",
+  "source_origin": "synthetic",
+  "source_cutoff": "2026-10-16T12:00:00Z",
+  "scope": {
+    "total": 278,
+    "northern_california": 94,
+    "oregon": 92,
+    "washington": 92,
+    "california_assignment": "Explicit user instruction on 2026-10-20"
+  },
+  "scan": {
+    "id": "58e771de-16c5-4b2d-b269-38df5bdeeeed",
+    "started_at": "2026-10-20T14:04:40.960Z",
+    "ended_at": "2026-10-20T14:12:09.949Z",
+    "elapsed_seconds": 448.989,
+    "status": "partial",
+    "consistency": "stable",
+    "coverage": {
+      "authorized_count": 278,
+      "assessed_count": 12,
+      "deferred_count": 266,
+      "unavailable_count": 0,
+      "unassessed_count": 0,
+      "processing_finished": true,
+      "fully_assessed": false
+    },
+    "business_calls": 1,
+    "model": {
+      "invocations": 5,
+      "completed": 5,
+      "reported_input_tokens": 37664,
+      "reported_output_tokens": 2884,
+      "invocations_without_usage": 1,
+      "provider_cache_metrics": "unavailable",
+      "estimated_model_cost_usd": null,
+      "conservative_reservation_usd": 3.19488
+    },
+    "source_checks": [
+      {
+        "kind": "fingerprint",
+        "phase": "start",
+        "elapsed_ms": 87697,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      },
+      {
+        "kind": "fingerprint",
+        "phase": "batch-publish",
+        "elapsed_ms": 57980,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      },
+      {
+        "kind": "fingerprint",
+        "phase": "batch-publish",
+        "elapsed_ms": 56778,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      },
+      {
+        "kind": "fingerprint",
+        "phase": "batch-publish",
+        "elapsed_ms": 57010,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      },
+      {
+        "kind": "fingerprint",
+        "phase": "batch-publish",
+        "elapsed_ms": 57770,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      },
+      {
+        "kind": "fingerprint",
+        "phase": "end",
+        "elapsed_ms": 56527,
+        "hash": "e263a432661416de45b83019492c86a74dc385c62de13294f188afffac827c88"
+      }
+    ],
+    "completed_query_count": 176,
+    "deferred_reason": "The scan deadline reserved time for source verification."
+  },
+  "browser": {
+    "roster": {
+      "roster": 278,
+      "unique": 278,
+      "statuses": {
+        "assessed": 12,
+        "deferred": 266
+      },
+      "visibleAcrossPages": 278,
+      "allOpenable": true,
+      "coverage": {
+        "authorized_count": 278,
+        "assessed_count": 12,
+        "deferred_count": 266,
+        "unavailable_count": 0,
+        "unassessed_count": 0,
+        "processing_finished": true,
+        "fully_assessed": false
+      }
+    },
+    "desktop": {
+      "width": 1440,
+      "scrollWidth": 1440,
+      "notice": "This scan is partial. Deferred and unavailable accounts remain in the list.",
+      "noticeVisible": true,
+      "coverage": "12 assessed · 266 deferred · 0 unavailable",
+      "title": "Scale Account 0001",
+      "detail": "ACT · PROPOSED SELLER STEP\nUpsell premier-parking at SC0001-E2; included general-parking suggests interest, premier-parking currently unearned.\n\nAgent hypothesis: Active contract, email and call on 2026-10-16, has premier-parking benefit 0 purchased lines at SC0001-E2 but 1 included general-parking, recent engagement indicates urgency.\n\nUnknowns: Customer intent and current availability are not confirmed. The activity source has no message body or contact direction.\n\nThese synthetic records do not establish customer intent, future attendance, or current inventory availability.\n\nSource cutoff: 2026-10-16T12:00:00Z · Retrieved: 2026-10-20T14:06:26.886Z\n\nidentity · 1 records\nactivity · 2 records\ncontract · 1 records\npurchases · 4 records\nbenefits · 6 records\ncontacts · 1 records\nEvidence and source records"
+    },
+    "mobile": {
+      "width": 390,
+      "scrollWidth": 390,
+      "notice": "This scan is partial. Deferred and unavailable accounts remain in the list.",
+      "noticeVisible": true,
+      "coverage": "12 assessed · 266 deferred · 0 unavailable",
+      "title": "Scale Account 0001",
+      "light": "light"
+    },
+    "account_views_opened": [
+      "A100",
+      "SC0001-A",
+      "SC0004-A",
+      "SC0034-A",
+      "SC0276-A"
+    ],
+    "conversations": [
+      {
+        "account": "A100",
+        "title": "A100 · CA · Assessed",
+        "replies": 2,
+        "status": "Response complete · 1 evidence calls"
+      },
+      {
+        "account": "SC0001-A",
+        "title": "SC0001-A · CA · Assessed",
+        "replies": 2,
+        "status": "Response complete · 1 evidence calls"
+      },
+      {
+        "scanRetained": "12 assessed · 266 deferred · 0 unavailable",
+        "roster": "278"
+      }
+    ],
+    "late_response_isolation": "Switched away during account requests. Other account views kept their own messages. Returned accounts displayed their own completed replies.",
+    "console_errors_or_warnings": 0,
+    "screenshots_visually_inspected": [
+      "premium-desktop-final.png",
+      "premium-mobile-final.png",
+      "premium-mobile-deferred.png"
+    ]
+  },
+  "chat_turns": [
+    {
+      "account_id": "A100",
+      "session_id": "cd1674cb-0d7a-4a0e-bcca-5e2af32830ae",
+      "runtime_session_id": "22ea5b4f-4c89-45ad-9651-acb7fb4f54b6",
+      "tool": "get_account_evidence",
+      "evidence_calls": 1,
+      "query_ids": [
+        "01f1cc90-6fe4-1de6-8fc7-55a8dbf4275b"
+      ],
+      "source_cutoff": "2026-10-16T12:00:00Z",
+      "response": " **Activity for Account A100 (Harbor Works)**\n\n**Recorded Activity:**\n- **Evidence ID:** `01f1cc90-6fe4-1de6-8fc7-55a8dbf4275b:A100:activity`\n- **Source Date (observed_at):** 2026-10-16T12:00:00Z\n- **Activity Type:** Email\n- **Activity Timestamp:** 2026-09-30T12:00:00.000Z\n\n**What Remains Unknown:**\nThe activity body (email content) and message direction (whether inbound or outbound) are **not supplied**. Per the source reason: *\"The source supplies no activity body or contact direction.\"*\n\n**Account Identity Context:**\n- Account Name: Harbor Works\n- Venue ID: V100 (California)\n\nAll evidence is frozen at source cutoff October 16, 2026.",
+      "model": {
+        "invocations": 2,
+        "completed": 2,
+        "reported_input_tokens": 2330,
+        "reported_output_tokens": 187,
+        "invocations_without_usage": 1,
+        "provider_cache_metrics": "unavailable",
+        "estimated_model_cost_usd": null,
+        "conservative_reservation_usd": 1.277952
+      },
+      "proof": "Browser NDJSON result, evidence envelope, and persistent runtime ledger"
+    },
+    {
+      "account_id": "A100",
+      "session_id": "cd1674cb-0d7a-4a0e-bcca-5e2af32830ae",
+      "runtime_session_id": "22ea5b4f-4c89-45ad-9651-acb7fb4f54b6",
+      "tool": "ask_analytics",
+      "evidence_calls": 1,
+      "query_ids": [
+        "01f1cc90-bda8-1cb3-94f9-0882fcbb6f55"
+      ],
+      "source_cutoff": "2026-10-16T12:00:00Z",
+      "response": "  **Activity Count Analytics for Account A100**\n\n**Results (grouped by activity_type):**\n- **Email:** 1 activity\n\n**Evidence ID:** `01f1cc90-bda8-1cb3-94f9-0882fcbb6f55:A100:analytics`\n**Source Date (observed_at):** 2026-10-16T12:00:00Z\n\nThis confirms the single email activity found earlier in the detailed evidence. The analytics query validates the count matches the individual activity record.",
+      "model": {
+        "invocations": 2,
+        "completed": 2,
+        "reported_input_tokens": 3186,
+        "reported_output_tokens": 111,
+        "invocations_without_usage": 1,
+        "provider_cache_metrics": "unavailable",
+        "estimated_model_cost_usd": null,
+        "conservative_reservation_usd": 1.277952
+      },
+      "proof": "Browser NDJSON result, evidence envelope, and persistent runtime ledger"
+    },
+    {
+      "account_id": "SC0001-A",
+      "session_id": "de82dc48-c12e-4f52-88c8-7c67ce14be54",
+      "runtime_session_id": "77928cbb-7046-48d3-84dc-c0ed95f101ec",
+      "tool": "get_account_evidence",
+      "evidence_calls": 1,
+      "query_ids": [
+        "01f1cc90-e7ff-1c0c-87eb-8e0b04bac1d2"
+      ],
+      "source_cutoff": "2026-10-16T12:00:00Z",
+      "response": " **Account ID:** SC0001-A\n\n**Recorded Activities:**\n- 2026-10-16 at 08:00:00 UTC — Email activity\n- 2026-10-16 at 09:00:00 UTC — Call activity\n\n**Source Date:** 2026-10-16T12:00:00Z (observed at same date/time, retrieved 2026-10-20)\n\n**Evidence IDs:**\n- Activity records: `01f1cc90-e7ff-1c0c-87eb-8e0b04bac1d2:SC0001-A:activity`\n\n**Missing Information:**\nThe source explicitly reports: \"The source supplies no activity body or contact direction.\" Therefore, the following remain unknown:\n- Activity body/content\n- Contact direction (inbound/outbound)\n- Message content\n- Any customer response or outcome",
+      "model": {
+        "invocations": 2,
+        "completed": 2,
+        "reported_input_tokens": 2381,
+        "reported_output_tokens": 183,
+        "invocations_without_usage": 1,
+        "provider_cache_metrics": "unavailable",
+        "estimated_model_cost_usd": null,
+        "conservative_reservation_usd": 1.277952
+      },
+      "proof": "Browser NDJSON result, evidence envelope, and persistent runtime ledger"
+    },
+    {
+      "account_id": "SC0001-A",
+      "session_id": "de82dc48-c12e-4f52-88c8-7c67ce14be54",
+      "runtime_session_id": "77928cbb-7046-48d3-84dc-c0ed95f101ec",
+      "tool": "ask_analytics",
+      "evidence_calls": 1,
+      "query_ids": [
+        "01f1cc91-2b63-15dd-8f7a-e83c0f46f3d5"
+      ],
+      "source_cutoff": "2026-10-16T12:00:00Z",
+      "response": " with activity_count to count this account's activities by activity_type. Compare the counts with the detailed records from this conversation.\n\n✦\nACCOUNT AGENT\n\n **Analytics Query Results**\n\n**Evidence ID:** `01f1cc91-2b63-15dd-8f7a-e83c0f46f3d5:SC0001-A:analytics`  \n**Source Date:** 2026-10-16T12:00:00Z\n\n**Count by Activity Type:**\n\n| Activity Type | Count |\n|---------------|-------|\n| Email         | 1     |\n| Call          | 1     |\n\n**Comparison with Detailed Records:**\n\nBoth sources **match perfectly**:\n\n| Source        | Email (2026-10-16 08:00:00) | Call (2026-10-16 09:00:00) |\n|---------------|----------------------------|----------------------------|\n| `get_account_evidence` (detailed rows) | 1 record | 1 record |\n| `ask_analytics` (activity_count) | Count: 1 | Count: 1 |\n\n**Conclusion:** The aggregate counts from analytics confirm the detailed activity records. The account shows two total activities on 2026-10-16: one email and one call. No discrepancy exists between granular and aggregate views.\n\nEvidence and source records",
+      "model": {
+        "invocations": 2,
+        "completed": 2,
+        "reported_input_tokens": 3263,
+        "reported_output_tokens": 241,
+        "invocations_without_usage": 1,
+        "provider_cache_metrics": "unavailable",
+        "estimated_model_cost_usd": null,
+        "conservative_reservation_usd": 1.277952
+      },
+      "proof": "Completed browser reply and citations, persistent runtime ledger, and CLI statement read with SUCCEEDED and email=1/call=1",
+      "network_capture_limitation": "DevTools reported ERR_ABORTED and could not retain the response body. The browser consumed the final result and displayed Response complete."
+    }
+  ],
+  "total_runtime": {
+    "invocations": 13,
+    "completed": 13,
+    "reported_input_tokens": 48824,
+    "reported_output_tokens": 3606,
+    "invocations_without_usage": 5,
+    "provider_cache_metrics": "unavailable",
+    "estimated_model_cost_usd": null,
+    "conservative_reservation_usd": 8.306688,
+    "aws_cost_explorer": {
+      "checked_at": "2026-10-20T14:18:52.196Z",
+      "value_usd": 0,
+      "raw_value_usd": -5e-9,
+      "latency_ms": 1011,
+      "status": "known"
+    },
+    "cost_explorer_requests": 15,
+    "estimated_cost_explorer_fees_usd": 0.15,
+    "conservative_total_local_charge_usd": 8.456688,
+    "cost_admission_limit_usd": 13,
+    "actual_complete_cost": "Unavailable. Cost Explorer can lag; model cache metrics and some token usage are absent. Databricks billing is unavailable."
+  },
+  "tests": {
+    "command": "bun test",
+    "passed": 268,
+    "failed": 0,
+    "expectations": 903,
+    "files": 40
+  },
+  "reviews": {
+    "plan": {
+      "context": "claude-sonnet-5-5",
+      "judgment": "claude-opus-5-5",
+      "verdict": "needs material revision"
+    },
+    "code": {
+      "context": "claude-sonnet-5-5",
+      "judgment": "claude-opus-5-5",
+      "verdict": "request changes"
+    },
+    "auxiliary_model": "claude-haiku-5-5",
+    "fallback": null,
+    "resolution": "Material findings were resolved after each review. The plan records the rulings. Focused checks and the final full suite passed. No second review loop ran."
+  }
+}
