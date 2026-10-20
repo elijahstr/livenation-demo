@@ -299,12 +299,12 @@
       "synthetic": true,
       "payload": {
         "venue_id": "V100",
-        "venue_name": "Bay Amphitheatre",
+        "venue_name": "Shoreline Amphitheatre",
         "state": "CA",
         "iana_timezone": "America/Los_Angeles"
       },
       "batch_id": "harbor-works-foundation-v1",
-      "payload_sha256": "f0566f2b5af58a8394b9ef8bca0db7e52b72cd18c3986246130ba540d8418482"
+      "payload_sha256": "f99f7e4ad37e4e78361e133048de2b7ec7e9a797be5cdc52ba8c53ad233bd8d8"
     },
     {
       "source_id": "AC-AR100",

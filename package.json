@@ -16,6 +16,7 @@
     "setup-premium-genie": "bun run scripts/setup-premium-genie.ts",
     "setup-premium-scale": "bun run scripts/setup-premium-scale.ts",
     "migrate-premium-labels": "bun run scripts/migrate-premium-labels.ts",
+    "migrate-premium-venue-labels": "bun run scripts/migrate-premium-venue-labels.ts",
     "verify-premium-tools": "bun run scripts/verify-premium-tools.ts"
   },
   "dependencies": {

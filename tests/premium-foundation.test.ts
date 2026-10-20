@@ -11,6 +11,7 @@ test("the Harbor Works fixture has the reviewed source and entity counts", () =>
   expect(new Set(validated.accepted.map((row) => row.record_type)).size).toBe(17);
   expect(BRONZE_NAMES).toHaveLength(5);
   expect(TABLES).toHaveLength(17);
+  expect(validated.accepted.find((row) => row.source_id === "AC-V100")?.payload.venue_name).toBe("Shoreline Amphitheatre");
 });
 
 test("the oracle separates money and issued tickets from scan attempts", () => {

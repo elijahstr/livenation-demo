@@ -30,6 +30,26 @@ Do not capture unbounded global Gold rows during a foundation rerun. The foundat
 
 The scale loader preserves the 28 Bronze envelopes, 27 accepted Silver rows, and one `AC-E-BAD` rejection. The foundation counts remain historical. The current cumulative workspace counts are 10,000 Bronze envelopes and 9,999 accepted Silver rows. See the [Premium 10k scale guide](premium-10k-scale.md).
 
+## Label migrations
+
+Run each label migration as a local dry run before an apply. The dry run makes no Databricks call.
+
+```sh
+bun run migrate-premium-labels
+bun run migrate-premium-venue-labels
+```
+
+Apply company and artist labels first. Apply venue labels second.
+
+```sh
+bun run migrate-premium-labels --apply
+bun run migrate-premium-venue-labels --apply
+```
+
+Both migrations use matched `MERGE` updates. They do not insert rows. The venue migration verifies one foundation venue and 277 scale venues in Bronze and Silver.
+
+If an apply stops, correct the reported count or equality mismatch. Rerun the same command after the source state is correct. The matched updates and equality checks make the rerun safe.
+
 ## Run the safe local check
 
 Run this command first:

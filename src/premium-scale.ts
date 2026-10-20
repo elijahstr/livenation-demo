@@ -1,5 +1,5 @@
 import { AS_OF, TABLES, canonicalJson, hash, oracleMetrics, type Envelope } from "./premium-foundation";
-import { artistName, companyName } from "./premium-names";
+import { artistName, companyName, venueName } from "./premium-names";
 
 export const FOUNDATION_RAW = 28;
 export const FOUNDATION_ACCEPTED = 27;
@@ -51,7 +51,7 @@ function row(ordinal: number, suffix: string, record_type: RecordType, payload: 
 export function generateBundle(ordinal: number): Envelope[] {
   if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > TOTAL_BUNDLES) fail("bundle ordinal is outside the approved range");
   const id = prefix(ordinal);
-  const state = ["CA", "OR", "WA"][(ordinal - 1) % 3]!;
+  const state = (["CA", "OR", "WA"] as const)[(ordinal - 1) % 3]!;
   const zone = state === "CA" ? "America/Los_Angeles" : state === "OR" ? "America/Los_Angeles" : "America/Los_Angeles";
   const account = `${id}-A`; const contact = `${id}-C`; const link = `${id}-IL`; const contract = `${id}-CT`; const venue = `${id}-V`;
   const artistA = `${id}-AR1`; const artistB = `${id}-AR2`; const pastEvent = `${id}-E1`; const futureEvent = `${id}-E2`;
@@ -70,7 +70,7 @@ export function generateBundle(ordinal: number): Envelope[] {
     row(ordinal, "ACT2", "activities", { activity_id: `${id}-ACT2`, account_id: account, contact_id: contact, contract_id: contract, activity_at: timestamp(9), activity_type: "call" }),
     row(ordinal, "EN1", "entitlements", { entitlement_id: `${id}-EN1`, account_id: account, contract_id: contract, event_id: futureEvent, product_id: "general-parking", status: "included", included_quantity: 1 }),
     row(ordinal, "EN2", "entitlements", { entitlement_id: `${id}-EN2`, account_id: account, contract_id: contract, event_id: futureEvent, product_id: "premier-parking", status: "available", included_quantity: 0 }),
-    row(ordinal, "V", "venues", { venue_id: venue, venue_name: `Scale Venue ${ordinalText(ordinal)}`, state, iana_timezone: zone }),
+    row(ordinal, "V", "venues", { venue_id: venue, venue_name: venueName(ordinal, state), state, iana_timezone: zone }),
     row(ordinal, "AR1", "artists", { artist_id: artistA, artist_name: artistName(ordinal, 1) }),
     row(ordinal, "AR2", "artists", { artist_id: artistB, artist_name: artistName(ordinal, 2) }),
     row(ordinal, "REL", "artist_relations", { seed_artist_id: artistA, related_artist_id: artistB, relation_source: "synthetic" }),

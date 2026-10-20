@@ -22,6 +22,14 @@ export const ARTIST_NAMES = [
 
 const SCALE_ACCOUNT_COUNT = 277;
 
+export const VENUE_NAMES_BY_STATE = {
+  CA: ["Shoreline Amphitheatre", "Toyota Amphitheatre", "Toyota Pavilion at Concord", "The Masonic"],
+  OR: ["Hayden Homes Amphitheater"],
+  WA: ["BECU Live at Northern Quest", "Cascades Amphitheater", "Chateau Ste. Michelle Winery", "Gorge Amphitheatre", "White River Amphitheatre"],
+} as const;
+
+export type VenueState = keyof typeof VENUE_NAMES_BY_STATE;
+
 function ordinalIndex(ordinal: number): number {
   if (!Number.isInteger(ordinal) || ordinal < 1 || ordinal > SCALE_ACCOUNT_COUNT) throw new Error("Premium name ordinal is outside the approved range");
   return ordinal - 1;
@@ -36,4 +44,11 @@ export function artistName(ordinal: number, slot: 1 | 2): string {
   const index = ordinalIndex(ordinal);
   const offset = slot === 1 ? 0 : ARTIST_NAMES.length / 2;
   return ARTIST_NAMES[(index + offset) % ARTIST_NAMES.length]!;
+}
+
+/** Maps each scale venue to an approved venue name in its generated state. */
+export function venueName(ordinal: number, state: VenueState): string {
+  const index = ordinalIndex(ordinal);
+  const names = VENUE_NAMES_BY_STATE[state];
+  return names[Math.floor(index / 3) % names.length]!;
 }

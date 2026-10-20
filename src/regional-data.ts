@@ -44,7 +44,7 @@ function envelope(accountId: string, scope: RegionalScope, context: ReadContext,
   }
   const retrieved = now();
   const fingerprint = context.fingerprint;
-  const source = (name: string) => ({ identity: `${silver}.accounts`, contacts: `${silver}.contacts`, activity: `${silver}.activities`, contract: `${silver}.contracts`, purchases: `${silver}.order_items`, benefits: `${gold}.account_event_benefits`, options: `${gold}.upcoming_options`, analytics: `${gold}.account_attention` }[name] ?? name);
+  const source = (name: string) => ({ identity: `${silver}.accounts and ${silver}.venues`, contacts: `${silver}.contacts`, activity: `${silver}.activities`, contract: `${silver}.contracts`, purchases: `${silver}.order_items`, benefits: `${gold}.account_event_benefits`, options: `${gold}.upcoming_options`, analytics: `${gold}.account_attention` }[name] ?? name);
   const unit = (name: string) => ({ activity: "activity_records", contract: "contract_records", purchases: "USD_and_issued_tickets", benefits: "included_units_and_order_lines", options: "inventory_snapshot", analytics: "aggregate_rows" }[name] ?? "records");
   const evidence = Object.entries(sections).filter(([, section]) => section.state === "evidence" && !section.truncated).map(([name]) => ({ evidence_id: `${statementId}:${accountId}:${name}`, source_ref: source(name), query_id: statementId, unit: unit(name), observed_at: AS_OF }));
   const value: EvidenceEnvelope = {
@@ -67,7 +67,7 @@ function fixedInput(sections: string[]): FixedSection[] {
 const summarySql = `WITH scope AS (
   SELECT x.account_id,x.venue_id FROM explode(from_json(:scope,'ARRAY<STRUCT<account_id:STRING,venue_id:STRING>>')) AS scoped_rows(x)
 ), accounts AS (
-  SELECT s.account_id,a.account_name,s.venue_id,v.state FROM scope s
+  SELECT s.account_id,a.account_name,s.venue_id,v.venue_name,v.state FROM scope s
   LEFT JOIN ${silver}.accounts a ON a.account_id=s.account_id AND a.primary_venue_id=s.venue_id
   LEFT JOIN ${silver}.venues v ON v.venue_id=s.venue_id
 ), activity AS (
@@ -105,7 +105,7 @@ const summarySql = `WITH scope AS (
   LEFT JOIN ${silver}.events e ON e.event_id=b.event_id AND e.venue_id=a.venue_id
   LEFT JOIN ${silver}.artists artist ON artist.artist_id=e.artist_id GROUP BY a.account_id
 )
-SELECT a.account_id,a.account_name,a.venue_id,a.state,activity.activity,contract.contract,purchases.purchases,benefits.benefits,contacts.contacts
+SELECT a.account_id,a.account_name,a.venue_id,a.venue_name,a.state,activity.activity,contract.contract,purchases.purchases,benefits.benefits,contacts.contacts
 FROM accounts a LEFT JOIN activity ON activity.account_id=a.account_id
 LEFT JOIN contract ON contract.account_id=a.account_id LEFT JOIN purchases ON purchases.account_id=a.account_id
 LEFT JOIN benefits ON benefits.account_id=a.account_id LEFT JOIN contacts ON contacts.account_id=a.account_id`;
@@ -127,7 +127,7 @@ export class RegionalData implements RegionalDataPort {
     const result = await this.execute(summarySql, [scopeParameter({ ...this.scope, accounts: approved })], context);
     if (result.rows.length > 1000 || bytes({ columns: result.columns, rows: result.rows }) > 1024 * 1024) throw new Error("Regional summary exceeded its configured limit");
     const index = (name: string) => result.columns.indexOf(name);
-    const required = ["account_id", "account_name", "venue_id", "state", ...fixedSections];
+    const required = ["account_id", "account_name", "venue_id", "venue_name", "state", ...fixedSections];
     if (required.some(name => index(name) < 0)) throw new Error("Regional summary schema is invalid");
     const rows = new Map<string, EvidenceEnvelope>();
     for (const row of result.rows) {
@@ -137,12 +137,12 @@ export class RegionalData implements RegionalDataPort {
       if (!approved.some(item => item.account_id === accountId)) throw new Error("Regional summary returned an unauthorized account");
       if (row[index("venue_id")] !== account.venue_id) throw new Error("Regional summary returned an unauthorized venue");
       const sections = Object.fromEntries(fixedSections.map(section => [section, parseSection(row[index(section)] as string | null, `No ${section} evidence is available.`)]));
-      const sourceName = row[index("account_name")];
-      if (!sourceName || row[index("state")] !== account.state) {
+      const sourceName = row[index("account_name")]; const venueName = row[index("venue_name")];
+      if (!sourceName || !venueName || row[index("state")] !== account.state) {
         rows.set(accountId, envelope(accountId, this.scope, context, result.statementId, { identity: unavailableSection("The current source does not match the approved account and venue pair.") }, "unavailable"));
         continue;
       }
-      sections.identity = { state: "evidence", rows: [{ account_id: accountId, account_name: sourceName, venue_id: account.venue_id, state: account.state }], reason: null };
+      sections.identity = { state: "evidence", rows: [{ account_id: accountId, account_name: sourceName, venue_id: account.venue_id, venue_name: venueName, state: account.state }], reason: null };
       if (index("contacts") >= 0) sections.contacts = parseSection(row[index("contacts")]!, "Contact records are unavailable.");
       if (sections.activity.state === "evidence") sections.activity.reason = "The source supplies no activity body or contact direction.";
       if (rows.has(accountId)) throw new Error("Regional summary returned a duplicate account");

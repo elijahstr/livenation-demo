@@ -53,8 +53,8 @@ test("summary binds the full scope and reports a missing roster account as unava
       calls.push({ sql, parameters });
       return {
         statementId: "summary-1",
-        columns: ["account_id", "account_name", "venue_id", "state", "activity", "contract", "purchases", "benefits"],
-        rows: [["A100", "Harbor Works", "V100", "CA", "[]", "[]", "[]", "[]"]],
+        columns: ["account_id", "account_name", "venue_id", "venue_name", "state", "activity", "contract", "purchases", "benefits"],
+        rows: [["A100", "Harbor Works", "V100", "Shoreline Amphitheatre", "CA", "[]", "[]", "[]", "[]"]],
       };
     },
   });
@@ -74,8 +74,8 @@ test("summary binds the full scope and reports a missing roster account as unava
 test("a long activity section does not remove complete identity or benefit evidence", async () => {
   const activities = JSON.stringify(Array.from({ length: 60 }, (_, i) => ({ activity_type: "call", activity_at: `record-${i}` })));
   const data = new RegionalData({ scope, profile: "test", warehouseId: "warehouse", execute: async () => ({
-    statementId: "partial-1", columns: ["account_id", "account_name", "venue_id", "state", "activity", "contract", "purchases", "benefits"],
-    rows: [["A100", "Harbor Works", "V100", "CA", activities, "[]", "[]", '[{"product_id":"parking","included_quantity":1}]']],
+    statementId: "partial-1", columns: ["account_id", "account_name", "venue_id", "venue_name", "state", "activity", "contract", "purchases", "benefits"],
+    rows: [["A100", "Harbor Works", "V100", "Shoreline Amphitheatre", "CA", activities, "[]", "[]", '[{"product_id":"parking","included_quantity":1}]']],
   }) });
   const result = (await data.summaries(context))[0]!;
   expect(result.status).toBe("partial");
@@ -112,7 +112,7 @@ test("detail evidence binds only the selected approved account", async () => {
   let parameter = "";
   const data = new RegionalData({ scope, profile: "test", warehouseId: "warehouse", execute: async (_sql, parameters) => {
     parameter = String(parameters[0]?.value);
-    return { statementId: "detail-1", columns: ["account_id", "account_name", "venue_id", "state", "activity", "contract", "purchases", "benefits"], rows: [["A100", "Harbor Works", "V100", "CA", "[]", "[]", "[]", "[]"]] };
+    return { statementId: "detail-1", columns: ["account_id", "account_name", "venue_id", "venue_name", "state", "activity", "contract", "purchases", "benefits"], rows: [["A100", "Harbor Works", "V100", "Shoreline Amphitheatre", "CA", "[]", "[]", "[]", "[]"]] };
   } });
   await data.evidence("A100", ["activity"], context);
   expect(parameter).toBe(JSON.stringify([{ account_id: "A100", venue_id: "V100" }]));

@@ -14,7 +14,7 @@ const scope: RegionalScope = {
 
 const context: ReadContext = { scanId: "scan-test", deadlineAt: Date.now() + 60_000 };
 
-test("summary evidence adds the real artist name to each event", async () => {
+test("summary evidence adds the venue name to the identity evidence", async () => {
   let query = "";
   const data = new RegionalData({
     scope,
@@ -24,16 +24,35 @@ test("summary evidence adds the real artist name to each event", async () => {
       query = sql;
       return {
         statementId: "summary-artist",
-        columns: ["account_id", "account_name", "venue_id", "state", "activity", "contract", "purchases", "benefits"],
-        rows: [["A100", "Harbor Works", "V100", "CA", "[]", "[]", "[]", "[]"]],
+        columns: ["account_id", "account_name", "venue_id", "venue_name", "state", "activity", "contract", "purchases", "benefits"],
+        rows: [["A100", "Harbor Works", "V100", "Shoreline Amphitheatre", "CA", "[]", "[]", "[]", "[]"]],
       };
     },
   });
 
-  await data.summaries(context);
+  const result = (await data.summaries(context))[0]!;
 
   expect(query).toContain("workspace.ln_premium_silver.artists");
+  expect(query).toContain("v.venue_name");
   expect(query.match(/'event_name',artist\.artist_name/g)).toHaveLength(2);
+  expect(result.sections.identity.rows[0]?.venue_name).toBe("Shoreline Amphitheatre");
+  expect(result.evidence.find((item) => item.evidence_id.endsWith(":identity"))?.source_ref).toBe("workspace.ln_premium_silver.accounts and workspace.ln_premium_silver.venues");
+});
+
+test("summary marks an empty venue name as unavailable", async () => {
+  const data = new RegionalData({
+    scope,
+    profile: "test",
+    warehouseId: "warehouse",
+    execute: async () => ({
+      statementId: "summary-empty-venue",
+      columns: ["account_id", "account_name", "venue_id", "venue_name", "state", "activity", "contract", "purchases", "benefits"],
+      rows: [["A100", "Harbor Works", "V100", "", "CA", "[]", "[]", "[]", "[]"]],
+    }),
+  });
+  const result = (await data.summaries(context))[0]!;
+  expect(result.status).toBe("unavailable");
+  expect(result.sections.identity.state).toBe("unavailable");
 });
 
 test("option evidence returns the real artist name as the event name", async () => {
