@@ -200,7 +200,6 @@ function renderDetail(id) {
   }
   intro.append(element("p", "These synthetic records do not establish customer intent, future attendance, or current inventory availability.", "source-note"));
   if (scan?.status === "running") intro.append(element("p", "This scan is still in progress. Final source verification remains pending.", "source-note"));
-  else if (scan && scan.consistency !== "stable") intro.append(element("p", "The scan did not verify final source consistency. Earlier assessments remain historical evidence.", "notice"));
   root.append(intro);
   if (item.summary) {
     const envelope = item.summary;
