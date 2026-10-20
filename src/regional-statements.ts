@@ -62,8 +62,8 @@ export class RegionalStatements {
     context = { ...context, deadlineAt: Math.min(context.deadlineAt, start + 45_000) };
     deadline(context);
     let cleanupUntil = 0;
-    const request = async (method: "get" | "post", path: string, body?: unknown, cleanup = false): Promise<RegionalStatementResponse> => {
-      const timeoutMs = cleanup ? Math.min(5000, cleanupUntil - Date.now()) : deadline(context);
+    const request = async (method: "get" | "post", path: string, body?: unknown, cleanup = false, fixedTimeoutMs?: number): Promise<RegionalStatementResponse> => {
+      const timeoutMs = fixedTimeoutMs ?? (cleanup ? Math.min(5000, cleanupUntil - Date.now()) : deadline(context));
       if (timeoutMs <= 0) throw new Error("Regional statement cleanup deadline expired");
       await trace(context, { kind: "regional_statement_request", method, operation: path.endsWith("/cancel") ? "cancel" : method === "post" ? "submit" : path.includes("/chunks/") ? "chunk" : "poll" });
       const submit = method === "post" && path === "/api/2.0/sql/statements";
@@ -73,12 +73,14 @@ export class RegionalStatements {
     };
     await trace(context, { kind: "regional_statement_submission_intent" });
     let response: RegionalStatementResponse;
+    const submitTimeoutMs = deadline(context);
+    const waitSeconds = Math.min(10, Math.floor((submitTimeoutMs - 4_000) / 1_000));
     try {
       response = await request("post", "/api/2.0/sql/statements", {
         warehouse_id: this.options.warehouseId, statement: sql,
         parameters: parameters.map(({ name, value, type }) => type ? { name, value, type } : { name, value }),
-        disposition: "INLINE", format: "JSON_ARRAY", row_limit: maxRows, byte_limit: maxBytes, wait_timeout: "0s", on_wait_timeout: "CONTINUE",
-      });
+        disposition: "INLINE", format: "JSON_ARRAY", row_limit: maxRows, byte_limit: maxBytes, wait_timeout: waitSeconds >= 5 ? `${waitSeconds}s` : "0s", on_wait_timeout: "CONTINUE",
+      }, false, submitTimeoutMs);
     } catch { throw new Error("Regional statement submission outcome is unknown; do not retry"); }
     const statementId = response.statement_id;
     if (!statementId || !statementIdPattern.test(statementId)) throw new Error("Regional statement submission outcome is unknown; do not retry");
@@ -108,6 +110,8 @@ export class RegionalStatements {
       throw context.signal?.aborted ? context.signal.reason ?? error : error;
     }
     await trace(context, { kind: "regional_statement_terminal", statementId, state: response.status?.state, elapsed_ms: Date.now() - start });
+    context.signal?.throwIfAborted();
+    if (Date.now() >= context.deadlineAt) throw new Error("Regional statement deadline expired");
     if (response.status?.state !== "SUCCEEDED") failure(response, statementId);
     if (response.manifest?.truncated) throw new Error(`Regional statement ${statementId} returned a truncated result`);
     const chunks = response.manifest?.total_chunk_count ?? 1;

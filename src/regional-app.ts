@@ -5,6 +5,7 @@ import { runHarnessToolCycle } from "./harness-tool-cycle";
 import { verifyConversationMemory } from "./conversation-memory";
 import { RegionalData } from "./regional-data";
 import { RegionalStatements } from "./regional-statements";
+import { defaultMetadataRequest } from "./regional-source-state";
 import { RegionalRuntime } from "./regional-runtime";
 import { RegionalScanService } from "./regional-scan-service";
 import { assertCurrentScope, regionalScope, requireAccount } from "./regional-scope";
@@ -55,6 +56,10 @@ export async function createRegionalApp(config: {
         throw cause;
       }
     },
+    metadataRequest: defaultMetadataRequest(config.profile, { beforeRequest: async () => {
+      await authorize();
+      await runtime.assertAvailable();
+    } }),
   });
   const harness = new AgentCoreHarnessClient(config.awsRegion, config.awsProfile);
   const skillTexts = await Promise.all(["regional-sales-review", "sales-evidence-judgment"].map(name =>

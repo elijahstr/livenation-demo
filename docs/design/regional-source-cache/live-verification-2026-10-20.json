@@ -1,0 +1,43 @@
+{
+  "verified_at": "2026-10-20T20:36:47.291Z",
+  "read_only": true,
+  "source_checks": 3,
+  "metadata_gets": 6,
+  "history_queries": 3,
+  "summary_queries": 1,
+  "accounts": 278,
+  "cache_hits": 278,
+  "source_unchanged": true,
+  "retrieval_times_preserved": true,
+  "query_ids_preserved": true,
+  "scan_ids_rebound": true,
+  "summary_bytes": 1916371,
+  "timings": [
+    {
+      "stage": "initial_source_check",
+      "elapsed_ms": 34794
+    },
+    {
+      "stage": "summary_cache_miss",
+      "elapsed_ms": 12377
+    },
+    {
+      "stage": "confirm_source_and_promote",
+      "elapsed_ms": 10945
+    },
+    {
+      "stage": "next_scan_source_check",
+      "elapsed_ms": 10298
+    },
+    {
+      "stage": "summary_cache_hit",
+      "elapsed_ms": 9
+    }
+  ],
+  "query_ids": [
+    "01f1ccc5-d09f-18ca-82f1-1659c085df00",
+    "01f1ccc5-e495-124b-886c-4c3747a8ad25",
+    "01f1ccc5-ec69-152c-832a-9781a065fadb",
+    "01f1ccc5-f2d9-1496-bbdf-3fed85b07e37"
+  ]
+}

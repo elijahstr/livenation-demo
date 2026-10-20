@@ -6,7 +6,7 @@ The Premium workspace connects a regional scan, account details, and separate ac
 
 This independent demo uses synthetic business data. It does not send customer messages, hold inventory, or make purchases.
 
-**Verification status:** The live browser flow passed at desktop and mobile sizes on October 20, 2026. The current suite passed 270 tests. Sonnet and Opus completed both review stages for the regional flow. The material findings are resolved.
+**Historical verification status:** The live browser flow passed at desktop and mobile sizes on October 20, 2026. The repository test baseline passed 288 tests before the source-check update. Sonnet and Opus completed both review stages for the regional flow. The material findings are resolved.
 
 The scan assessed 12 accounts and deferred 266 in 448.989 seconds. All 278 accounts remained available. Two accounts completed live evidence retrieval and follow-up analytics through separate conversations. This result proves the complete seller flow, with partial regional assessment.
 
@@ -74,11 +74,19 @@ Evidence includes source records, query IDs, units, and dates. Failed or incompl
 
 A source fingerprint records relevant Delta table IDs and versions, Gold view definitions, scope, skills, and implementation hashes. The service checks it at scan start, before each batch commit, and at scan end.
 
+**Source-check update implementation is verified by read-only probe and a partial browser scan.** It replaces 31 metadata SQL statements with two paginated Unity Catalog reads and one Delta history query for 14 tables. It retains the existing start, batch, and end checks.
+
+The watched Silver sources are managed Delta tables. The current setup and live probe use managed tables only. The source contract does not support external tables.
+
+The update keeps one complete account-summary array in memory, with a 2 MiB limit. It promotes that array only after a later same-scan source check returns the same fingerprint. A source change or check failure clears it. Account details, evidence tools, options, analytics, and model assessments remain uncached.
+
+The application emits a `source_changed` trace for a source difference inside a scan. It emits a separate cache-invalidation trace when a new scan starts after a source change. The application has no remote push subscriber. It discovers changes only at a source-check boundary.
+
 These checks consume scan time. The service reserves time for the final check and defers work that cannot fit. A later scan prioritizes previously deferred accounts when scope and source match. It does not reuse the previous judgments.
 
 An interrupted scan retains its ledger. Resume requires the original deadline and the same source fingerprint. An expired scan requires a new scan. A remote operation with an unknown outcome can block further cloud work until reconciliation.
 
-The application cache holds only complete fixed evidence inside one scan. Every reuse checks account authorization and the last verified source fingerprint. A live source check still precedes batch publication. The cache retains original retrieval time and adds service time. It does not cache natural-language analytics or share inventory across scans.
+The existing application cache holds only complete fixed evidence inside one scan. Every reuse checks account authorization and the last verified source fingerprint. A live source check still precedes batch publication. The cache retains original retrieval time and adds service time. It does not cache natural-language analytics or share inventory across scans.
 
 ## Decisions
 
@@ -99,7 +107,7 @@ The real scan returned 12 assessed accounts, 266 deferred accounts, and no unava
 
 Four scan invocations reported 37,664 input tokens and 2,884 output tokens. One invocation omitted token usage. These totals exclude the missing usage.
 
-Source checks took 56.527 to 87.697 seconds each. They consumed most of the scan time and limited assessment coverage. The scan executed 176 SQL statements, including metadata checks. A later scan prioritizes the deferred accounts.
+Source checks took 56.527 to 87.697 seconds each. They consumed most of the scan time and limited assessment coverage. The scan executed 176 SQL statements, including metadata checks. This is historical evidence from the prior source-check design. A later scan prioritizes the deferred accounts.
 
 Browser checks opened A100, SC0001-A, SC0004-A, SC0034-A, and SC0276-A. Pagination exposed all 278 unique accounts. A100 and SC0001-A each completed an evidence turn and an analytics follow-up. Account switches preserved separate messages, including late responses. The scan results remained available.
 
@@ -117,6 +125,18 @@ A metadata probe measured one table identity command at 2.007 seconds, one histo
 
 The scan records elapsed time, coverage, tool calls, query traces, and raw model usage. Missing usage and cache metrics remain unknown. Databricks billing is unavailable through the AWS cost check.
 
+The source-cache probe read 278 accounts without writes. It used six catalog reads, three Delta history queries, and one business-summary query. The first source check took 34.794 seconds. Later source checks took 10.945 and 10.298 seconds. The summary query took 12.377 seconds. The promoted summary cache returned all 278 accounts in 9 milliseconds.
+
+After the review fixes, a second read-only probe recorded six metadata traces, three completion progress events, 278 cache hits, preserved retrieval dates and evidence, and rebound scan IDs. Its source checks took 33.285, 10.481, and 9.876 seconds. Its summary query took 2.923 seconds. Its cache hit took 9 milliseconds. Its array used 1,914,703 bytes. The array size can vary with probe scan IDs.
+
+This probe preserved original retrieval times and query IDs, then rebound scan IDs. It does not prove equivalent full-scan coverage or cost.
+
+The browser used **Scan now** through the local server, Databricks, and AgentCore. It ran for 131.433 seconds and ended partial: six assessed accounts and 272 deferred accounts. The first three source checks succeeded in 13.123, 10.716, and 10.253 seconds. The final source check was blocked by an existing runtime quarantine after a model maximum-token error.
+
+Three accounts deferred after incomplete model JSON. Three deferred after the maximum-token error. The remaining 266 deferred after the existing quarantine. The scan completed four model invocations and four SQL statements. Its local reservation ledger was $11.062592. This is not an AWS bill, and the $13 admission limit did not stop the scan.
+
+The source-cache change did not alter the 2,048-token limit, model error handling, or quarantine rules. The warmed-check measurements and the historical run are not a controlled A/B comparison. Full-scan coverage and actual AWS or Databricks cost remain unknown.
+
 AWS lists the selected Kimi route at $0.60 per million input tokens and $3.00 per million output tokens. The price check date is October 20, 2026. Estimates are not bills. [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/)
 
 Cost Explorer can lag. The persistent local ledger reserves conservative cost before each invocation and retains the reservation when usage is incomplete. It does not claim a real-time cloud billing guarantee. [Cost Explorer](https://docs.aws.amazon.com/cost-management/latest/userguide/ce-exploring-data.html)
@@ -124,6 +144,10 @@ Cost Explorer can lag. The persistent local ledger reserves conservative cost be
 ## Reference
 
 - [Current implementation plan and review rulings](../../plans/2026-10-20-regional-account-flow.md)
+- [Source-check update plan](../../plans/2026-10-20-regional-source-cache.md)
+- [Source-check read-only verification](../regional-source-cache/live-verification-2026-10-20.json)
+- [Source-check browser verification](../regional-source-cache/browser-verification-2026-10-20.json)
+- [Source-check post-review verification](../regional-source-cache/post-review-verification-2026-10-20.json)
 - [Live browser and cloud verification](live-verification-2026-10-20.json)
 - [Approved interface reference](../../prototypes/premium-sales/index.html)
 - [Versioned roster](../../../config/regional-scan-scope.json)

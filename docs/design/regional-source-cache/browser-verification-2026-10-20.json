@@ -1,0 +1,95 @@
+{
+  "verified_at": "2026-10-20T20:41:31.225Z",
+  "path": "http://127.0.0.1:3001/premium",
+  "trigger": "Browser Scan now button via Chrome DevTools",
+  "scan_id": "4b5c5c99-76ac-4b19-96ad-667041285fd6",
+  "status": "partial",
+  "consistency": "unknown",
+  "elapsed_ms": 131433,
+  "coverage": {
+    "authorized_count": 278,
+    "assessed_count": 6,
+    "deferred_count": 272,
+    "unavailable_count": 0,
+    "unassessed_count": 0,
+    "processing_finished": true,
+    "fully_assessed": false
+  },
+  "invocations": [
+    {
+      "status": "completed",
+      "elapsed_ms": 20520,
+      "usage": {
+        "inputTokens": 9221,
+        "outputTokens": 760,
+        "totalTokens": 9981
+      },
+      "reserved_cost_usd": 0.638976
+    },
+    {
+      "status": "completed",
+      "elapsed_ms": 38114,
+      "usage": {
+        "inputTokens": 9430,
+        "outputTokens": 819,
+        "totalTokens": 10249
+      },
+      "reserved_cost_usd": 0.638976
+    },
+    {
+      "status": "completed",
+      "elapsed_ms": 8896,
+      "usage": {
+        "inputTokens": 9307,
+        "outputTokens": 635,
+        "totalTokens": 9942
+      },
+      "reserved_cost_usd": 0.638976
+    },
+    {
+      "status": "unknown",
+      "elapsed_ms": 15281,
+      "usage": {
+        "inputTokens": 9430,
+        "outputTokens": 1024,
+        "totalTokens": 10454
+      },
+      "reserved_cost_usd": 0.638976
+    }
+  ],
+  "source_checks": [
+    {
+      "kind": "fingerprint",
+      "phase": "start",
+      "elapsed_ms": 13123,
+      "hash": "9309b9f872d356e3ae8748a9704e60b1a13d24b1027ad9ed5b710bcfa0a7dc52"
+    },
+    {
+      "kind": "fingerprint",
+      "phase": "batch-publish",
+      "elapsed_ms": 10716,
+      "hash": "9309b9f872d356e3ae8748a9704e60b1a13d24b1027ad9ed5b710bcfa0a7dc52"
+    },
+    {
+      "kind": "fingerprint",
+      "phase": "batch-publish",
+      "elapsed_ms": 10253,
+      "hash": "9309b9f872d356e3ae8748a9704e60b1a13d24b1027ad9ed5b710bcfa0a7dc52"
+    },
+    {
+      "kind": "fingerprint",
+      "phase": "end",
+      "elapsed_ms": 11,
+      "error": "A prior remote operation remains quarantined; reconcile or wait for its confirmed timeout"
+    }
+  ],
+  "completed_sql_statements": 4,
+  "deferred_reasons": {
+    "The account assessment did not return complete JSON. This batch is deferred.": 3,
+    "Model stopped generating due to maximum token limit. The partial message has been added to the conversation history. You can continue by calling the agent again. For more information see: https://strandsagents.com/docs/user-guide/concepts/agents/agent-loop/#maxtokensreachedexception": 3,
+    "A prior remote operation remains quarantined; reconcile or wait for its confirmed timeout": 266
+  },
+  "error": "Source verification is unavailable. Earlier committed assessments remain historical evidence.",
+  "local_ledger_total_usd": 11.062591999999995,
+  "actual_aws_cost": "Not measured; local ledger uses conservative reservations."
+}

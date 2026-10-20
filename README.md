@@ -44,11 +44,18 @@ Account conversations use the real agent and server-controlled, read-only eviden
 Each reply retains its tool-call history, with the exact tool names and requested, returned, or incomplete states.
 This flow does not use Genie or permit customer messages, holds, or purchases.
 
-Verified on October 20: the live scan assessed 12 accounts and deferred 266 in 449 seconds.
+Historical verification on October 20: the live scan assessed 12 accounts and deferred 266 in 449 seconds.
 All 278 accounts remained available. Desktop and mobile checks passed.
 Two accounts completed live evidence retrieval and follow-up analytics through separate conversations.
-The suite passed 270 tests. Sonnet and Opus completed both review stages for the regional flow; the material findings are resolved.
-See the [regional scan guide](docs/design/regional-scan/guide.md) for the workflow, limits, evidence, and verification record.
+The repository test baseline passed 288 tests before the source-check update. The final suite passed 306 tests with zero failures.
+
+A source-check update now replaces 31 metadata SQL statements with two catalog reads and one version query. It keeps source checks at scan start, each batch, and scan end. It reuses complete account summaries only after a later matching source check. It has no remote change notification and does not change the cost limits.
+
+Read-only verification covered 278 unchanged accounts. It recorded one summary query, six catalog reads, three version queries, and 278 summary-cache hits.
+
+Browser verification ran **Scan now** through the local server, Databricks, and AgentCore. It ended partial after 131 seconds: six assessed accounts and 272 deferred accounts. A model maximum-token error caused the existing runtime quarantine to block the final source check. This did not change the 2,048-token limit, error rules, or cost limits.
+
+See the [regional scan guide](docs/design/regional-scan/guide.md) for technical behavior and verification records.
 
 ## AgentCore chat and traces
 

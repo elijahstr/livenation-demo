@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { SqlParameter, StatementResult } from "./databricks-statements";
 import { HarnessToolInputError } from "./harness-tool-cycle";
 import { RegionalStatements } from "./regional-statements";
+import { RegionalSourceState, defaultMetadataRequest, type MetadataRequest } from "./regional-source-state";
 import { requireAccount, scopeHash, validateScope } from "./regional-scope";
 import type { DatasetRef, EvidenceEnvelope, EvidenceSection, ReadContext, RegionalDataPort, RegionalScope, ScopedExecute, SourceCheckProgressTrace, SourceFingerprint } from "./regional-types";
 
@@ -11,7 +12,7 @@ const gold = "workspace.ln_premium_gold";
 const fixedSections = ["activity", "contract", "purchases", "benefits"] as const;
 type FixedSection = typeof fixedSections[number];
 
-export type RegionalDataOptions = { scope: RegionalScope; profile: string; warehouseId: string; execute?: ScopedExecute };
+export type RegionalDataOptions = { scope: RegionalScope; profile: string; warehouseId: string; execute?: ScopedExecute; metadataRequest?: MetadataRequest };
 type AnalyticsInput = { account_id?: unknown; question?: unknown; dataset?: unknown; metric?: unknown; aggregation?: unknown; group_by?: unknown; filters?: unknown };
 
 function now(): string { return new Date().toISOString(); }
@@ -113,14 +114,33 @@ LEFT JOIN benefits ON benefits.account_id=a.account_id LEFT JOIN contacts ON con
 export class RegionalData implements RegionalDataPort {
   private readonly scope: RegionalScope;
   private readonly execute: ScopedExecute;
+  private readonly sourceState: RegionalSourceState;
+  private cache?: { hash: string; scanId: string; promoted: boolean; summaries: EvidenceEnvelope[] };
   constructor(options: RegionalDataOptions) {
     this.scope = validateScope(options.scope);
     const client = new RegionalStatements({ profile: options.profile, warehouseId: options.warehouseId });
     this.execute = options.execute ?? ((sql, parameters, context) => client.execute(sql, parameters, context));
+    this.sourceState = new RegionalSourceState({
+      metadataRequest: options.metadataRequest ?? defaultMetadataRequest(options.profile),
+      execute: async (sql, context) => this.execute(sql, [], context),
+    });
   }
 
   async summaries(context: ReadContext): Promise<EvidenceEnvelope[]> {
-    return this.readSummaries(context, this.scope.accounts);
+    context.signal?.throwIfAborted();
+    if (Date.now() >= context.deadlineAt) throw new Error("Regional summary deadline expired");
+    if (this.cache?.promoted && this.cache.hash === context.fingerprint?.hash) {
+      await context.onTrace?.({ kind: "source_cache", cache: "hit" });
+      const servedAt = now();
+      return structuredClone(this.cache.summaries).map(summary => ({ ...summary, scan_id: context.scanId, served_at: servedAt, cache: "hit" }));
+    }
+    await context.onTrace?.({ kind: "source_cache", cache: "miss" });
+    const summaries = await this.readSummaries(context, this.scope.accounts);
+    if (context.fingerprint && summaries.length && summaries.every(summary => summary.status === "complete" && !summary.truncated)) {
+      const bytesValue = bytes(summaries);
+      if (bytesValue <= 2 * 1024 * 1024) this.cache = { hash: context.fingerprint.hash, scanId: context.scanId, promoted: false, summaries: structuredClone(summaries) };
+    }
+    return summaries.map(summary => ({ ...summary, cache: "miss" }));
   }
 
   private async readSummaries(context: ReadContext, approved: RegionalScope["accounts"]): Promise<EvidenceEnvelope[]> {
@@ -235,31 +255,25 @@ export class RegionalData implements RegionalDataPort {
 
   async fingerprint(context: ReadContext): Promise<SourceFingerprint> {
     const started = Date.now(); const refs: DatasetRef[] = [];
-    const tables = ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "artists", "entitlements", "inventory_snapshots"];
-    const total = tables.length + 3;
-    let completed = 0;
-    const reportProgress = async () => {
-      const trace: SourceCheckProgressTrace = { kind: "source_check_progress", completed, total };
-      await context.onTrace?.(trace);
-    };
-    for (const table of tables) {
-      const detail = await this.execute(`DESCRIBE DETAIL ${silver}.${table}`, [], context); const history = await this.execute(`DESCRIBE HISTORY ${silver}.${table} LIMIT 1`, [], context);
-      const id = detail.rows[0]?.[detail.columns.indexOf("id")]; const version = history.rows[0]?.[history.columns.indexOf("version")];
-      if (typeof id !== "string" || typeof version !== "string") throw new Error("Fingerprint metadata is incomplete"); refs.push({ source_id: `${silver}.${table}:${id}`, version });
-      completed++; await reportProgress();
-    }
-    for (const view of ["account_attention", "account_event_benefits", "upcoming_options"]) {
-      const definition = await this.execute(`SHOW CREATE TABLE ${gold}.${view}`, [], context); const text = definition.rows[0]?.[0]; if (typeof text !== "string") throw new Error("Fingerprint view definition is incomplete"); refs.push({ source_id: `${gold}.${view}`, version: "definition", definition_hash: createHash("sha256").update(text).digest("hex") });
-      completed++; await reportProgress();
-    }
+    try {
     for (const name of ["regional-sales-review", "sales-evidence-judgment"]) {
       const text = await Bun.file(new URL(`../docs/design/regional-scan/skills/${name}/SKILL.md`, import.meta.url)).text();
       refs.push({ source_id: `skill:${name}`, version: createHash("sha256").update(text).digest("hex") });
     }
-    for (const name of ["regional-app.ts", "regional-data.ts", "regional-tools.ts"]) {
+    for (const name of ["regional-app.ts", "regional-data.ts", "regional-tools.ts", "regional-source-state.ts"]) {
       const text = await Bun.file(new URL(name, import.meta.url)).text();
       refs.push({ source_id: `implementation:${name}`, version: createHash("sha256").update(text).digest("hex") });
     }
-    return { hash: createHash("sha256").update(JSON.stringify({ scope: scopeHash(this.scope), refs })).digest("hex"), dataset_refs: refs, checked_at: now(), elapsed_ms: Date.now() - started };
+    const state = await this.sourceState.read({ scopeHash: scopeHash(this.scope), localRefs: refs, context });
+    await context.onTrace?.({ kind: "source_check_progress", completed: 17, total: 17 } satisfies SourceCheckProgressTrace);
+    if (context.fingerprint && context.fingerprint.hash !== state.hash) {
+      this.cache = undefined;
+      await context.onTrace?.({ kind: "source_changed", prior_hash: context.fingerprint.hash, hash: state.hash });
+    } else if (this.cache && this.cache.hash !== state.hash) {
+      this.cache = undefined;
+      await context.onTrace?.({ kind: "source_cache_invalidated", hash: state.hash });
+    } else if (this.cache && this.cache.hash === state.hash && this.cache.scanId === context.scanId) this.cache.promoted = true;
+    return { hash: state.hash, dataset_refs: state.refs, checked_at: now(), elapsed_ms: Date.now() - started };
+    } catch (error) { this.cache = undefined; throw error; }
   }
 }

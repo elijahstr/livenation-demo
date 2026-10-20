@@ -79,15 +79,14 @@ test("the source fingerprint watches the artist labels used by event evidence", 
     scope,
     profile: "test",
     warehouseId: "warehouse",
+    metadataRequest: async (path) => ({ tables: path.includes("silver") ? ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "artists", "entitlements", "inventory_snapshots"].map(name => ({ name, full_name: `workspace.ln_premium_silver.${name}`, table_id: `id-${name}`, table_type: "MANAGED", data_source_format: "DELTA" })) : ["account_attention", "account_event_benefits", "upcoming_options"].map(name => ({ name, full_name: `workspace.ln_premium_gold.${name}`, table_type: "VIEW", view_definition: `CREATE VIEW ${name}` })) }),
     execute: async (sql) => {
       queries.push(sql);
-      if (sql.startsWith("DESCRIBE DETAIL")) return { statementId: "detail", columns: ["id"], rows: [["table-id"]] };
-      if (sql.startsWith("DESCRIBE HISTORY")) return { statementId: "history", columns: ["version"], rows: [["1"]] };
-      return { statementId: "view", columns: ["definition"], rows: [["CREATE VIEW"]] };
+      return { statementId: "history", columns: ["source_name", "version"], rows: ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "artists", "entitlements", "inventory_snapshots"].map(name => [name, "1"]) };
     },
   });
 
   await data.fingerprint(context);
 
-  expect(queries).toContain("DESCRIBE DETAIL workspace.ln_premium_silver.artists");
+  expect(queries[0]).toContain("DESCRIBE HISTORY workspace.ln_premium_silver.artists");
 });

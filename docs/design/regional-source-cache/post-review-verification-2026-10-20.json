@@ -1,0 +1,86 @@
+{
+  "verified_at": "2026-10-20T20:53:13.622Z",
+  "read_only": true,
+  "accounts": 278,
+  "cache_hits": 278,
+  "summary_queries": 1,
+  "history_queries": 3,
+  "metadata_traces": [
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_silver",
+      "page": 1,
+      "elapsed_ms": 339,
+      "status": "received"
+    },
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_gold",
+      "page": 1,
+      "elapsed_ms": 396,
+      "status": "received"
+    },
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_silver",
+      "page": 1,
+      "elapsed_ms": 363,
+      "status": "received"
+    },
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_gold",
+      "page": 1,
+      "elapsed_ms": 361,
+      "status": "received"
+    },
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_silver",
+      "page": 1,
+      "elapsed_ms": 331,
+      "status": "received"
+    },
+    {
+      "kind": "source_metadata_request",
+      "schema": "ln_premium_gold",
+      "page": 1,
+      "elapsed_ms": 326,
+      "status": "received"
+    }
+  ],
+  "progress_event_count": 3,
+  "source_unchanged": true,
+  "retrieval_times_preserved": true,
+  "evidence_preserved": true,
+  "scan_ids_rebound": true,
+  "summary_bytes": 1914703,
+  "timings": [
+    {
+      "stage": "initial_source_check",
+      "elapsed_ms": 33285
+    },
+    {
+      "stage": "summary_miss",
+      "elapsed_ms": 2923
+    },
+    {
+      "stage": "confirmation_source_check",
+      "elapsed_ms": 10481
+    },
+    {
+      "stage": "next_scan_source_check",
+      "elapsed_ms": 9876
+    },
+    {
+      "stage": "summary_hit",
+      "elapsed_ms": 9
+    }
+  ],
+  "query_ids": [
+    "01f1ccc8-2350-10f5-b59c-7f1042cd06bf",
+    "01f1ccc8-36a4-124f-909a-69445baab5fb",
+    "01f1ccc8-38c5-1399-927e-3a464246c8b3",
+    "01f1ccc8-3eff-12a5-b536-c630884d8f3b"
+  ]
+}
