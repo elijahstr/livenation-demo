@@ -65,7 +65,7 @@ export class RegionalScanService {
     const record: ScanRecord = {
       id: crypto.randomUUID(), scope_hash: scopeHash(this.options.scope), scope_version: this.options.scope.version,
       label: this.options.scope.label, started_at: iso(started), deadline_at: iso(started + SCAN_MS),
-      status: "running", phase: "starting", consistency: "unknown",
+      status: "running", phase: "starting", progress: { stage: "preflight" }, consistency: "unknown",
       accounts: this.options.scope.accounts.map((account) => ({ account: clone(account), state: "pending" })),
       business_calls: 0, invocations: [], traces: [],
       coverage: { authorized_count: this.options.scope.accounts.length, assessed_count: 0, deferred_count: 0, unavailable_count: 0, unassessed_count: this.options.scope.accounts.length, processing_finished: false, fully_assessed: false },
@@ -98,7 +98,7 @@ export class RegionalScanService {
     try { release = await this.options.acquire?.() ?? (async () => {}); }
     catch (error) { throw new RegionalScanBusyError(error instanceof Error ? error.message : undefined); }
     for (const account of record.accounts) if (account.state === "deferred" && account.reason === record.error) account.state = "pending";
-    record.status = "running"; record.phase = "resuming"; record.ended_at = undefined;
+    record.status = "running"; record.phase = "resuming"; record.progress = { stage: "preflight" }; record.ended_at = undefined;
     this.running.set(record.id, Promise.resolve());
     try { await this.persist(record); }
     catch (error) { this.running.delete(record.id); await release(); throw error; }
@@ -135,6 +135,9 @@ export class RegionalScanService {
     const scanDeadline = Date.parse(record.deadline_at);
     const scanTimer = setTimeout(() => scanController.abort(), Math.max(0, scanDeadline - this.now()));
     try {
+      record.phase = "preflight";
+      record.progress = { stage: "preflight" };
+      await this.persist(record);
       await this.options.beforeStart?.();
       const fingerprint = await this.fingerprint(record, "start", scanController.signal, scanDeadline);
       if (!fingerprint) { this.finish(record); await this.persist(record); return; }
@@ -144,6 +147,7 @@ export class RegionalScanService {
       record.fingerprint = fingerprint;
       record.consistency = "stable";
       record.phase = "loading-summary";
+      record.progress = { stage: "evidence" };
       await this.persist(record);
       let summaries: EvidenceEnvelope[];
       try { summaries = await this.options.data.summaries(this.context(record, scanController.signal, scanDeadline)); }
@@ -174,13 +178,29 @@ export class RegionalScanService {
   private context(record: ScanRecord, signal?: AbortSignal, deadlineAt = Date.parse(record.deadline_at)): ReadContext {
     return {
       scanId: record.id, signal, deadlineAt, fingerprint: record.fingerprint,
-      onTrace: async (trace) => { record.traces.push(clone(trace)); await this.persist(record); },
+      onTrace: async (trace) => {
+        record.traces.push(clone(trace));
+        if (trace.kind === "source_check_progress" && typeof trace.completed === "number" && typeof trace.total === "number") {
+          const progress = record.progress;
+          if (progress && (progress.stage === "sources" || progress.stage === "verification")) {
+            record.progress = { ...progress, completed: trace.completed, total: trace.total };
+          }
+        }
+        await this.persist(record);
+      },
     };
   }
 
   private async fingerprint(record: ScanRecord, phase: string, signal?: AbortSignal, deadlineAt?: number): Promise<SourceFingerprint | null> {
     const started = this.now();
     record.phase = `fingerprint:${phase}`;
+    const accountIds = phase === "batch-publish" ? record.progress?.account_ids : undefined;
+    record.progress = {
+      stage: phase === "start" ? "sources" : "verification",
+      completed: 0,
+      ...(accountIds ? { account_ids: accountIds } : {}),
+    };
+    await this.persist(record);
     try {
       const value = await this.options.data.fingerprint(this.context(record, signal, deadlineAt));
       this.lastFingerprintMs = Math.max(this.lastFingerprintMs, value.elapsed_ms, this.now() - started);
@@ -217,6 +237,8 @@ export class RegionalScanService {
 
   private async assess(record: ScanRecord, batch: ScanAccount[], scanSignal: AbortSignal, scanDeadline: number) {
     record.phase = `assessing:${batch.map((account) => account.account.account_id).join(",")}`;
+    record.progress = { stage: "assessment", account_ids: batch.map((account) => account.account.account_id) };
+    await this.persist(record);
     const remainingBatches = Math.ceil(record.accounts.filter((account) => account.state === "pending").length / FIRST_BATCH_SIZE);
     const allowance = Math.min(12, Math.floor((MAX_CALLS - record.business_calls) / Math.max(1, remainingBatches)));
     let reserved = 0;
@@ -261,11 +283,13 @@ export class RegionalScanService {
         account.state = result.state === "deferred" ? "deferred" : result.state === "unavailable" ? "unavailable" : "assessed";
       }
       record.phase = "batch-committed";
+      record.progress = { stage: "assessment" };
       await this.persist(record);
     } catch (error) {
       const reason = error instanceof Error ? error.message : "The batch result is unavailable.";
       for (const account of batch) { account.state = "deferred"; account.reason = reason; }
       record.phase = "batch-deferred";
+      record.progress = { stage: "assessment" };
       await this.persist(record);
     } finally {
       clearTimeout(timer); clearTimeout(workTimer);
@@ -312,7 +336,7 @@ export class RegionalScanService {
   private finish(record: ScanRecord) {
     this.updateCoverage(record, true);
     record.status = record.coverage.fully_assessed ? "complete" : "partial";
-    record.phase = "finished"; record.ended_at = iso(this.now());
+    record.phase = "finished"; record.progress = { stage: "finished" }; record.ended_at = iso(this.now());
   }
 
   private updateCoverage(record: ScanRecord, finished: boolean) {

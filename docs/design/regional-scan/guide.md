@@ -6,7 +6,7 @@ The Premium workspace connects a regional scan, account details, and separate ac
 
 This independent demo uses synthetic business data. It does not send customer messages, hold inventory, or make purchases.
 
-**Verification status:** The live browser flow passed at desktop and mobile sizes on October 20, 2026. The suite passed 268 tests. Sonnet and Opus completed both review stages. The material findings are resolved.
+**Verification status:** The live browser flow passed at desktop and mobile sizes on October 20, 2026. The current suite passed 270 tests. Sonnet and Opus completed both review stages for the regional flow. The material findings are resolved.
 
 The scan assessed 12 accounts and deferred 266 in 448.989 seconds. All 278 accounts remained available. Two accounts completed live evidence retrieval and follow-up analytics through separate conversations. This result proves the complete seller flow, with partial regional assessment.
 
@@ -27,9 +27,17 @@ The [implementation plan](../../plans/2026-10-20-regional-account-flow.md) recor
 
 Every approved account remains visible. An account without an assessment has a deferred or unavailable state and an explanation.
 
+During a scan, the page refreshes its status about every two seconds. The progress panel shows completed source checks, evidence availability, and assessed accounts separately. Source counts advance only after each source passes its metadata check.
+
+Account evidence appears when the summary query completes. Each assessment group appears after its source check passes. You can open account details before the scan finishes. Expanded evidence sections remain open across updates. Chat becomes available when the scan finishes.
+
+These updates use the existing status endpoint. They do not stream model text or reduce the source-check time. A temporary connection error preserves visible results while the page retries.
+
 A scan can finish with partial coverage. The interface never converts deferred accounts into successful assessments. Source changes invalidate the comparison and mark the scan mixed.
 
 Each account has its own conversation. The server binds its session, runtime session, actor, tools, and account scope. The interface stores each conversation separately and rejects late display updates for another account.
+
+Each reply shows its tool calls as stream events arrive. The history retains exact tool names and requested, returned, or incomplete states. A returned call does not establish that its evidence is complete. The source records retain that distinction. Tool histories remain separate between accounts and turns.
 
 The browser retains conversations within the current page. A page reload, server restart, or session expiry requires a new conversation. Saved scan results survive a page reload and server restart.
 

@@ -156,3 +156,25 @@ test("chunk validation rejects a missing expected result chunk", () => {
     result: { chunk_index: 0, row_offset: 0, data_array: [["first"]], next_chunk_index: 1 },
   }, [])).toThrow("manifest");
 });
+
+test("fingerprint reports each validated source object", async () => {
+  const traces: Array<{ completed?: number; total?: number }> = [];
+  const data = new RegionalData({
+    scope,
+    profile: "test",
+    warehouseId: "warehouse",
+    execute: async (sql) => {
+      if (sql.startsWith("DESCRIBE DETAIL")) return { statementId: "detail", columns: ["id"], rows: [["table-id"]] };
+      if (sql.startsWith("DESCRIBE HISTORY")) return { statementId: "history", columns: ["version"], rows: [["1"]] };
+      return { statementId: "view", columns: ["definition"], rows: [["CREATE VIEW"]] };
+    },
+  });
+
+  await data.fingerprint({ ...context, onTrace: (trace) => {
+    if (trace.kind === "source_check_progress") traces.push({ completed: trace.completed as number | undefined, total: trace.total as number | undefined });
+  } });
+
+  expect(traces).toHaveLength(16);
+  expect(traces.map((trace) => trace.completed)).toEqual(Array.from({ length: 16 }, (_, index) => index + 1));
+  expect(traces.every((trace) => trace.total === 16)).toBe(true);
+});

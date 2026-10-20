@@ -3,7 +3,7 @@ import type { SqlParameter, StatementResult } from "./databricks-statements";
 import { HarnessToolInputError } from "./harness-tool-cycle";
 import { RegionalStatements } from "./regional-statements";
 import { requireAccount, scopeHash, validateScope } from "./regional-scope";
-import type { DatasetRef, EvidenceEnvelope, EvidenceSection, ReadContext, RegionalDataPort, RegionalScope, ScopedExecute, SourceFingerprint } from "./regional-types";
+import type { DatasetRef, EvidenceEnvelope, EvidenceSection, ReadContext, RegionalDataPort, RegionalScope, ScopedExecute, SourceCheckProgressTrace, SourceFingerprint } from "./regional-types";
 
 const AS_OF = "2026-10-16T12:00:00Z";
 const silver = "workspace.ln_premium_silver";
@@ -234,13 +234,21 @@ export class RegionalData implements RegionalDataPort {
   async fingerprint(context: ReadContext): Promise<SourceFingerprint> {
     const started = Date.now(); const refs: DatasetRef[] = [];
     const tables = ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "entitlements", "inventory_snapshots"];
+    const total = tables.length + 3;
+    let completed = 0;
+    const reportProgress = async () => {
+      const trace: SourceCheckProgressTrace = { kind: "source_check_progress", completed, total };
+      await context.onTrace?.(trace);
+    };
     for (const table of tables) {
       const detail = await this.execute(`DESCRIBE DETAIL ${silver}.${table}`, [], context); const history = await this.execute(`DESCRIBE HISTORY ${silver}.${table} LIMIT 1`, [], context);
       const id = detail.rows[0]?.[detail.columns.indexOf("id")]; const version = history.rows[0]?.[history.columns.indexOf("version")];
       if (typeof id !== "string" || typeof version !== "string") throw new Error("Fingerprint metadata is incomplete"); refs.push({ source_id: `${silver}.${table}:${id}`, version });
+      completed++; await reportProgress();
     }
     for (const view of ["account_attention", "account_event_benefits", "upcoming_options"]) {
       const definition = await this.execute(`SHOW CREATE TABLE ${gold}.${view}`, [], context); const text = definition.rows[0]?.[0]; if (typeof text !== "string") throw new Error("Fingerprint view definition is incomplete"); refs.push({ source_id: `${gold}.${view}`, version: "definition", definition_hash: createHash("sha256").update(text).digest("hex") });
+      completed++; await reportProgress();
     }
     for (const name of ["regional-sales-review", "sales-evidence-judgment"]) {
       const text = await Bun.file(new URL(`../docs/design/regional-scan/skills/${name}/SKILL.md`, import.meta.url)).text();

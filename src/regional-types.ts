@@ -55,6 +55,17 @@ export type QueryTrace = {
   elapsed_ms?: number;
   [key: string]: unknown;
 };
+export type SourceCheckProgressTrace = QueryTrace & {
+  kind: "source_check_progress";
+  completed: number;
+  total: number;
+};
+export type ScanProgress = {
+  stage: "preflight" | "sources" | "evidence" | "assessment" | "verification" | "finished";
+  completed?: number;
+  total?: number;
+  account_ids?: string[];
+};
 export type ReadContext = {
   scanId: string;
   signal?: AbortSignal;
@@ -107,6 +118,7 @@ export type ScanRecord = {
   ended_at?: string;
   status: "running" | "complete" | "partial";
   phase: string;
+  progress?: ScanProgress;
   consistency: "stable" | "mixed" | "unknown";
   fingerprint?: SourceFingerprint;
   accounts: ScanAccount[];

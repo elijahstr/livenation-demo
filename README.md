@@ -38,13 +38,16 @@ The user explicitly assigned every California account to Northern California.
 
 The account list retains deferred and unavailable accounts.
 Partial scans remain marked partial.
+During a scan, the page updates about every two seconds with source-check progress, available evidence, and each verified assessment group.
+You can inspect account evidence before the scan finishes. Account chat becomes available after the scan finishes.
 Account conversations use the real agent and server-controlled, read-only evidence tools.
+Each reply retains its tool-call history, with the exact tool names and requested, returned, or incomplete states.
 This flow does not use Genie or permit customer messages, holds, or purchases.
 
 Verified on October 20: the live scan assessed 12 accounts and deferred 266 in 449 seconds.
 All 278 accounts remained available. Desktop and mobile checks passed.
 Two accounts completed live evidence retrieval and follow-up analytics through separate conversations.
-The suite passed 268 tests. Sonnet and Opus completed both review stages; the material findings are resolved.
+The suite passed 270 tests. Sonnet and Opus completed both review stages for the regional flow; the material findings are resolved.
 See the [regional scan guide](docs/design/regional-scan/guide.md) for the workflow, limits, evidence, and verification record.
 
 ## AgentCore chat and traces

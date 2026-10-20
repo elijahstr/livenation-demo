@@ -27,6 +27,11 @@ const data = (fingerprints: SourceFingerprint[] = [fingerprint]): RegionalDataPo
   async evidence(accountId, _sections, context) { return { ...envelope(accountId), scan_id: context.scanId }; }, async options(accountId, _input, context) { return { ...envelope(accountId), scan_id: context.scanId }; }, async analytics(accountId, _input, context) { return { ...envelope(accountId), scan_id: context.scanId }; },
 });
 const assessment = (accountId: string) => ({ account_id: accountId, state: "act" as const, reason: "Fact: synthetic evidence supports a seller review.", unknowns: [], seller_next_step: "Review the account.", evidence_ids: [`e-${accountId}`] });
+const deferred = <T>() => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => { resolve = next; });
+  return { promise, resolve };
+};
 
 test("rejects a batch that omits an expected account", async () => {
   const service = new RegionalScanService({ scope, data: data(), directory: await mkdtemp(join(tmpdir(), "regional-scan-")), assessBatch: async ({ batch }) => [assessment(batch[0]!.account.account_id)] });
@@ -105,4 +110,64 @@ test("moves prior deferred accounts before stable roster order without reusing r
   const second = new RegionalScanService({ scope, data: data(), directory, assessBatch: async ({ batch }) => { seen.push(...batch.map((account) => account.account.account_id)); return batch.map((account) => assessment(account.account.account_id)); } });
   await second.start(); await second.waitForIdle();
   expect(seen[0]).toBe("A100");
+});
+
+test("persists observable progress before each slow scan operation", async () => {
+  const sourceGate = deferred<void>();
+  const summaryGate = deferred<void>();
+  const assessmentGate = deferred<void>();
+  const publishGate = deferred<void>();
+  const sourceStarted = deferred<void>();
+  const summaryStarted = deferred<void>();
+  const assessmentStarted = deferred<void>();
+  const publishStarted = deferred<void>();
+  let checks = 0;
+  const adapter: RegionalDataPort = {
+    ...data(),
+    async fingerprint() {
+      checks++;
+      if (checks === 1) { sourceStarted.resolve(); await sourceGate.promise; }
+      if (checks === 2) { publishStarted.resolve(); await publishGate.promise; }
+      return fingerprint;
+    },
+    async summaries(context) {
+      summaryStarted.resolve();
+      await summaryGate.promise;
+      return scope.accounts.map((account) => ({ ...envelope(account.account_id), scan_id: context.scanId }));
+    },
+  };
+  const service = new RegionalScanService({
+    scope,
+    data: adapter,
+    directory: await mkdtemp(join(tmpdir(), "regional-scan-")),
+    assessBatch: async ({ batch }) => {
+      assessmentStarted.resolve();
+      await assessmentGate.promise;
+      return batch.map((account) => assessment(account.account.account_id));
+    },
+  });
+
+  await service.start();
+  await sourceStarted.promise;
+  expect((await service.get())?.progress).toEqual({ stage: "sources", completed: 0 });
+  sourceGate.resolve();
+
+  await summaryStarted.promise;
+  expect((await service.get())?.progress).toEqual({ stage: "evidence" });
+  summaryGate.resolve();
+
+  await assessmentStarted.promise;
+  const duringAssessment = await service.get();
+  expect(duringAssessment?.progress).toEqual({ stage: "assessment", account_ids: ["A100", "A200"] });
+  expect(duringAssessment?.accounts.every((account) => account.summary)).toBe(true);
+  assessmentGate.resolve();
+
+  await publishStarted.promise;
+  const duringPublish = await service.get();
+  expect(duringPublish?.progress).toEqual({ stage: "verification", completed: 0, account_ids: ["A100", "A200"] });
+  expect(duringPublish?.accounts.every((account) => account.state === "pending")).toBe(true);
+  publishGate.resolve();
+
+  await service.waitForIdle();
+  expect((await service.get())?.progress).toEqual({ stage: "finished" });
 });

@@ -21,6 +21,13 @@
       <div class="scan-controls"><small id="scan-status">Ready to scan</small><button class="button" id="scan-now">Scan now</button></div>
     </section>
     <p id="notice" class="notice" role="status" hidden></p>
+    <section id="scan-live" class="scan-live" aria-label="Live scan progress" hidden>
+      <div class="scan-live-heading"><strong><span id="scan-phase" role="status"></span><span id="scan-source-count"></span></strong><span id="scan-elapsed"></span></div>
+      <p id="scan-phase-detail"></p>
+      <progress id="scan-stage-progress" aria-label="Current source check" hidden></progress>
+      <div class="scan-live-counts"><span id="evidence-count"></span><span id="assessment-count"></span></div>
+      <p class="scan-live-note">Accounts update automatically. Open any account while the scan continues.</p>
+    </section>
     <section id="results" aria-label="Account roster" hidden>
       <div class="attention-heading"><h2>Your accounts <span class="count" id="roster-count"></span></h2><span id="coverage"></span></div>
       <div class="roster-controls">
