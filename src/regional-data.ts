@@ -86,7 +86,7 @@ const summarySql = `WITH scope AS (
   FROM accounts a LEFT JOIN ${silver}.contacts c ON c.account_id=a.account_id GROUP BY a.account_id
 ), purchases AS (
   SELECT a.account_id,to_json(collect_list(CASE WHEN e.event_id IS NOT NULL AND i.order_item_id IS NOT NULL THEN named_struct(
-    'event_id',i.event_id,'product_id',i.product_id,'net_amount',i.line_amount-i.refunded_amount,
+    'event_id',i.event_id,'event_name',artist.artist_name,'product_id',i.product_id,'net_amount',i.line_amount-i.refunded_amount,
     'issued_ticket_count',CASE WHEN i.refunded_amount<i.line_amount THEN coalesce(t.issued_ticket_count,0) ELSE 0 END,
     'accepted_ticket_uses',coalesce(u.accepted_ticket_uses,0)) END)) purchases
   FROM accounts a LEFT JOIN ${silver}.contacts c ON c.account_id=a.account_id
@@ -94,14 +94,16 @@ const summarySql = `WITH scope AS (
   LEFT JOIN ${silver}.orders o ON o.identity_link_id=l.identity_link_id AND o.order_status NOT IN ('cancelled','void')
   LEFT JOIN ${silver}.order_items i ON i.order_id=o.order_id AND i.line_status NOT IN ('cancelled','void')
   LEFT JOIN ${silver}.events e ON e.event_id=i.event_id AND e.venue_id=a.venue_id
+  LEFT JOIN ${silver}.artists artist ON artist.artist_id=e.artist_id
   LEFT JOIN (SELECT order_item_id,count(DISTINCT ticket_id) issued_ticket_count FROM ${silver}.tickets WHERE ticket_status='issued' GROUP BY order_item_id) t ON t.order_item_id=i.order_item_id
   LEFT JOIN (SELECT t.order_item_id,count(DISTINCT s.ticket_id) accepted_ticket_uses FROM ${silver}.tickets t JOIN ${silver}.scans s ON s.ticket_id=t.ticket_id WHERE s.scan_result='accepted' GROUP BY t.order_item_id) u ON u.order_item_id=i.order_item_id
   GROUP BY a.account_id
 ), benefits AS (
   SELECT a.account_id,to_json(collect_list(CASE WHEN e.event_id IS NOT NULL THEN named_struct(
-    'event_id',b.event_id,'product_id',b.product_id,'included_quantity',b.included_quantity,'purchased_line_count',b.purchased_quantity) END)) benefits
+    'event_id',b.event_id,'event_name',artist.artist_name,'product_id',b.product_id,'included_quantity',b.included_quantity,'purchased_line_count',b.purchased_quantity) END)) benefits
   FROM accounts a LEFT JOIN ${gold}.account_event_benefits b ON b.account_id=a.account_id
-  LEFT JOIN ${silver}.events e ON e.event_id=b.event_id AND e.venue_id=a.venue_id GROUP BY a.account_id
+  LEFT JOIN ${silver}.events e ON e.event_id=b.event_id AND e.venue_id=a.venue_id
+  LEFT JOIN ${silver}.artists artist ON artist.artist_id=e.artist_id GROUP BY a.account_id
 )
 SELECT a.account_id,a.account_name,a.venue_id,a.state,activity.activity,contract.contract,purchases.purchases,benefits.benefits,contacts.contacts
 FROM accounts a LEFT JOIN activity ON activity.account_id=a.account_id
@@ -177,7 +179,7 @@ export class RegionalData implements RegionalDataPort {
     if (typeof productId === "string") { filters.push("o.product_id=:product_id"); parameters.push({ name: "product_id", value: productId, type: "STRING" }); }
     if (constraint.quantity !== undefined) { filters.push("o.available_quantity>=:quantity"); parameters.push({ name: "quantity", value: String(constraint.quantity), type: "INT" }); }
     if (constraint.max_unit_price !== undefined) { filters.push("o.unit_price<=:max_unit_price"); parameters.push({ name: "max_unit_price", value: String(constraint.max_unit_price), type: "DECIMAL(18,2)" }); }
-    const sql = `WITH scope AS (SELECT x.account_id,x.venue_id FROM explode(from_json(:scope,'ARRAY<STRUCT<account_id:STRING,venue_id:STRING>>')) AS scoped_rows(x)), owned AS (SELECT event_id,product_id FROM ${gold}.account_event_benefits WHERE account_id=:account_id AND included_quantity+purchased_quantity>0) SELECT o.event_id,o.product_id,o.source,o.available_quantity,o.unit_price,o.snapshot_at FROM ${gold}.upcoming_options o JOIN ${silver}.events e ON e.event_id=o.event_id JOIN scope s ON s.venue_id=e.venue_id AND s.account_id=:account_id LEFT ANTI JOIN owned b ON b.event_id=o.event_id AND b.product_id=o.product_id${filters.length ? ` WHERE ${filters.join(" AND ")}` : ""} LIMIT ${pageSize + 1}`;
+    const sql = `WITH scope AS (SELECT x.account_id,x.venue_id FROM explode(from_json(:scope,'ARRAY<STRUCT<account_id:STRING,venue_id:STRING>>')) AS scoped_rows(x)), owned AS (SELECT event_id,product_id FROM ${gold}.account_event_benefits WHERE account_id=:account_id AND included_quantity+purchased_quantity>0) SELECT o.event_id,artist.artist_name AS event_name,o.product_id,o.source,o.available_quantity,o.unit_price,o.snapshot_at FROM ${gold}.upcoming_options o JOIN ${silver}.events e ON e.event_id=o.event_id LEFT JOIN ${silver}.artists artist ON artist.artist_id=e.artist_id JOIN scope s ON s.venue_id=e.venue_id AND s.account_id=:account_id LEFT ANTI JOIN owned b ON b.event_id=o.event_id AND b.product_id=o.product_id${filters.length ? ` WHERE ${filters.join(" AND ")}` : ""} LIMIT ${pageSize + 1}`;
     const result = await this.execute(sql, parameters, context); ensureRows(result);
     const truncated = result.rows.length > pageSize; const rows = result.rows.slice(0, pageSize).map(row => ({ ...Object.fromEntries(result.columns.map((column, i) => [column, row[i]])), eligibility: "unknown" }));
     const value = envelope(accountId, this.scope, context, result.statementId, { options: { state: "evidence", rows, truncated, reason: rows.length ? null : "No matching option snapshot exists in this dated result." } }, truncated ? "partial" : "complete");
@@ -233,7 +235,7 @@ export class RegionalData implements RegionalDataPort {
 
   async fingerprint(context: ReadContext): Promise<SourceFingerprint> {
     const started = Date.now(); const refs: DatasetRef[] = [];
-    const tables = ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "entitlements", "inventory_snapshots"];
+    const tables = ["accounts", "contacts", "identity_links", "contracts", "activities", "orders", "order_items", "tickets", "scans", "venues", "events", "artists", "entitlements", "inventory_snapshots"];
     const total = tables.length + 3;
     let completed = 0;
     const reportProgress = async () => {

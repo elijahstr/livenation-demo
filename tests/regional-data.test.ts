@@ -174,7 +174,7 @@ test("fingerprint reports each validated source object", async () => {
     if (trace.kind === "source_check_progress") traces.push({ completed: trace.completed as number | undefined, total: trace.total as number | undefined });
   } });
 
-  expect(traces).toHaveLength(16);
-  expect(traces.map((trace) => trace.completed)).toEqual(Array.from({ length: 16 }, (_, index) => index + 1));
-  expect(traces.every((trace) => trace.total === 16)).toBe(true);
+  expect(traces).toHaveLength(17);
+  expect(traces.map((trace) => trace.completed)).toEqual(Array.from({ length: 17 }, (_, index) => index + 1));
+  expect(traces.every((trace) => trace.total === 17)).toBe(true);
 });

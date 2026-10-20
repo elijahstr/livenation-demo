@@ -1,4 +1,5 @@
 import { AS_OF, TABLES, canonicalJson, hash, oracleMetrics, type Envelope } from "./premium-foundation";
+import { artistName, companyName } from "./premium-names";
 
 export const FOUNDATION_RAW = 28;
 export const FOUNDATION_ACCEPTED = 27;
@@ -61,7 +62,7 @@ export function generateBundle(ordinal: number): Envelope[] {
   const itemCStatus = cancelled ? "cancelled" : "completed";
   const itemDStatus = cancelled ? "cancelled" : "completed";
   return [
-    row(ordinal, "A", "accounts", { account_id: account, account_name: `Scale Account ${ordinalText(ordinal)}`, region: "west", primary_venue_id: venue }),
+    row(ordinal, "A", "accounts", { account_id: account, account_name: companyName(ordinal), region: "west", primary_venue_id: venue }),
     row(ordinal, "C", "contacts", { contact_id: contact, account_id: account, email: `scale-${ordinal}@example.test` }),
     row(ordinal, "IL", "identity_links", { identity_link_id: link, contact_id: contact, external_identity: `tm-scale-${ordinalText(ordinal)}` }),
     row(ordinal, "CT", "contracts", { contract_id: contract, account_id: account, venue_id: venue, status: "active", start_date: "2026-01-01", end_date: "2026-12-31" }),
@@ -70,8 +71,8 @@ export function generateBundle(ordinal: number): Envelope[] {
     row(ordinal, "EN1", "entitlements", { entitlement_id: `${id}-EN1`, account_id: account, contract_id: contract, event_id: futureEvent, product_id: "general-parking", status: "included", included_quantity: 1 }),
     row(ordinal, "EN2", "entitlements", { entitlement_id: `${id}-EN2`, account_id: account, contract_id: contract, event_id: futureEvent, product_id: "premier-parking", status: "available", included_quantity: 0 }),
     row(ordinal, "V", "venues", { venue_id: venue, venue_name: `Scale Venue ${ordinalText(ordinal)}`, state, iana_timezone: zone }),
-    row(ordinal, "AR1", "artists", { artist_id: artistA, artist_name: `Scale Artist ${ordinalText(ordinal)} A` }),
-    row(ordinal, "AR2", "artists", { artist_id: artistB, artist_name: `Scale Artist ${ordinalText(ordinal)} B` }),
+    row(ordinal, "AR1", "artists", { artist_id: artistA, artist_name: artistName(ordinal, 1) }),
+    row(ordinal, "AR2", "artists", { artist_id: artistB, artist_name: artistName(ordinal, 2) }),
     row(ordinal, "REL", "artist_relations", { seed_artist_id: artistA, related_artist_id: artistB, relation_source: "synthetic" }),
     row(ordinal, "E1", "events", { event_id: pastEvent, venue_id: venue, artist_id: artistA, event_date: "2026-09-12", event_status: "completed" }),
     row(ordinal, "E2", "events", { event_id: futureEvent, venue_id: venue, artist_id: artistB, event_date: "2026-11-12", event_status: "scheduled" }),

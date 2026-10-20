@@ -70,7 +70,7 @@ test("derives exact counts and cumulative metrics without changing the foundatio
   expect(expectedCounts(0)).toEqual({ bronze: FOUNDATION_RAW, silver: FOUNDATION_RAW - 1 });
   expect(expectedCounts(TOTAL_BUNDLES)).toEqual({ bronze: TARGET_BRONZE, silver: TARGET_SILVER });
   expect(cumulativeAccepted(foundation, [1, 2])).toHaveLength(27 + 2 * RECORDS_PER_BUNDLE);
-  expect(hash(generateBundle(1))).toBe("d93c641ead4d6dd1b9226fd193bcd9b3de906cf058c0366b52ebc718572f9f2e");
+  expect(hash(generateBundle(1))).toBe("fe08b6513fe385f81bb73ab4618a979b7e7455e11c97643dffe7152b0a6addf4");
   expect(cumulativeOracle(foundation, [1])).toEqual({ net_admission_revenue: "490.00", net_parking_revenue: "75.00", valid_admission_tickets: 11, admission_buying_accounts: 2 });
 });
 
