@@ -1,5 +1,10 @@
 # Regional scan architecture decisions
 
+Historical record: the [current implementation plan](../../plans/2026-10-20-regional-account-flow.md) and [regional scan guide](guide.md) supersede this proposal.
+All six decisions were resolved on October 20, 2026.
+The user approved all 278 accounts, assigned all California accounts to Northern California, and retained the existing read-only demo identity.
+The new flow uses server-controlled analytics instead of Genie.
+
 > **Material caveat.** This is a design record for the demo target.
 > The current Premium chat does not provide a regional scan.
 > The current fixed account tools still support only Harbor Works account `A100`.

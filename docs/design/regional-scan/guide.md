@@ -2,159 +2,156 @@
 
 ## Start here
 
-The regional scan is a **proposed**, read-only way to help a seller review an approved account list. It is not a deployed workflow. Think of it as a careful clerk with a folder for each account: the database places dated facts in each folder, an agent reads a small group of folders, and the server checks that every folder has an honest recorded outcome.
+The Premium workspace connects a regional scan, account details, and separate account conversations. Open `/premium` on the local demo server.
 
-An **account** is a customer relationship. An **activity** is a contact event, such as an email or call. A **row** is one database record. The **roster** is the approved list of accounts to assess. A **model** writes and reads language. An **agent** is a model with written rules and controlled tools. The **server** is the program that keeps the roster, access checks, and saved results.
+This independent demo uses synthetic business data. It does not send customer messages, hold inventory, or make purchases.
 
-The October 19 benchmark observed **278 accounts, 555 activities, and 9,999 Silver rows across 17 tables**. **Silver** is the cleaned and linked data layer. **Gold** is the reviewed business-summary layer. The benchmark covered California, Oregon, and Washington. It is a measurement, not an approved Northern California roster and not a production performance result. The data is synthetic. The proposed demo roster still needs its versioned allowlist.
+**Verification status:** The live browser flow passed at desktop and mobile sizes on October 20, 2026. The suite passed 268 tests. Sonnet and Opus completed both review stages. The material findings are resolved.
 
-**Current status:** Premium chat has fixed A100 evidence tools and one workspace-wide Genie analytics tool through a local bridge. The scan, its roster control, its ledger, and its UI integration remain proposed. The scan makes no business write. It cannot hold inventory, send a message, release an offer, or spend money.
+The scan assessed 12 accounts and deferred 266 in 448.989 seconds. All 278 accounts remained available. Two accounts completed live evidence retrieval and follow-up analytics through separate conversations. This result proves the complete seller flow, with partial regional assessment.
+
+The roster contains 278 explicit account and venue pairs. The user assigned all 94 California accounts to Northern California on October 20, 2026. Oregon has 92 accounts. Washington has 92 accounts. The application does not infer Northern California from state codes.
+
+The [implementation plan](../../plans/2026-10-20-regional-account-flow.md) records the resolved decisions, source checks, and review rulings. This guide remains the documentation entry point.
 
 <!-- fig:rolesflow -->
 
 ## How it works
 
-The database supplies facts. SQL, a language for database questions, creates one compact summary for every authorized account. The server saves the summaries and their evidence identifiers in a **ledger**, a durable result list. It then gives no more than ten summaries to one model call. A detail request happens only when it can change the next seller step.
+1. Select **Scan now**.
+2. Read the actual source-check and assessment progress.
+3. Use the account search, status filter, or 50-account pages.
+4. Open an account to inspect its identity, relationship, activities, benefits, and assessment.
+5. Send a question to that account's agent after the scan finishes.
+6. Select **Back to scan** to return to the saved results.
 
-This separates evidence from judgment. The database can state a date, quantity, or benefit. The agent can assess whether the evidence supports `act`, `ask`, or `no-action`. It checks evidence strength, customer value, urgency, and effort, then considers revenue only when the scan objective permits it. It compares reasonable explanations and records unknowns. It cannot convert a missing fact into a negative fact. The server validates every returned account identifier and calculates coverage itself.
+Every approved account remains visible. An account without an assessment has a deferred or unavailable state and an explanation.
 
-A **skill** is a written work rule. A **tool** is a controlled data function. **MCP** is a standard that connects an agent to tools. An AgentCore **harness** runs agent and tool steps. Fixed tools return reviewed facts. The agent uses adaptive investigation only for questions that can change the seller step.
+A scan can finish with partial coverage. The interface never converts deferred accounts into successful assessments. Source changes invalidate the comparison and mark the scan mixed.
 
-<!-- fig:summaryvsdetail -->
+Each account has its own conversation. The server binds its session, runtime session, actor, tools, and account scope. The interface stores each conversation separately and rejects late display updates for another account.
 
-Harbor Works, account `A100`, shows the boundary. Its active contract ends on 2026-12-31. One email has a timestamp but no body or direction. Three ticket uses exist for one Meridian Lights event. General Parking is included for E200. Premier Parking is absent. A dated October 16 snapshot records 12 Premier Parking units at $40.
+The browser retains conversations within the current page. A page reload, server restart, or session expiry requires a new conversation. Saved scan results survive a page reload and server restart.
 
-Those facts do not prove customer intent, future attendance, travel plans, email meaning, renewal risk, or present inventory availability. A useful seller step can be: ask whether future attendance or travel makes parking useful. It cannot promise a hold. The later seller action refreshes inventory first.
+The activity source has dates and types. It does not supply message bodies or contact direction. The interface states these limits.
+
+## Evidence and investigation
+
+SQL supplies repeated facts. The real AgentCore agent chooses useful investigations and proposes a seller action or question.
+
+The agent has three tools: account evidence, option snapshots, and account analytics. The server controls account IDs, venue scope, SQL templates, parameters, and result limits.
+
+Analytics supports activity counts, latest activity, net purchase amounts, qualifying issued tickets, benefit quantities, order-line counts, and historical accepted ticket uses. It supports only the documented dataset and group combinations.
+
+The new flow does not use Genie. The user approved this change because Genie can execute generated SQL before the application receives it. The separate legacy Genie chat remains available. [Genie conversation API](https://docs.databricks.com/api/genie/v1/genie-start-conversation)
+
+The source cutoff is October 16, 2026. It differs from retrieval time. Historical inventory does not prove current availability. Three accepted ticket uses do not prove three separate events.
+
+Evidence includes source records, query IDs, units, and dates. Failed or incomplete retrieval remains distinct from absent records. The server never accepts a citation from another account.
 
 ## Reliability
 
-The server owns the coverage promise. It retains the full authorized roster and records every account as assessed, deferred, or unavailable. A timeout leaves remaining accounts deferred. A scan can finish processing yet remain **partial**. The page must never present that result as complete.
+| Control | Behavior |
+| --- | --- |
+| Scope | Explicit, versioned 278-account allowlist; query identity remains the approved synthetic demo identity. |
+| Concurrency | One shared cloud-operation lock covers scan, account chat, detail reads, and legacy agent requests. |
+| Scan time | At most 600 seconds, including source checks and cleanup. |
+| Account batch | Three accounts; at most 180 seconds. |
+| Business calls | At most 120 per scan; cache hits count. Each batch receives its fair remaining share, capped at 12. |
+| Model invocation | Existing Kimi route, 40-second timeout, 2,048 output-token ceiling, no retries. |
+| Account chat | At most three evidence calls per turn; twenty turns and thirty-minute idle expiry per session. |
+| Query result | At most 1,000 rows and 1 MiB. Completed result chunks require index, offset, and count validation. |
+| Tool evidence | At most 50 records and 64 KiB. Omitted evidence has a partial marker. |
+| Cost admission | Accrued AWS cost plus conservative local charges and the next reservation must remain below $13. |
 
-<!-- fig:coverageoutcomes -->
+A source fingerprint records relevant Delta table IDs and versions, Gold view definitions, scope, skills, and implementation hashes. The service checks it at scan start, before each batch commit, and at scan end.
 
-A **cache** is a saved copy. It may avoid duplicate work, but it does not prove access or freshness. The proposed application cache reuses only complete validated fixed-tool evidence inside one scan. It checks authorization before each protected use. It saves the business cutoff, source observation time, original retrieval time, and cache service time. It never reuses live inventory across scans or treats an error as a fact.
+These checks consume scan time. The service reserves time for the final check and defers work that cannot fit. A later scan prioritizes previously deferred accounts when scope and source match. It does not reuse the previous judgments.
 
-Databricks can reuse query results and files, but that does not replace seller authorization or freshness checks. The proposed retrieval uses one parameterized, scoped summary statement and its completed result chunks. It does not use offset pages as a claim of bounded database work. The existing Gold objects are ordinary views. This design adds no manual optimization or warehouse change.
+An interrupted scan retains its ledger. Resume requires the original deadline and the same source fingerprint. An expired scan requires a new scan. A remote operation with an unknown outcome can block further cloud work until reconciliation.
 
-The repository selects Kimi on `converse_stream`, but that does not prove a live scan runtime. Keep the route until identical held-out cases pass fact, scope, coverage, unknown-handling, latency, and measured-cost checks. Prompt caching remains conditional until the exact route supports it and an observed cache read confirms it. Model input caching never becomes current seller evidence.
+The application cache holds only complete fixed evidence inside one scan. Every reuse checks account authorization and the last verified source fingerprint. A live source check still precedes batch publication. The cache retains original retrieval time and adds service time. It does not cache natural-language analytics or share inventory across scans.
 
 ## Decisions
 
-The design has six open decisions. Each card gives the recommendation and its cost. These selections only create a readable note for review. They do not change the design or submit anything.
+- Use the explicitly approved 278-account roster and territory assignment.
+- Retain the existing demo identity with server-enforced scope.
+- Use server-controlled analytics instead of Genie in this flow.
+- Rank useful seller actions today.
+- Reveal results after a validated batch commit.
+- Run manual scans while the business snapshot remains frozen.
 
-<!-- decisions -->
+## Measurements
+
+The October 20 source check returned 278 account envelopes in **29.133 seconds**. This measures one SQL summary, not the complete agent flow.
+
+The existing test baseline had 237 passing tests. After review corrections, the integrated suite passed 268 tests with zero failures and 903 expectations.
+
+The real scan returned 12 assessed accounts, 266 deferred accounts, and no unavailable accounts. It completed in 448.989 seconds with stable source versions. It made five model invocations and one agent-selected evidence call.
+
+Four scan invocations reported 37,664 input tokens and 2,884 output tokens. One invocation omitted token usage. These totals exclude the missing usage.
+
+Source checks took 56.527 to 87.697 seconds each. They consumed most of the scan time and limited assessment coverage. The scan executed 176 SQL statements, including metadata checks. A later scan prioritizes the deferred accounts.
+
+Browser checks opened A100, SC0001-A, SC0004-A, SC0034-A, and SC0276-A. Pagination exposed all 278 unique accounts. A100 and SC0001-A each completed an evidence turn and an analytics follow-up. Account switches preserved separate messages, including late responses. The scan results remained available.
+
+The interface passed visual checks at 1440 × 1000 and 390 × 844. Neither width had document overflow. The partial notice remained visible in account views. The application console had no errors or warnings.
+
+The browser could not retain the second SC0001-A network response body. Its completed reply and citations remained visible. A separate CLI read confirmed the cited query succeeded with one email and one call.
+
+The complete scan and chat proof used 13 model invocations. Eight reported 48,824 input tokens and 3,606 output tokens. Five omitted usage. All omitted provider cache metrics.
+
+The local ledger retained $8.306688 in model reservations and estimated $0.15 in Cost Explorer request fees. The $8.456688 total is conservative reserved exposure, not a measured bill. The last Cost Explorer result was approximately zero, with possible reporting delay. Actual complete AWS and Databricks costs remain unavailable.
+
+The [live verification record](live-verification-2026-10-20.json) contains coverage, source-check times, citations, session IDs, usage totals, and review provenance.
+
+A metadata probe measured one table identity command at 2.007 seconds, one history command at 2.275 seconds, and one view definition command at 2.046 seconds. These examples do not guarantee the duration of every source check.
+
+The scan records elapsed time, coverage, tool calls, query traces, and raw model usage. Missing usage and cache metrics remain unknown. Databricks billing is unavailable through the AWS cost check.
+
+AWS lists the selected Kimi route at $0.60 per million input tokens and $3.00 per million output tokens. The price check date is October 20, 2026. Estimates are not bills. [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/)
+
+Cost Explorer can lag. The persistent local ledger reserves conservative cost before each invocation and retains the reservation when usage is incomplete. It does not claim a real-time cloud billing guarantee. [Cost Explorer](https://docs.aws.amazon.com/cost-management/latest/userguide/ce-exploring-data.html)
 
 ## Reference
 
-The closed sections below keep the technical record on this page. They include the full implementation plan, contracts, skills, prompt, Genie context, evaluation material, and source proof. The embedded JSON sections are readable here. The server also preserves raw developer downloads at `/source/*`.
+- [Current implementation plan and review rulings](../../plans/2026-10-20-regional-account-flow.md)
+- [Live browser and cloud verification](live-verification-2026-10-20.json)
+- [Approved interface reference](../../prototypes/premium-sales/index.html)
+- [Versioned roster](../../../config/regional-scan-scope.json)
+- [Earlier architecture record](architecture-decisions.md)
+- [Earlier retrieval contracts](retrieval-contracts.md)
+- [Earlier scale evidence](scale-evidence-2026-10-19.json)
+- [Evidence judgment skill](skills/sales-evidence-judgment/SKILL.md)
+- [Regional review skill](skills/regional-sales-review/SKILL.md)
+- [AgentCore trace guide](../../../infra/README.md#read-a-conversation-trace)
 
-<!-- details:start:Exact measurements and scan controls -->
+Earlier design documents describe the prior Genie proposal. The current plan and this guide supersede that route and the unresolved roster choices.
 
-The single-query benchmark took 17,809 ms and returned 57,815 serialized bytes. The six-page keyset probe took 43,791 ms and returned 278 unique accounts. It matched the baseline rows. Both timings include CLI submission, polling, and retrieval. Cache state was not measured. Neither timing proves runtime scan performance or an SLA.
+## Recover a blocked local session
 
-The measurement read Silver directly under the demo identity. The proposed Gold route with a restricted principal has no runtime measurement. The current fixed tools support A100 only and use the broad synthetic demo identity. Proposed seller-scoped permissions need separate verification.
+Confirm that every affected cloud request has ended before you clear a remote block.
 
-The current Statements adapter rejects multi-chunk results. The proposed extension verifies chunk index, offset, completeness, deadline, and bounded disk spooling. It follows no arbitrary next URL. A missing chunk produces partial coverage. The proposed path reads one completed query result into the ledger. The server stores source references, units, cutoff, retrieval time, status, and source fingerprint with saved evidence.
+1. Stop the local server.
+2. Read the affected scan trace under `outputs/regional-scans`.
+3. For each recorded statement ID, read its status through the configured CLI.
+4. Cancel an active statement only when the trace identifies it as this demo's request.
+5. Confirm a terminal status: `SUCCEEDED`, `FAILED`, `CANCELED`, or `CLOSED`.
+6. Wait until the recorded model quarantine time has passed.
 
-A fingerprint includes relevant Delta table IDs and latest versions, Gold view definitions, skill hashes, and the scope configuration hash. A fingerprint change marks the scan mixed and requires a fresh comparison. UTF-8 size checks keep complete text and evidence together when the server splits a batch.
+```sh
+databricks api get /api/2.0/sql/statements/STATEMENT_ID --profile livenation-demo
+databricks api post /api/2.0/sql/statements/STATEMENT_ID/cancel --profile livenation-demo --json '{}'
+```
 
-The proposed fairness formula reserves business calls across remaining batches: `min(12, floor(remaining_calls / remaining_batches))`. A zero allowance permits a summary assessment or explicit deferral. It does not force a no-action result.
+A submission can fail before it returns an ID. In that case, inspect warehouse query history for the attempt's time and SQL template. Keep the block if you cannot identify the attempt.
 
-<!-- details:end -->
+After these checks, preserve a copy of `outputs/regional-runtime/runtime.json`. The following command clears only the reconciled remote state. It preserves all cost records.
 
-<!-- details:start:Reliability practices and source proof -->
+```sh
+bun -e 'import {rename} from "node:fs/promises"; const path="outputs/regional-runtime/runtime.json"; const state=await Bun.file(path).json(); delete state.unknown_block; delete state.remote_until; delete state.statement_until; await Bun.write(path+".reconciled",JSON.stringify(state,null,2)); await rename(path+".reconciled",path);'
+```
 
-### Regional scan reliability practices
+Do not delete the cost ledger to permit more calls. Reconcile a cost reservation only against measured usage and the dated rates. Unknown usage keeps its reservation. A larger budget requires a separate decision.
 
-Date checked: 2026-10-19. Status: design guidance. The scan is read-only and unbuilt.
-
-The scan treats a cache as a fast copy. It does not treat a cache as proof of access or freshness. The server checks access before every protected cache read. It records the source time and the time it served a saved copy.
-
-## Practice status
-
-| Practice | Why | Current status |
-| --- | --- | --- |
-| Reuse completed account evidence within one scan. | It prevents duplicate database work. | **Proposed.** The server owns this cache. |
-| Reuse `brief` and `options` during one fixed-tool handler set. | It avoids duplicate current-chat reads. | **Existing.** `src/premium-tools.ts` keeps a per-turn promise map. |
-| Coalesce identical in-flight evidence requests. | It prevents duplicate submissions during a request burst. | **Proposed.** No Redis or new service is required. |
-| Read one scoped SQL summary statement, then consume result chunks. | A result-row limit does not alone prove bounded SQL work. | **Proposed.** The existing Gold objects are ordinary views. |
-| Keep Kimi until an evaluation passes. | A low token price does not prove a safe seller result. | **Proposed.** Repository configuration only. |
-| Use model prompt caching after route support and observed reads. | A provider cache does not save completed scan evidence. | **Conditional.** Kimi cache behavior and Harness wiring are unverified. |
-
-## Three caches have different jobs
-
-The application evidence cache belongs to this server. It can reuse one complete, validated fixed-tool evidence result during one scan. It does not cache adaptive Genie answers by natural-language question text. Its key includes trusted workspace, principal and authorization version, seller-roster scope hash, tool or query and schema version, normalized arguments, cutoff, and source fingerprint. These key fields are this design's choices. The server authorizes the caller before every protected hit. This follows guidance to authorize before lookup and scope every result attribute. [OWASP multi-tenant security guidance](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)
-
-An evidence entry retains `data_as_of`, the semantic cutoff, and `observed_at`, the source or snapshot time. It retains original `retrieved_at` and adds proposed cache-ledger `served_at`. The server reuses only complete, validated evidence. A failed, stale, truncated, or mixed result never becomes an empty fact. The server rejects reuse when a current check detects a changed source or authorization. A changed fingerprint stops publication. A time limit is not proof that the source stayed fresh.
-
-The entry expires no later than the scan deadline and policy maximum age. This expiry rule and the entry and byte limits are proposed design controls. A failure cooldown, if used, has a separate state from evidence. It must never store an error as a fact. Durable audit records can outlive a cache entry, but they are not fresh data. AWS describes expiry, cache-off tests, and request coalescing as useful cache practices. [AWS caching strategies](https://aws.amazon.com/builders-library/caching-challenges-and-strategies/)
-
-Databricks reuses query results and files as provider caches. The application still checks its own seller permissions and business freshness. The vendor page does not describe these caches as application authorization or seller-scope controls. [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
-
-Prompt-prefix caching belongs to the model provider. It can reuse model input only when the exact model, API route, and Harness request support it. It does not store a seller answer, conversation memory, or scan ledger. AWS's explicit-cache table omits Kimi. The Kimi model card does not establish a cache type. Harness has no first-class cache checkpoint field. Keep prompt caching conditional until exact route support and an observed cache read prove it. Do not treat that as permanent non-support. Keep stable tools, system instructions, and skills before variable account facts. [AWS prompt caching](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html) [Kimi K2.5 model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-moonshot-ai-kimi-k2-5.html) [AWS InvokeHarness](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_InvokeHarness.html)
-
-## Freshness and recommendation safety
-
-The design has no cross-scan cache for live inventory. A later seller action refreshes inventory first. The server reuses committed judgment only inside the same scan and unchanged configuration during resume. It does not cache recommendations across scans.
-
-The source fingerprint binds relevant Delta versions, Gold view definitions, skills, and scope configuration. A source change stops comparison and invalidates affected evidence. The result can remain audit history, but it cannot support a current claim.
-
-## Databricks retrieval
-
-The scan runs one parameterized, scoped summary statement. It consumes chunks from that completed statement. It does not issue offset pages for the same summary. This design infers that a result-row limit does not prove bounded read work. Databricks defines `LIMIT` as a maximum result-row count and says skipped `OFFSET` rows still get processed. [Databricks statement execution](https://docs.databricks.com/aws/en/dev-tools/sql-execution-tutorial) [Databricks query syntax](https://docs.databricks.com/aws/en/sql/language-manual/sql-ref-syntax-qry-query)
-
-Profile the actual statement before a performance decision. Record queue or cold-start time, execution time, result fetch time, actual bytes read, joins, cache behavior, and result size. Databricks Query Profile shows operators and metrics for this work. [Databricks Query Profile](https://docs.databricks.com/aws/en/sql/user/queries/query-profile) The observed 17.809-second and 43.791-second measurements include CLI submission and retrieval. Their cache state is unknown. They are not end-to-end scan times or a service target.
-
-The current Gold assets are ordinary views over curated data. Predictive optimization, when it applies, operates on managed tables below these views. This design adds no manual `OPTIMIZE`, `ANALYZE`, or `VACUUM`. It makes no warehouse or auto-stop configuration change. Cold starts and queue time remain measurement inputs. [Databricks predictive optimization](https://docs.databricks.com/aws/en/optimizations/predictive-optimization) [Databricks warehouse configuration](https://docs.databricks.com/aws/en/compute/sql-warehouse/create)
-
-Use a curated scoped identity and parameterized statements. Keep Genie narrow, with seller metrics, examples, and benchmarks. Databricks recommends simple datasets, documented semantics, and example SQL. A workspace-wide Genie route is not automatically unsafe because it is broad. Its scope and permissions still need verification. [Databricks Genie best practices](https://docs.databricks.com/aws/en/genie-agents/best-practices)
-
-## Model selection and prompt limits
-
-The repository configuration selects `moonshotai.kimi-k2.5` on `converse_stream`. This does not prove a live regional-scan runtime. The design makes no automatic provider change.
-
-Choose a route from representative held-out cases. Include ambiguity, refunds, missing or stale evidence, owned products, and prompt injection. Compare seller quality, scope control, evidence coverage, unknown handling, total workflow latency, and measured cost. Select a smaller or cheaper route only after it passes critical fact, scope, and coverage gates. SQL supplies counts. It does not create a deterministic priority prefilter that removes model assessment.
-
-Keep independent batch contexts bounded. Do not append every earlier account batch into one conversation. Reuse stable instructions, send only relevant batch evidence, and resume from the ledger. Conversation memory is not a substitute for fresh tool facts.
-
-Use input, output, and remaining-headroom budgets in addition to byte limits. Use conservative calibrated estimates and observed usage. Do not assume four characters equal one token. The Kimi model card lists `Count tokens` as unsupported. [Kimi K2.5 model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-moonshot-ai-kimi-k2-5.html)
-
-The local create-time file sets a nested 1,024-token value and a top-level 2,048-token value. The current Premium invocation requests 2,048 tokens. The live effective value and output sufficiency for a ten-account result are unverified. They need a truncation test before scan readiness. `maxTokens` limits one model call. It does not limit all calls in a Harness run. Record aggregate use across all calls. [AWS InvokeHarness](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_InvokeHarness.html)
-
-AWS `InvokeHarness` can return input, output, cache-read, cache-write, and latency values. A missing cache value is `unknown`, not zero. For cache-enabled Converse only, AWS defines total input as `inputTokens + cacheReadInputTokens + cacheWriteInputTokens`. Do not apply this formula to Harness, Responses, or an already aggregated `totalTokens` field without mapping and aggregation verification. Capture raw usage, API route, and model. Use model-specific separate rates with a price date. Cache benefit and cost savings remain conditional until exact route support, request wiring, and a measured cache read prove them. [AWS prompt caching](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html) [AWS Harness token usage](https://docs.aws.amazon.com/bedrock-agentcore/latest/APIReference/API_HarnessTokenUsage.html)
-
-## Bounded work and evidence
-
-Use up to two workers only after isolated batch contexts, atomic global budget reservation, and serialized ledger writes exist. Use a rate-aware queue. Give one layer ownership of each retry. Apply exponential backoff with jitter only within the remaining whole-scan deadline and cleanup reserve. When an ambiguous statement or Genie submission returns no statement or conversation ID, record the attempt as unknown and defer affected work. Do not resubmit it in the same scan. Reconcile only an attempt with a returned ID. The worker count is a proposed design choice. AWS documents backoff and jitter to reduce retry storms. [AWS timeout, retries, and backoff](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)
-
-The proposed 120-business-call budget counts model-requested tools. Cache hits still count, to prevent loops. It does not count every SQL poll, cache lookup, or model call. The scan records and separately bounds provider attempts, polls, and model tokens. They share the same whole-scan deadline and cleanup reserve. It adds no numeric quota before measurement.
-
-The scan records each cache layer as hit, miss, or unknown. It records SQL statement, queue, run, and fetch times; model input, output, and cache tokens when present; calls, retries, wall time, estimated cost with price date, coverage, and grounding quality. Cache-disabled, cold, warm, and repeated synthetic-account volume tests are planned evaluation cases. Repeated accounts test volume, not judgment variety. They are not completed measurements.
-
-## Required evaluation cases
-
-- An authorization change causes a cache miss or denial.
-- A source change invalidates evidence.
-- A cache miss does not create a failure storm.
-- Identical in-flight requests create one source submission.
-- Cold and warm runs preserve facts and coverage. Creative wording can differ.
-- The record distinguishes source freshness from retrieval time.
-- A model candidate passes the same held-out safety and quality cases before selection.
-
-## Sources
-
-- [AWS caching strategies](https://aws.amazon.com/builders-library/caching-challenges-and-strategies/)
-- [AWS timeout, retries, and backoff](https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/)
-- [OWASP multi-tenant security guidance](https://cheatsheetseries.owasp.org/cheatsheets/Multi_Tenant_Security_Cheat_Sheet.html)
-- [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
-- [AWS prompt caching](https://docs.aws.amazon.com/bedrock/latest/userguide/prompt-caching.html)
-
-<!-- details:end -->
-
-## Sources
-
-- [Scale evidence](scale-evidence-2026-10-19.json)
-- [Databricks statement result chunks](https://docs.databricks.com/api/workspace/statementexecution/getstatementresultchunkn)
-- [Databricks query profile](https://docs.databricks.com/aws/en/sql/user/queries/query-profile)
-- [Databricks query caching](https://docs.databricks.com/aws/en/sql/user/queries/query-caching)
-- [Databricks Genie best practices](https://docs.databricks.com/aws/en/genie-agents/best-practices)
+The cost ledger also counts Cost Explorer requests at the published $0.01 rate per primary-view request. This remains a charge estimate, not a current bill. [Cost Explorer pricing](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/pricing/)

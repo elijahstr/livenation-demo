@@ -1,6 +1,6 @@
 import { FIGURES, CSS } from "./figures.ts";
 
-const sourceRoutes: Record<string, string> = {"scale-evidence-2026-10-19.json":"#appendix-scale-evidence","response-schemas.json":"#appendix-response-schemas","tool-definitions.json":"#appendix-tool-definitions","evaluation-cases.json":"#appendix-evaluation-cases","contract-examples.json":"#appendix-contract-examples"};
+const sourceRoutes: Record<string, string> = {"2026-10-20-regional-account-flow.md":"#appendix-plan","live-verification-2026-10-20.json":"#appendix-live-verification","regional-scan-scope.json":"https://github.com/elijahstr/livenation-demo/blob/main/config/regional-scan-scope.json","scale-evidence-2026-10-19.json":"#appendix-scale-evidence","response-schemas.json":"#appendix-response-schemas","tool-definitions.json":"#appendix-tool-definitions","evaluation-cases.json":"#appendix-evaluation-cases","contract-examples.json":"#appendix-contract-examples"};
 const anchorRoutes: Record<string, string> = {"scale-and-retrieval.md":"#how-it-works","best-practices.md":"#reliability","architecture-decisions.md":"#appendix-architecture","demo-talk-track.md":"#appendix-talk-track","retrieval-contracts.md":"#appendix-contracts","genie-context.md":"#appendix-genie-context","system-prompt.md":"#appendix-system-prompt"};
 const esc=(text:string)=>text.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
 const slug=(text:string)=>text.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
